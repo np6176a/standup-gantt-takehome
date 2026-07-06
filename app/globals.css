@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Minimal global reset. The example page uses inline styles; style your Gantt
    however you prefer (CSS modules, Tailwind, plain CSS -- your call). */
 * {
