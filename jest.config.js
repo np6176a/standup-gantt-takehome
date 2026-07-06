@@ -3,8 +3,12 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   // The Fake source seams (seed dataset, write store, fake-GitHub, source selection)
-  // are unit-tested here. Your Gantt's own tests can live under lib/ too.
-  testMatch: ["<rootDir>/lib/**/*.test.ts"],
+  // are unit-tested here, alongside the Gantt's own pure logic under lib/ and the
+  // per-component `{Name}Util.test.ts` files mandated by CLAUDE.md.
+  testMatch: [
+    "<rootDir>/lib/**/*.test.ts",
+    "<rootDir>/components/**/*.test.ts",
+  ],
   moduleNameMapper: {
     // Mirror tsconfig's "@/*" path alias so lib/ modules and their tests resolve it.
     "^@/(.*)$": "<rootDir>/$1",
