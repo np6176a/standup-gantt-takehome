@@ -3,12 +3,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { reaction } from 'mobx';
 
-import {
-  ACCENT_STORAGE_KEY,
-  RootStore,
-  THEME_STORAGE_KEY,
-  createRootStore,
-} from '@/stores/rootStore';
+import { RootStore, createRootStore, persistPreferences } from '@/stores/rootStore';
 
 /**
  * React context holding the app's {@link RootStore}. Components read stores via
@@ -37,8 +32,7 @@ export const StoreProvider = ({ children }: StoreProviderProps) => {
         const root = document.documentElement;
         root.classList.toggle('dark', theme === 'dark');
         root.dataset.accent = accent;
-        window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-        window.localStorage.setItem(ACCENT_STORAGE_KEY, accent);
+        persistPreferences(theme, accent);
       },
       { fireImmediately: true },
     );
