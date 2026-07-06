@@ -93,24 +93,45 @@ export function normalizePullRequests(
   raws: ReadonlyArray<{ repo: RepoRef; node: WirePullRequestNode }>,
   knownIdentifiers: ReadonlySet<string>,
 ): PullRequest[] {
-  // Index every PR's head branch → its key and own issue, for stack resolution.
+  // Index every PR's head branch → its PR key and the info needed to walk the stack
+  // (its own resolved issue key + the branch it is based on).
   const headToPrKey = new Map<string, string>();
-  const headToIssueKey = new Map<string, string | null>();
+  const stackInfoByScope = new Map<string, { ownKey: string | null; repo: RepoRef; baseRefName: string }>();
   for (const { repo, node } of raws) {
     const scope = headScope(repo, node.headRefName);
     headToPrKey.set(scope, prKey(repo, node.number));
-    headToIssueKey.set(scope, resolveIssueKey(node.headRefName, node.title, knownIdentifiers));
+    stackInfoByScope.set(scope, {
+      ownKey: resolveIssueKey(node.headRefName, node.title, knownIdentifiers),
+      repo,
+      baseRefName: node.baseRefName,
+    });
   }
 
+  // Resolve a branch's issue key by walking UP the stack until a PR carries its own
+  // key. A keyless PR inherits transitively, so a grandchild whose parent is itself
+  // keyless still reaches the keyed root. The visited set guards against a base cycle.
+  const inheritedIssueKey = (startScope: string): string | null => {
+    const visited = new Set<string>();
+    let scope: string | undefined = startScope;
+    while (scope && !visited.has(scope)) {
+      visited.add(scope);
+      const info = stackInfoByScope.get(scope);
+      if (!info) return null;
+      if (info.ownKey) return info.ownKey;
+      if (!info.baseRefName || info.baseRefName === 'main') return null;
+      scope = headScope(info.repo, info.baseRefName);
+    }
+    return null;
+  };
+
   return raws.map(({ repo, node }) => {
-    let issueKey = resolveIssueKey(node.headRefName, node.title, knownIdentifiers);
+    const issueKey = inheritedIssueKey(headScope(repo, node.headRefName));
     let stackParentKey: string | null = null;
 
     if (node.baseRefName && node.baseRefName !== 'main') {
       const parentScope = headScope(repo, node.baseRefName);
       if (headToPrKey.has(parentScope)) {
         stackParentKey = headToPrKey.get(parentScope) ?? null;
-        if (!issueKey) issueKey = headToIssueKey.get(parentScope) ?? null;
       }
     }
 

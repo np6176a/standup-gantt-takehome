@@ -75,6 +75,37 @@ describe('normalizePullRequests', () => {
     expect(normalizedChild.issueKey).toBe('ORB-106');
   });
 
+  it('lets a keyless grandchild inherit through a keyless parent (transitive stack)', () => {
+    const repo = { owner: 'orbital', name: 'voyager' };
+    const root = raws.find((entry) => entry.node.number === 508)!.node; // carries ORB-106
+    const parent: { repo: typeof repo; node: RawGithubPullRequestNode } = {
+      repo,
+      node: {
+        ...root,
+        number: 597,
+        title: 'middle: no key',
+        headRefName: 'iolsen/middle-no-key',
+        baseRefName: root.headRefName,
+      },
+    };
+    const child: { repo: typeof repo; node: RawGithubPullRequestNode } = {
+      repo,
+      node: {
+        ...root,
+        number: 598,
+        title: 'leaf: no key',
+        headRefName: 'iolsen/leaf-no-key',
+        baseRefName: parent.node.headRefName,
+      },
+    };
+    const grandchild = normalizePullRequests(
+      [raws.find((e) => e.node.number === 508)!, parent, child],
+      known,
+    ).find((entry) => entry.number === 598)!;
+    expect(grandchild.issueKey).toBe('ORB-106'); // reached the keyed root, two hops up
+    expect(grandchild.stackParentKey).toBe(prKey(repo, 597)); // immediate parent only
+  });
+
   it('keeps an outside author’s login but resolves no roster person', () => {
     const outside = pr(504);
     expect(outside.author).toBeNull();
