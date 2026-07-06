@@ -84,6 +84,41 @@ Building it first (before any UI) is where the tricky date and edge-case bugs ge
   7. Bar ends are exclusive so same-day and in-progress bars cover their last day, and
      same-day due-only markers pack into separate rows instead of drawing on top of each other.
 
+### API layer & data store (build step 2)
+
+How the app fetches data, and the store that holds it and hands out ready-to-use views.
+
+- **One place to talk to the server.** Every request goes through `postGraphql` in
+  `lib/api/graphql.ts`. Both fake endpoints report failure with HTTP 200 plus an `errors`
+  field in the body, so `postGraphql` checks for that and throws — the rest of the app can
+  assume success once a call returns, and a failed save is easy to catch. `linear.ts`
+  reads issues; `github.ts` reads pull requests.
+- **Reading PRs takes 6 requests.** Fake-GitHub answers one repo and one state at a time,
+  so we ask for every combination (2 repos × 3 states) at once with `Promise.all`, tagging
+  each PR with the repo it came from.
+- **The repo list belongs to the app,** not the fake source — the same choice as the roster.
+- **One missing repo doesn't fail the load.** A not-found repo still returns HTTP 200 with
+  an error; we log it and skip just that slice, so the board loads with the rest.
+- **The store holds raw data and derives the rest.** `dataStore` keeps only the raw issues
+  and PRs plus a status flag; every view (issues, pull requests, PRs grouped by issue,
+  pending reviews per person, counts per state) is a one-line getter over a pure `lib/`
+  function. Data comes in through `loadAll()` and `applyIssueNode()` (drop an updated issue
+  back in by id after a save).
+- **Throwaway `/debug` page** runs `loadAll` and prints the joined data so it can be
+  eyeballed before any real UI exists. Checked live: 32 issues (all 30 assigned match a
+  teammate) and 40 PRs (30 link to an issue, the rest shown as orphans, not dropped).
+  Delete it once the board shows the same thing.
+- **Tests** fake the network to check two things: a call throws when the body has errors,
+  and the PR read fires 6 requests and skips a missing repo. The store is just glue,
+  already covered by the `lib/` tests.
+- **Faster issue re-normalizing.** `normalizeIssuesMemoized` caches the result for each raw
+  issue, so after an edit only the changed issue is recomputed and unchanged rows keep the
+  same result (the UI can skip redrawing them). This is safe because a save replaces the
+  whole issue object, so "same object" means "unchanged." *Still to do:* the later steps
+  (PRs, sorting, packing, grouping) are still redone from scratch — fine at this size,
+  worth revisiting if the data grows. PRs need a smarter cache, because a PR's issue link
+  depends on the other PRs and the current set of issue ids, not just that one PR.
+
 ## Tradeoffs / what you'd do next
 
 - Known rough edges or incomplete areas.
