@@ -53,8 +53,9 @@ Building it first (before any UI) is where the tricky date and edge-case bugs ge
   being silently dropped.
 - **Blocked & overdue.** Linear has no "blocked" or "overdue" flag, so we compute them:
   overdue = past its due date and not done/canceled; blocked = an open PR with changes
-  requested, or a review left waiting more than 2 days. A manual "mark blocked" toggle
-  gets merged in later at the store level.
+  requested, or a review left waiting more than 2 days (on any unfinished issue — we key
+  off the PR, not Linear's automation-owned "In Review" state, which can lag the real PR
+  status). A manual "mark blocked" toggle gets merged in later at the store level.
 - **Timeline spans.** A bar runs from its start (planned start if set, otherwise the real
   start) to its end (due date, or today if it's in progress). No start and no due date → it
   goes on the "unscheduled" shelf. Both the planned and actual start are kept so the gap

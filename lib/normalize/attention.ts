@@ -37,8 +37,9 @@ function ageInDays(iso: string, now: Date): number {
 
 /**
  * Derive whether an issue is blocked, and why. First signal: any OPEN PR on the
- * issue with outstanding changes requested. Second signal (In Review issues only): a
- * still-pending review request older than {@link STALE_REVIEW_DAYS}.
+ * issue with outstanding changes requested. Second signal: an OPEN PR with a
+ * still-pending review request older than {@link STALE_REVIEW_DAYS}, on any issue that
+ * isn't Done/Canceled.
  */
 export function derivedBlocked(
   issue: Issue,
@@ -52,7 +53,13 @@ export function derivedBlocked(
     return { blocked: true, reason: `changes requested on #${changesRequested.number}` };
   }
 
-  if (issue.stateName === 'In Review') {
+  // A stale pending review blocks any still-open issue. We key off the PR being open
+  // with a stale request rather than the Linear "In Review" state: that state is
+  // automation-owned and can lag the real PR status (e.g. the seed's ORB-129 sits in
+  // "In Progress" while PR #531 has a review request pending for over a week), so a
+  // state gate would hide exactly the stale review standup needs to see. Done/Canceled
+  // issues are excluded — finished work isn't blocked.
+  if (issue.bucket !== 'done' && issue.bucket !== 'dropped') {
     const stale = prsForIssue.some(
       (pr) =>
         pr.state === 'OPEN' &&
