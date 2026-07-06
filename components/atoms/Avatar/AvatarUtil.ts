@@ -32,11 +32,12 @@ export function avatarHue(name: string): number {
   return Math.abs(hash);
 }
 
-/** Inline background/foreground colors for a name's avatar (graphical, not text). */
+/** Inline background/foreground colors for a name's avatar (graphical, not text). Kept
+ * low-saturation so a lane rail of avatars reads calm rather than as bright dots. */
 export function avatarColors(name: string): { background: string; color: string } {
   const hue = avatarHue(name);
   return {
-    background: `hsl(${hue} 55% 45%)`,
+    background: `hsl(${hue} 36% 46%)`,
     color: '#ffffff',
   };
 }

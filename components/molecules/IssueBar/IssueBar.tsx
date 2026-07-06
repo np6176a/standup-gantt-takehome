@@ -60,7 +60,7 @@ export const IssueBar = ({
         title={ariaLabel}
         aria-label={ariaLabel}
         onClick={() => onSelect?.(issue.id)}
-        className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${treatment.className} ${className}`}
+        className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${treatment.markerClass} ${className}`}
         style={{ left: `${leftPct}%` }}
       />
     );
@@ -77,17 +77,13 @@ export const IssueBar = ({
       title={ariaLabel}
       aria-label={ariaLabel}
       onClick={() => onSelect?.(issue.id)}
-      className={`absolute inset-y-1 flex min-w-[0.5rem] items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${cornerClass} ${treatment.className} ${className}`}
+      className={`absolute inset-y-1 flex min-w-[0.5rem] items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${cornerClass} ${treatment.barClass} ${className}`}
       style={{ left: `${leftPct}%`, width: `max(0.5rem, ${widthPct}%)` }}
     >
       {showLabel && (
         <>
           <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
-          <span
-            className={`ml-auto shrink-0 whitespace-nowrap rounded px-1 py-px text-[0.625rem] ${
-              treatment.ghost ? 'bg-neutral-light text-content-muted' : 'bg-white/20'
-            }`}
-          >
+          <span className="ml-auto shrink-0 whitespace-nowrap rounded bg-neutral-light px-1 py-px text-[0.625rem] text-content-secondary">
             {issue.stateName}
           </span>
         </>
