@@ -111,6 +111,7 @@ export const GanttGroupRow = ({
             <UnscheduledShelf
               issues={lane.unscheduled.map((member) => member.issue)}
               onSelectIssue={onSelectIssue}
+              stickyLeftPx={RAIL_WIDTH_PX}
             />
           </div>
         )}

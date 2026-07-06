@@ -8,6 +8,12 @@ export interface UnscheduledShelfProps extends React.HTMLAttributes<HTMLDivEleme
   issues: readonly Issue[];
   /** Opens an issue's detail (where its dates can be set). */
   onSelectIssue?: (issueId: string) => void;
+  /**
+   * Where the sticky chips pin as the timeline scrolls, in pixels from the scroll
+   * container's left edge. Defaults to 0; pass the lane-rail width so the chips park
+   * at the rail's right edge instead of sliding underneath the sticky rail.
+   */
+  stickyLeftPx?: number;
   /** Optional className for styling overrides. */
   className?: string;
 }
@@ -21,6 +27,7 @@ export interface UnscheduledShelfProps extends React.HTMLAttributes<HTMLDivEleme
 export const UnscheduledShelf = ({
   issues,
   onSelectIssue,
+  stickyLeftPx = 0,
   className = '',
   ...props
 }: UnscheduledShelfProps) => {
@@ -28,7 +35,10 @@ export const UnscheduledShelf = ({
 
   return (
     <div className={`flex h-full items-center ${className}`} {...props}>
-      <div className="sticky left-0 flex max-w-full items-center gap-2 overflow-x-auto bg-surface/95 px-3 py-1">
+      <div
+        className="sticky flex max-w-full items-center gap-2 overflow-x-auto bg-surface/95 px-3 py-1"
+        style={{ left: stickyLeftPx }}
+      >
         <span className="shrink-0 text-[0.6875rem] font-[var(--font-weight-semibold)] uppercase tracking-[0.03em] text-content-muted">
           Unscheduled
         </span>

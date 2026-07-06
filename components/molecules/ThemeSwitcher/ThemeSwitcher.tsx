@@ -105,7 +105,7 @@ export const ThemeSwitcher = observer(
                 <div
                   role="menu"
                   aria-label="Primary color"
-                  className="absolute right-0 top-full z-10 mt-1 flex items-center gap-1.5 rounded-lg border border-border bg-surface p-2 shadow-lg"
+                  className="absolute right-0 top-full z-40 mt-1 flex items-center gap-1.5 rounded-lg border border-border bg-surface p-2 shadow-lg"
                 >
                   {ACCENT_OPTIONS.map((option) => {
                     const selected = ui.accent === option.value;
