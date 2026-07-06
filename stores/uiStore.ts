@@ -51,6 +51,9 @@ export class UiStore {
   /** Which swimlane grouping the board renders. */
   grouping: Grouping = 'person';
 
+  /** Whether the legend strip under the toolbar is visible. */
+  legendOpen: boolean = true;
+
   /**
    * The "Needs review" side panel: whether it's open and, when set, the reviewer person
    * id it's filtered to (a lane's 👁 badge opens the panel filtered to that person).
@@ -118,6 +121,11 @@ export class UiStore {
   /** Recenter the window on today (the "Today" button). */
   goToToday() {
     this.windowStartIdx = shiftWindow(this.windowStartIdx, this.zoom, 0, this.todayIdx);
+  }
+
+  /** Toggle the legend strip visibility. */
+  toggleLegend() {
+    this.legendOpen = !this.legendOpen;
   }
 
   /** Open the "Needs review" panel, optionally filtered to one reviewer (a lane 👁 badge). */

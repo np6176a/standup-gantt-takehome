@@ -26,26 +26,38 @@ const BUCKET_SWATCH: Record<Bucket, string> = {
   dropped: 'bg-surface-raised border border-dashed border-status-dropped',
 };
 
-/** The ordered bucket legend: each bucket with its raw states and swatch. */
+/**
+ * The ordered bucket legend: each bucket with its raw states and swatch.
+ * When a bucket contains only one state whose name matches the label, the
+ * states string is empty (avoids redundant "Triage  Triage", "Done  Done").
+ */
 export function bucketLegend(): LegendEntry[] {
-  return (Object.keys(BUCKET_LABELS) as Bucket[]).map((bucket) => ({
-    bucket,
-    label: BUCKET_LABELS[bucket],
-    states: STATES_BY_BUCKET[bucket].join(', '),
-    swatchClass: BUCKET_SWATCH[bucket],
-  }));
+  return (Object.keys(BUCKET_LABELS) as Bucket[]).map((bucket) => {
+    const raw = STATES_BY_BUCKET[bucket];
+    const label = BUCKET_LABELS[bucket];
+    const redundant = raw.length === 1 && raw[0] === label;
+    return {
+      bucket,
+      label,
+      states: redundant ? '' : raw.join(', '),
+      swatchClass: BUCKET_SWATCH[bucket],
+    };
+  });
 }
 
 /** One attention-key row: its meaning and the swatch/text color. The icon is rendered by the component. */
 export interface AttentionKeyEntry {
   key: 'blocked' | 'overdue';
-  label: string;
-  /** Text-color class for the icon. */
+  /** Short name rendered in the attention color. */
+  name: string;
+  /** Parenthetical detail rendered in grey. */
+  detail: string;
+  /** Text-color class for the icon and name. */
   toneClass: string;
 }
 
 /** The attention key: how the loud blocked/overdue overlays read. */
 export const ATTENTION_KEY: readonly AttentionKeyEntry[] = [
-  { key: 'blocked', label: 'Blocked (changes requested / stale review / manual)', toneClass: 'text-attention-blocked' },
-  { key: 'overdue', label: 'Overdue (past due date)', toneClass: 'text-attention-overdue' },
+  { key: 'overdue', name: 'Overdue', detail: 'past due date', toneClass: 'text-attention-overdue' },
+  { key: 'blocked', name: 'Blocked', detail: 'changes requested / stale review / manual', toneClass: 'text-attention-blocked' },
 ];
