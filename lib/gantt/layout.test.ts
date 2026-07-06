@@ -39,6 +39,16 @@ describe('packLanes', () => {
     expect(rows[1]).toEqual([early, late]);
   });
 
+  it('fills a gap: a later, earlier-in-time item shares a row instead of opening a new one', () => {
+    // Priority (caller) order is not chronological: a high-priority [10,20) comes before
+    // a lower-priority [0,5). They don't overlap, so they should share one row.
+    const highPriorityLate = { start: 10, end: 20 };
+    const lowPriorityEarly = { start: 0, end: 5 };
+    const rows = packLanes<Interval>([highPriorityLate, lowPriorityEarly], interval);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual([highPriorityLate, lowPriorityEarly]);
+  });
+
   it('returns no rows for no items', () => {
     expect(packLanes<Interval>([], interval)).toEqual([]);
   });

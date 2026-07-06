@@ -9,11 +9,20 @@ export interface Interval {
   end: number;
 }
 
+/** Two half-open spans overlap unless one ends at or before the other begins. */
+function overlaps(a: Interval, b: Interval): boolean {
+  return a.start < b.end && b.start < a.end;
+}
+
 /**
- * Pack items into rows so no two items in a row overlap. First-fit in the given
- * order: each item joins the first row whose current right edge is at or before the
- * item's start, else it opens a new row. Because items are consumed in caller order
- * (not re-sorted), higher-priority items land in earlier rows.
+ * Pack items into rows so no two items in a row overlap. Items are placed in caller
+ * order (not re-sorted), so higher-priority items claim their rows first and land in
+ * the earliest rows. Each item joins the first row where it overlaps NOTHING already
+ * placed — so it can slot into a gap before existing items, not only after the row's
+ * rightmost edge. That keeps dense lanes compact regardless of caller order (a
+ * priority order isn't chronological). A lower-priority item may fill a gap in an
+ * upper row, which is fine: row assignment still favours higher-priority items, and
+ * a bar's horizontal position comes from its own span, not its index in the row.
  *
  * @param items ordered items to place
  * @param getInterval extracts each item's `[start, end)` day-index span
@@ -23,18 +32,17 @@ export function packLanes<T>(
   items: readonly T[],
   getInterval: (item: T) => Interval,
 ): T[][] {
-  const rows: Array<{ end: number; items: T[] }> = [];
+  const rows: Array<Array<{ item: T; span: Interval }>> = [];
 
   for (const item of items) {
-    const { start, end } = getInterval(item);
-    const openRow = rows.find((row) => start >= row.end);
+    const span = getInterval(item);
+    const openRow = rows.find((row) => row.every((placed) => !overlaps(span, placed.span)));
     if (openRow) {
-      openRow.items.push(item);
-      openRow.end = Math.max(openRow.end, end);
+      openRow.push({ item, span });
     } else {
-      rows.push({ end, items: [item] });
+      rows.push([{ item, span }]);
     }
   }
 
-  return rows.map((row) => row.items);
+  return rows.map((row) => row.map((placed) => placed.item));
 }

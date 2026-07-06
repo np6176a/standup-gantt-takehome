@@ -65,6 +65,35 @@ describe('derivedBlocked', () => {
     expect(result.reason).toContain(`${STALE_REVIEW_DAYS}`);
   });
 
+  it('flags a stale pending review regardless of the Linear state (seed: ORB-129 is In Progress)', () => {
+    // ORB-129 is "In Progress", not "In Review", yet PR #531 has Sam's review request
+    // pending for ~9 days. Standup needs to see it, so the stale signal isn't gated on
+    // the automation-owned "In Review" state.
+    expect(issue('ORB-129').stateName).toBe('In Progress');
+    const result = derivedBlocked(issue('ORB-129'), prsFor('ORB-129'), NOW);
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toContain(`${STALE_REVIEW_DAYS}`);
+  });
+
+  it('does not flag a stale pending review on a Done issue', () => {
+    const done: Issue = { ...issue('ORB-109'), bucket: 'done' };
+    const stalePr: PullRequest = {
+      ...prs[0],
+      state: 'OPEN',
+      hasChangesRequested: false,
+      reviewOutcomes: [
+        {
+          reviewer: issue('ORB-101').assignee!,
+          status: 'pending',
+          requestedAt: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+          respondedAt: null,
+          reviewState: null,
+        },
+      ],
+    };
+    expect(derivedBlocked(done, [stalePr], NOW).blocked).toBe(false);
+  });
+
   it('does not flag a fresh pending review request', () => {
     const inReview: Issue = { ...issue('ORB-105'), stateName: 'In Review', bucket: 'review' };
     const freshPr: PullRequest = {
