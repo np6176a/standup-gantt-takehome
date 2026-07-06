@@ -59,7 +59,11 @@ Building it first (before any UI) is where the tricky date and edge-case bugs ge
 - **Timeline spans.** A bar runs from its start (planned start if set, otherwise the real
   start) to its end (due date, or today if it's in progress). No start and no due date → it
   goes on the "unscheduled" shelf. Both the planned and actual start are kept so the gap
-  between them can show plan-vs-reality.
+  between them can show plan-vs-reality. Spans are half-open day ranges `[start, end)`, and
+  the end is made exclusive so a bar covers whole calendar days — a task started and due the
+  same day is one day wide, and in-progress work covers today's column. An issue with only a
+  due date shows as a point marker (but still claims its day so two same-day markers don't
+  overlap).
 - **Dates use UTC everywhere.** A date-only due date and a full timestamp on the same day
   map to the same "day number," so the classic Gantt off-by-one bug can't happen.
 - **Stacking bars into rows.** `packLanes` fits a lane's bars into as few rows as possible
@@ -74,6 +78,10 @@ Building it first (before any UI) is where the tricky date and edge-case bugs ge
      very first day of the view.
   4. A "changes requested" review stays blocking even if the reviewer later just comments.
   5. Review times are compared as real instants, so odd timestamp formats still line up.
+  6. A stacked PR with its *own* stale/typo issue key stays an orphan instead of borrowing
+     its parent's issue; only truly keyless PRs inherit.
+  7. Bar ends are exclusive so same-day and in-progress bars cover their last day, and
+     same-day due-only markers pack into separate rows instead of drawing on top of each other.
 
 ## Tradeoffs / what you'd do next
 

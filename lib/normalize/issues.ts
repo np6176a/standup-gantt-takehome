@@ -68,7 +68,12 @@ export interface IssueSpan {
   actualStartIdx: number | null;
   /** Visual left edge: planned start if set, else actual start. Null when neither exists. */
   startIdx: number | null;
-  /** Right edge: due date if set, else today when the bar has started, else null. */
+  /**
+   * Inclusive last day the item covers: due date if set, else today when the bar has
+   * started, else null. This is a semantic anchor (for date labels); the half-open
+   * packing/geometry interval is produced by {@link spanInterval}, which turns it into
+   * an exclusive edge.
+   */
   endIdx: number | null;
   /** True when the issue has no start and no due date (belongs on the unscheduled shelf). */
   unscheduled: boolean;
@@ -111,13 +116,30 @@ export function computeSpan({ plannedStart, startedAt, dueDate, todayIdx }: Span
 }
 
 /**
- * The packing interval for a span, or null when unscheduled. A due-only span (start
- * null, end set) collapses to a zero-length marker at the due date, and vice versa,
- * so packing always has a concrete `[start, end)`.
+ * True for a due-only span: no start, just a due date. It renders as a point (a marker)
+ * at the due day rather than as a bar, but still occupies its day for packing so two
+ * markers on the same day don't stack on top of each other.
+ */
+export function isDueOnlyMarker(span: IssueSpan): boolean {
+  return span.startIdx === null && span.endIdx !== null;
+}
+
+/**
+ * The half-open `[start, end)` interval for packing AND bar geometry (both `packLanes`
+ * and `barMetrics` consume this — never the raw inclusive `endIdx`, or bars lose their
+ * last day). `endIdx` is the inclusive last day, so a real bar becomes
+ * `[startIdx, endIdx + 1)` — a same-day task is one day wide and open-ended work covers
+ * today's column. A due-only marker occupies its due day `[endIdx, endIdx + 1)` so
+ * same-day markers pack into separate rows (it still renders as a point — see
+ * {@link isDueOnlyMarker}). Returns null only when the span is unscheduled.
  */
 export function spanInterval(span: IssueSpan): Interval | null {
   if (span.unscheduled) return null;
-  const start = span.startIdx ?? span.endIdx!;
-  const end = span.endIdx ?? span.startIdx!;
-  return { start, end };
+  if (span.startIdx === null) {
+    // Due-only marker: occupy the due day.
+    return { start: span.endIdx!, end: span.endIdx! + 1 };
+  }
+  // Real bar: make the inclusive end exclusive so whole days are covered.
+  const lastDay = span.endIdx ?? span.startIdx;
+  return { start: span.startIdx, end: lastDay + 1 };
 }
