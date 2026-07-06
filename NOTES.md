@@ -97,8 +97,11 @@ How the app fetches data, and the store that holds it and hands out ready-to-use
   so we ask for every combination (2 repos × 3 states) at once with `Promise.all`, tagging
   each PR with the repo it came from.
 - **The repo list belongs to the app,** not the fake source — the same choice as the roster.
-- **One missing repo doesn't fail the load.** A not-found repo still returns HTTP 200 with
-  an error; we log it and skip just that slice, so the board loads with the rest.
+- **One missing repo doesn't fail the load — but real errors do.** A not-found repo still
+  returns HTTP 200 with a `NOT_FOUND` error; we log it and skip just that slice, so the
+  board loads with the rest. Any other failure (transport, schema, outage) is rethrown
+  rather than swallowed — otherwise the load would look `ready` with missing PRs and the
+  board would seem empty of review work.
 - **The store holds raw data and derives the rest.** `dataStore` keeps only the raw issues
   and PRs plus a status flag; every view (issues, pull requests, PRs grouped by issue,
   pending reviews per person, counts per state) is a one-line getter over a pure `lib/`

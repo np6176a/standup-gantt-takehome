@@ -11,6 +11,8 @@
 /** A GraphQL error node, as either Fake endpoint returns it under `errors`. */
 export interface GraphQLError {
   message: string;
+  /** GitHub-style error classification, e.g. `NOT_FOUND` for a missing repo. */
+  type?: string;
 }
 
 /** A GraphQL response envelope: `data` on success, `errors` on failure (or both). */
