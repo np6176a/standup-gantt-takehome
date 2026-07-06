@@ -80,9 +80,11 @@ and edge-case bugs.
 - **Review fixes (post-review).** Three edge-case bugs caught in review and fixed with
   regression tests: (1) a keyless stacked PR whose parent is *also* keyless now inherits
   transitively by walking the base-branch chain to the keyed root; (2) `computeSpan`
-  clamps the no-due-date end to `max(start, today)` so a future planned start can't make
-  a reversed interval; (3) a zero-length due-only marker on the window's first column is
-  now visible (single-day membership test, not the strict overlap test).
+  guarantees `end >= start` (clamps the span end up to the start), so neither a future
+  planned start with no due date **nor a due date earlier than the start** (an issue
+  started after it was already overdue) can produce a reversed interval — overdue stays
+  driven by `dueDate` separately; (3) a zero-length due-only marker on the window's first
+  column is now visible (single-day membership test, not the strict overlap test).
 
 ## Tradeoffs / what you'd do next
 

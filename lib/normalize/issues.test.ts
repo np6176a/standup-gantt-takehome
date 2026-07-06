@@ -100,6 +100,20 @@ describe('computeSpan', () => {
     expect(spanInterval(span)).toEqual({ start: future, end: future });
   });
 
+  it('never produces a reversed span when the due date precedes the start (started late)', () => {
+    // Issue started after it was already overdue: startedAt is AFTER dueDate.
+    const span = computeSpan({
+      plannedStart: null,
+      startedAt: '2026-07-06T09:00:00.000Z', // started today
+      dueDate: '2026-07-01', // was due five days ago
+      todayIdx: TODAY_IDX,
+    });
+    expect(span.startIdx).toBe(dayIndexFromDateString('2026-07-06'));
+    expect(span.endIdx!).toBeGreaterThanOrEqual(span.startIdx!); // clamped, not reversed
+    const packed = spanInterval(span)!;
+    expect(packed.end).toBeGreaterThanOrEqual(packed.start);
+  });
+
   it('planned start takes precedence over the actual start as the visual left edge', () => {
     const span = computeSpan({
       plannedStart: '2026-07-01',
