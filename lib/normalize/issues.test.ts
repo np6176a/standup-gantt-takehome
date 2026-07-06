@@ -86,6 +86,20 @@ describe('computeSpan', () => {
     expect(spanInterval(span)).toBeNull();
   });
 
+  it('never produces a reversed span for a future planned start with no due date', () => {
+    const future = dayIndexFromDateString('2026-07-06') + 5;
+    const span = computeSpan({
+      plannedStart: '2026-07-11', // 5 days after today, no actual start, no due date
+      startedAt: null,
+      dueDate: null,
+      todayIdx: TODAY_IDX,
+    });
+    expect(span.startIdx).toBe(future);
+    expect(span.endIdx).toBe(future); // clamped to start, not pulled back to today
+    expect(span.endIdx!).toBeGreaterThanOrEqual(span.startIdx!);
+    expect(spanInterval(span)).toEqual({ start: future, end: future });
+  });
+
   it('planned start takes precedence over the actual start as the visual left edge', () => {
     const span = computeSpan({
       plannedStart: '2026-07-01',

@@ -91,7 +91,10 @@ export function computeSpan({ plannedStart, startedAt, dueDate, todayIdx }: Span
   const actualStartIdx = startedAt ? dayIndexFromDateString(startedAt) : null;
   const startIdx = plannedStartIdx ?? actualStartIdx;
   const dueIdx = dueDate ? dayIndexFromDateString(dueDate) : null;
-  const endIdx = dueIdx ?? (startIdx !== null ? todayIdx : null);
+  // With no due date, a started bar runs to today — but a *future* planned start has
+  // no elapsed span, so clamp the end to at least the start to avoid a reversed
+  // [start, end) interval (which would break packing and bar geometry).
+  const endIdx = dueIdx ?? (startIdx !== null ? Math.max(startIdx, todayIdx) : null);
 
   return {
     plannedStartIdx,
