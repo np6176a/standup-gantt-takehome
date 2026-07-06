@@ -3,6 +3,7 @@ import React from 'react';
 import type { Issue } from '@/lib/domain/types';
 import type { DerivedAttention } from '@/lib/normalize/attention';
 import type { Zoom } from '@/lib/gantt/scale';
+import { BlockedIcon, OverdueIcon } from '@/components/icons';
 import {
   BUCKET_TREATMENT,
   attentionAriaSuffix,
@@ -113,7 +114,7 @@ export const IssueBar = ({
       )}
       {attention.blockedDerived && (
         <span aria-hidden className="shrink-0 leading-none">
-          ⛔
+          <BlockedIcon size={14} />
         </span>
       )}
 
@@ -123,8 +124,8 @@ export const IssueBar = ({
 
       <span className="ml-auto flex shrink-0 items-center gap-1">
         {attention.overdue && (
-          <span className="whitespace-nowrap rounded bg-attention-overdue px-1 py-px text-[0.625rem] font-[var(--font-weight-semibold)] text-white">
-            ⚠ {overdueBadgeText(overdueDays)}
+          <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded bg-attention-overdue px-1 py-px text-[0.625rem] font-[var(--font-weight-semibold)] text-white">
+            <OverdueIcon size={10} /> {overdueBadgeText(overdueDays)}
           </span>
         )}
         {showLabel && (

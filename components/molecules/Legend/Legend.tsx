@@ -1,6 +1,12 @@
 import React from 'react';
 
+import { BlockedIcon, OverdueIcon } from '@/components/icons';
 import { ATTENTION_KEY, bucketLegend } from '@/components/molecules/Legend/LegendUtil';
+
+const ATTENTION_ICON: Record<string, React.ReactNode> = {
+  blocked: <BlockedIcon size={14} />,
+  overdue: <OverdueIcon size={14} />,
+};
 
 export interface LegendProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Optional className for styling overrides. */
@@ -32,8 +38,8 @@ export const Legend = ({ className = '', ...props }: LegendProps) => {
 
       {ATTENTION_KEY.map((entry) => (
         <span key={entry.key} className="inline-flex items-center gap-1.5">
-          <span aria-hidden className={`shrink-0 leading-none ${entry.toneClass}`}>
-            {entry.glyph}
+          <span aria-hidden className={`flex shrink-0 items-center leading-none ${entry.toneClass}`}>
+            {ATTENTION_ICON[entry.key]}
           </span>
           <span className={`font-[var(--font-weight-semibold)] ${entry.toneClass}`}>
             {entry.label}

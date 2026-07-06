@@ -18,8 +18,6 @@ export type BadgeTone = 'blocked' | 'overdue' | 'active' | 'review' | 'reviews';
 export interface LaneBadge {
   /** Stable React key / identity. */
   key: BadgeTone;
-  /** Glyph shown in the badge. */
-  icon: string;
   /** The count (always ≥ 1 — zero-count badges are omitted). */
   count: number;
   /** Accessible label / hover title, e.g. "1 blocked". */
@@ -48,11 +46,11 @@ const reviewsLabel = (count: number): string =>
  */
 export function laneBadges(summary: LaneSummary): LaneBadge[] {
   const all: LaneBadge[] = [
-    { key: 'blocked', icon: '⛔', count: summary.blocked, label: `${summary.blocked} blocked`, tone: 'blocked', interactive: false },
-    { key: 'overdue', icon: '⚠', count: summary.overdue, label: `${summary.overdue} overdue`, tone: 'overdue', interactive: false },
-    { key: 'active', icon: '●', count: summary.active, label: `${summary.active} active`, tone: 'active', interactive: false },
-    { key: 'review', icon: '◐', count: summary.inReview, label: `${summary.inReview} in review`, tone: 'review', interactive: false },
-    { key: 'reviews', icon: '👁', count: summary.reviewsWaiting, label: reviewsLabel(summary.reviewsWaiting), tone: 'reviews', interactive: true },
+    { key: 'blocked', count: summary.blocked, label: `${summary.blocked} blocked`, tone: 'blocked', interactive: false },
+    { key: 'overdue', count: summary.overdue, label: `${summary.overdue} overdue`, tone: 'overdue', interactive: false },
+    { key: 'active', count: summary.active, label: `${summary.active} active`, tone: 'active', interactive: false },
+    { key: 'review', count: summary.inReview, label: `${summary.inReview} in review`, tone: 'review', interactive: false },
+    { key: 'reviews', count: summary.reviewsWaiting, label: reviewsLabel(summary.reviewsWaiting), tone: 'reviews', interactive: true },
   ];
   return all.filter((badge) => badge.count > 0);
 }

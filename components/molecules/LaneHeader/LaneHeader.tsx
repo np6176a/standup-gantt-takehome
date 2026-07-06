@@ -2,12 +2,27 @@ import React from 'react';
 
 import type { Person } from '@/lib/domain/types';
 import type { LaneSummary } from '@/lib/gantt/rows';
+import type { BadgeTone } from '@/components/molecules/LaneHeader/LaneHeaderUtil';
 import { Avatar } from '@/components/atoms/Avatar/Avatar';
+import {
+  BlockedIcon,
+  OverdueIcon,
+  ActiveIcon,
+  EyeIcon,
+} from '@/components/icons';
 import {
   BADGE_TONE_CLASS,
   laneBadges,
   laneCountLabel,
 } from '@/components/molecules/LaneHeader/LaneHeaderUtil';
+
+const BADGE_ICON: Record<BadgeTone, React.ReactNode> = {
+  blocked: <BlockedIcon size={12} />,
+  overdue: <OverdueIcon size={12} />,
+  active: <ActiveIcon size={12} />,
+  review: <EyeIcon size={12} />,
+  reviews: <EyeIcon size={12} />,
+};
 
 export interface LaneHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Lane title (person displayName, project name, or a synthetic label). */
@@ -62,7 +77,7 @@ export const LaneHeader = ({
             {badges.map((badge) => {
               const content = (
                 <>
-                  <span aria-hidden>{badge.icon}</span>
+                  <span aria-hidden className="flex items-center">{BADGE_ICON[badge.tone]}</span>
                   {badge.count}
                 </>
               );

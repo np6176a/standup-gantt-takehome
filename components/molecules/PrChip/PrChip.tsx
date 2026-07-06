@@ -2,12 +2,21 @@ import React from 'react';
 
 import type { PullRequest } from '@/lib/normalize/pullRequests';
 import type { PrChipMode } from '@/lib/gantt/density';
+import type { ReviewDotState } from '@/components/molecules/PrChip/PrChipUtil';
+import { XmarkIcon, ClockIcon, CheckIcon, MinusIcon } from '@/components/icons';
 import {
   REVIEW_DOT,
   prChipAriaLabel,
   prChipLabel,
   reviewDotState,
 } from '@/components/molecules/PrChip/PrChipUtil';
+
+const REVIEW_ICON: Record<ReviewDotState, React.ReactNode> = {
+  changes: <XmarkIcon size={10} />,
+  pending: <ClockIcon size={10} />,
+  approved: <CheckIcon size={10} />,
+  none: <MinusIcon size={10} />,
+};
 
 export interface PrChipProps {
   /** The PR this chip represents. */
@@ -47,7 +56,8 @@ export const PrChip = ({
   onSelect,
   className = '',
 }: PrChipProps) => {
-  const dot = REVIEW_DOT[reviewDotState(pr)];
+  const state = reviewDotState(pr);
+  const dot = REVIEW_DOT[state];
   const ariaLabel = prChipAriaLabel(pr);
 
   if (mode === 'dot') {
@@ -57,10 +67,10 @@ export const PrChip = ({
         title={ariaLabel}
         aria-label={ariaLabel}
         onClick={() => onSelect?.(pr)}
-        className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-[0.6875rem] leading-none ${dot.className} ${className}`}
+        className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 leading-none ${dot.className} ${className}`}
         style={{ left: `${leftPct}%` }}
       >
-        <span aria-hidden>{dot.glyph}</span>
+        <span aria-hidden className="flex items-center">{REVIEW_ICON[state]}</span>
       </button>
     );
   }
@@ -78,8 +88,8 @@ export const PrChip = ({
       className={`absolute top-1/2 flex h-3 min-w-[0.75rem] -translate-y-1/2 items-center gap-0.5 overflow-hidden border border-border bg-surface-raised px-1 text-[0.625rem] leading-none text-content-secondary ${cornerClass} ${stacked ? 'ml-2 border-dashed' : ''} ${className}`}
       style={{ left: `${leftPct}%`, width: `max(0.75rem, ${widthPct}%)` }}
     >
-      <span aria-hidden className={`shrink-0 ${dot.className}`}>
-        {dot.glyph}
+      <span aria-hidden className={`flex shrink-0 items-center ${dot.className}`}>
+        {REVIEW_ICON[state]}
       </span>
       <span className="truncate">{prChipLabel(pr)}</span>
     </button>

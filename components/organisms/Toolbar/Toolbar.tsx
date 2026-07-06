@@ -4,6 +4,7 @@ import React, { useContext } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
+import { EyeIcon } from '@/components/icons';
 import { GroupingToggle } from '@/components/molecules/GroupingToggle/GroupingToggle';
 import { TimeWindowControls } from '@/components/molecules/TimeWindowControls/TimeWindowControls';
 import { ThemeSwitcher } from '@/components/molecules/ThemeSwitcher/ThemeSwitcher';
@@ -58,7 +59,7 @@ export const Toolbar = observer(function Toolbar({ className = '', ...props }: T
             : 'border-border bg-surface-raised text-content-secondary hover:bg-neutral-light'
         }`}
       >
-        <span aria-hidden>👁</span>
+        <span aria-hidden className="flex items-center"><EyeIcon size={16} /></span>
         Needs review
         {reviewsWaiting > 0 && (
           <span className="rounded bg-neutral-light px-1.5 py-px text-[0.6875rem] text-content-secondary">

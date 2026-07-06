@@ -60,13 +60,13 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
       )}
 
       {data.status === 'ready' && data.issues.length > 0 && (
-        <div className="flex min-h-0 grow">
-          <div className="flex min-h-0 min-w-0 grow flex-col">
-            <GanttBoard className="m-4 min-h-0 grow" />
-            <Legend className="mx-4 mb-3" />
+        <>
+          <Legend className="border-b border-border bg-surface px-4 py-2" />
+          <div className="flex min-h-0 grow">
+            <GanttBoard className="m-4 min-h-0 min-w-0 grow" />
+            {ui.reviewPanel.open && <ReviewAttentionPanel />}
           </div>
-          {ui.reviewPanel.open && <ReviewAttentionPanel />}
-        </div>
+        </>
       )}
     </main>
   );

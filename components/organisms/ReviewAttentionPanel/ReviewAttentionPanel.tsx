@@ -4,9 +4,11 @@ import React, { useContext } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import type { PullRequest } from '@/lib/normalize/pullRequests';
+import type { ReviewDotState } from '@/components/molecules/PrChip/PrChipUtil';
 import { StoreContext } from '@/stores/StoreProvider';
 import { dateFromDayIndex } from '@/lib/gantt/scale';
 import { Avatar } from '@/components/atoms/Avatar/Avatar';
+import { CloseIcon, XmarkIcon, ClockIcon, CheckIcon, MinusIcon } from '@/components/icons';
 import {
   REVIEW_DOT,
   prChipAriaLabel,
@@ -17,6 +19,13 @@ import {
   buildReviewGroups,
   totalWaiting,
 } from '@/components/organisms/ReviewAttentionPanel/ReviewAttentionPanelUtil';
+
+const REVIEW_ICON: Record<ReviewDotState, React.ReactNode> = {
+  changes: <XmarkIcon size={12} />,
+  pending: <ClockIcon size={12} />,
+  approved: <CheckIcon size={12} />,
+  none: <MinusIcon size={12} />,
+};
 
 export interface ReviewAttentionPanelProps {
   /** Opens a PR from a review row (wired in a later milestone). */
@@ -60,9 +69,9 @@ export const ReviewAttentionPanel = observer(
             type="button"
             aria-label="Close review panel"
             onClick={() => ui.closeReviewPanel()}
-            className="ml-auto rounded px-1.5 py-0.5 text-[1rem] leading-none text-content-muted transition-colors hover:bg-neutral-light hover:text-content"
+            className="ml-auto flex items-center rounded p-1 text-content-muted transition-colors hover:bg-neutral-light hover:text-content"
           >
-            ✕
+            <CloseIcon size={14} />
           </button>
         </header>
 
@@ -100,7 +109,8 @@ export const ReviewAttentionPanel = observer(
                 <ul className="pb-1.5">
                   {group.rows.map((row) => {
                     const { pr } = row.review;
-                    const dot = REVIEW_DOT[reviewDotState(pr)];
+                    const state = reviewDotState(pr);
+                    const dot = REVIEW_DOT[state];
                     return (
                       <li key={`${pr.repo.owner}/${pr.repo.name}#${pr.number}`}>
                         <button
@@ -109,8 +119,8 @@ export const ReviewAttentionPanel = observer(
                           aria-label={`${prChipAriaLabel(pr)}, requested ${row.ageLabel} ago`}
                           className="flex w-full items-center gap-2 px-3 py-1 text-left transition-colors hover:bg-neutral-light"
                         >
-                          <span aria-hidden className={`shrink-0 text-[0.75rem] leading-none ${dot.className}`}>
-                            {dot.glyph}
+                          <span aria-hidden className={`flex shrink-0 items-center leading-none ${dot.className}`}>
+                            {REVIEW_ICON[state]}
                           </span>
                           <span className="shrink-0 text-[0.75rem] font-[var(--font-weight-semibold)] text-content-secondary">
                             {prChipLabel(pr)}

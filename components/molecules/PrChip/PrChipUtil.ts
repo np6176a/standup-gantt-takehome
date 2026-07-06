@@ -10,19 +10,18 @@ import { dayIndexFromDateString } from '@/lib/gantt/scale';
 /** A PR's review-state signal, in escalation order for the dot. */
 export type ReviewDotState = 'changes' | 'pending' | 'approved' | 'none';
 
-/** The dot glyph + color class + label for each review state. */
+/** The color class + label for each review state. The icon is rendered by the component. */
 export interface ReviewDot {
-  glyph: string;
   className: string;
   label: string;
 }
 
-/** Review-state dot presentation. Changes-requested is the loud one (red ✗). */
+/** Review-state dot presentation keyed by state. */
 export const REVIEW_DOT: Record<ReviewDotState, ReviewDot> = {
-  changes: { glyph: '✗', className: 'text-attention-blocked', label: 'changes requested' },
-  pending: { glyph: '○', className: 'text-content-muted', label: 'review pending' },
-  approved: { glyph: '✓', className: 'text-status-done', label: 'approved' },
-  none: { glyph: '·', className: 'text-content-muted', label: 'no review' },
+  changes: { className: 'text-attention-blocked', label: 'changes requested' },
+  pending: { className: 'text-content-muted', label: 'review pending' },
+  approved: { className: 'text-status-done', label: 'approved' },
+  none: { className: 'text-content-muted', label: 'no review' },
 };
 
 /**

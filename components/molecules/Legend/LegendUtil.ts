@@ -35,17 +35,16 @@ export function bucketLegend(): LegendEntry[] {
   }));
 }
 
-/** One attention-key row: its glyph, its meaning, and the swatch/text color. */
+/** One attention-key row: its meaning and the swatch/text color. The icon is rendered by the component. */
 export interface AttentionKeyEntry {
   key: 'blocked' | 'overdue';
-  glyph: string;
   label: string;
-  /** Text-color class for the glyph. */
+  /** Text-color class for the icon. */
   toneClass: string;
 }
 
 /** The attention key: how the loud blocked/overdue overlays read. */
 export const ATTENTION_KEY: readonly AttentionKeyEntry[] = [
-  { key: 'blocked', glyph: '⛔', label: 'Blocked (changes requested / stale review / manual)', toneClass: 'text-attention-blocked' },
-  { key: 'overdue', glyph: '⚠', label: 'Overdue (past due date)', toneClass: 'text-attention-overdue' },
+  { key: 'blocked', label: 'Blocked (changes requested / stale review / manual)', toneClass: 'text-attention-blocked' },
+  { key: 'overdue', label: 'Overdue (past due date)', toneClass: 'text-attention-overdue' },
 ];
