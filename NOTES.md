@@ -59,7 +59,11 @@ and edge-case bugs.
   stamps request and review at the same instant, so the pairing uses `>=`; only a
   submission that clearly *pre-dates* a re-request stays `pending`). Open request with
   no answer → `mooted` if the PR is closed/merged, else `pending`; a submission with no
-  open request → drive-by `completed`. Bots/outsiders are filtered up front.
+  open request → drive-by `completed`. Bots/outsiders are filtered up front. The
+  effective verdict is the latest *decisive* review (APPROVED/CHANGES_REQUESTED/
+  DISMISSED) — a trailing COMMENTED never clears an earlier changes-requested, matching
+  GitHub's blocking semantics. All time ordering compares parsed instants, not ISO
+  strings, so a differently-formatted timestamp (offset/precision) still pairs correctly.
 - **PR→issue resolution.** Branch name first, then title (`\bORB-\d+\b`), validated
   against the live identifier set — a stale/typo key resolves to a surfaced orphan, not
   a silent drop. Stacked PRs are detected per-repo via `baseRefName` → parent head

@@ -35,7 +35,23 @@ export interface ReviewOutcome {
 const sameLogin = (a: string | undefined, b: string): boolean =>
   a?.toLowerCase() === b.toLowerCase();
 
-const byTimeAsc = (a: string, b: string): number => a.localeCompare(b);
+/** Epoch millis of an ISO timestamp — compare instants numerically, never by string
+ *  (lexicographic compare only holds for identical UTC formatting). */
+const epoch = (iso: string): number => new Date(iso).getTime();
+
+const byTimeAsc = (a: string, b: string): number => epoch(a) - epoch(b);
+
+/**
+ * Review states that constitute a decision on the PR. A bare COMMENTED review does
+ * NOT change a reviewer's verdict — GitHub keeps an earlier CHANGES_REQUESTED blocking
+ * until the same reviewer approves or dismisses — so the effective verdict is the
+ * latest DECISIVE review, and a trailing comment never clears a changes-requested.
+ */
+const DECISIVE_STATES: ReadonlySet<GithubReviewState> = new Set([
+  'APPROVED',
+  'CHANGES_REQUESTED',
+  'DISMISSED',
+]);
 
 /** Collect the roster logins that either were requested to review or did review. */
 function reviewerLogins(node: WirePullRequestNode): string[] {
@@ -80,21 +96,31 @@ export function pairReviews(node: WirePullRequestNode): ReviewOutcome[] {
       .slice()
       .sort((a, b) => byTimeAsc(a.submittedAt!, b.submittedAt!));
 
-    // A submission at/after the open request answers it. Using >= (not >) so a seed
-    // request and its same-instant submission still pair (real submits follow the
-    // request; only a submission that clearly PRE-dates a re-request stays pending).
-    const answering = openRequestAt
-      ? submissions.filter((review) => review.submittedAt! >= openRequestAt).at(-1) ?? null
-      : submissions.at(-1) ?? null;
+    // Submissions that answer the open request. Using >= (not >) so a seed request and
+    // its same-instant submission still pair (real submits follow the request; only a
+    // submission that clearly PRE-dates a re-request stays pending). No open request →
+    // any submission is a drive-by review.
+    const answeringSubmissions = openRequestAt
+      ? submissions.filter((review) => epoch(review.submittedAt!) >= epoch(openRequestAt))
+      : submissions;
+
+    // `engaged` = did the reviewer submit at all (drives completed/pending). `verdict` =
+    // their effective decision: the latest DECISIVE review, falling back to the latest
+    // submission when they only ever commented — so a comment trailing a CHANGES_REQUESTED
+    // never clears it.
+    const engaged = answeringSubmissions.at(-1) ?? null;
+    const verdict =
+      answeringSubmissions.filter((review) => DECISIVE_STATES.has(review.state)).at(-1) ??
+      engaged;
 
     if (openRequestAt) {
-      if (answering) {
+      if (engaged) {
         return [{
           reviewer,
           status: 'completed' as const,
           requestedAt: openRequestAt,
-          respondedAt: answering.submittedAt,
-          reviewState: answering.state,
+          respondedAt: verdict!.submittedAt,
+          reviewState: verdict!.state,
         }];
       }
       return [{
@@ -107,13 +133,13 @@ export function pairReviews(node: WirePullRequestNode): ReviewOutcome[] {
     }
 
     // No open request: a submission is a drive-by review (completed); nothing → drop.
-    if (answering) {
+    if (engaged) {
       return [{
         reviewer,
         status: 'completed' as const,
         requestedAt: null,
-        respondedAt: answering.submittedAt,
-        reviewState: answering.state,
+        respondedAt: verdict!.submittedAt,
+        reviewState: verdict!.state,
       }];
     }
     return [];
