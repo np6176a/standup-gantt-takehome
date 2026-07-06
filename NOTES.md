@@ -11,84 +11,68 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
 
 ### Theming & design tokens (build step 0)
 
-- Colors are Tailwind-palette values expressed as CSS variables in `app/globals.css`,
-  wired into `tailwind.config.ts` `theme.extend.colors` as the single source of truth
-  (satisfies CLAUDE.md's CSS-variable rule and Tailwind ergonomics — `bg-primary`,
-  `text-content`, `bg-status-active`, etc.).
-- Three orthogonal switches on `<html>`: `.dark` class (light/dark theme, Tailwind
-  `darkMode: 'class'`), `[data-accent]` (swappable primary hue — default indigo, plus
-  violet/emerald/rose/amber/sky), and the accent scale drives `--color-primary`.
-- Per-theme values are picked for WCAG AA contrast. The primary fill is the accent-600
-  step in both themes (so `text-primary-foreground` contrast is theme-independent); cool
-  accents keep a white foreground, warm/light accents (amber/emerald/sky) override to a
-  dark foreground + lighter hover. Every `bg-primary` + foreground pair is >= 4.5:1 AA in
-  both themes (audited; rose lowest at 4.70). `--color-text-on-primary` is aliased to
-  `--color-primary-foreground` so `text-content-on-primary` can't drift from the per-accent
-  value. Light `text-muted` is slate-500 (slate-400 fails at 2.56:1). Status/attention
-  colors brighten in dark mode and have light + dark values; they are bucket FILL colors
-  (bars/badges/dots), not AA as small text on the light surface — noted in globals.css.
-- `uiStore` owns `theme` + `accent`; `StoreProvider` mirrors them to `<html>` via a MobX
-  `reaction` and persists to localStorage. An inline no-flash script in `app/layout.tsx`
-  applies the saved theme before first paint. The visible theme/accent switcher UI is a
-  later milestone; step 0 lays the token + store foundation.
-- Jest `testMatch` widened to also run `components/**/*.test.{ts,tsx}` (CLAUDE.md's
-  per-component `{Name}Util.test.ts` / `{Name}.test.tsx` files) so no component test is
-  silently skipped. Current tests are pure functions (node env); DOM render tests would
-  need a jsdom env, which is out of scope with Storybook serving as the visual layer.
+- **One source of truth for colors.** Colors are CSS variables in `app/globals.css`, and
+  `tailwind.config.ts` points classes like `bg-primary` at those variables. Change a
+  color once and it updates everywhere.
+- **Three independent switches on `<html>`:** light/dark theme (`.dark` class), a
+  swappable accent color (`[data-accent]` — indigo by default, plus five others), and the
+  accent feeds the primary color.
+- **Contrast is checked.** Every theme + accent combo meets WCAG AA (4.5:1) for text on
+  buttons. Warm accents (amber/emerald/sky) use dark text instead of white so they stay
+  readable. Status colors are fills for bars/badges/dots, not for small text.
+- **Theme is remembered.** `uiStore` holds the theme + accent, saves them to localStorage,
+  and a tiny inline script re-applies the saved theme before the first paint so there's no
+  flash of the wrong theme on load. The visible switcher UI comes in a later step.
+- **Tests.** Jest runs any `*.test.ts` / `*.test.tsx` under `lib/` and `components/`.
+  Everything tested so far is pure functions, so no browser is needed — Storybook covers
+  the visual side.
 
-### Domain, normalization & gantt scale (build step 1)
+### Domain, normalization & gantt logic (build step 1)
 
-All of this is pure, framework-free, and unit-tested under `lib/` (139 tests) before
-any UI — the highest value-per-hour work and the part most likely to hide off-by-one
-and edge-case bugs.
+This is the pure logic that turns messy API data into something the board can draw — no
+React or MobX, just functions that take data and return data, with 143 unit tests.
+Building it first (before any UI) is where the tricky date and edge-case bugs get caught.
 
-- **Boundary — app-owned roster & wire contract.** App code never imports the Fake
-  source's `TEAM` (it impersonates an external system). `lib/domain/roster.ts` holds a
-  hand-transcribed email→githubLogin map (with a test that guards it against drift from
-  `TEAM`), and `lib/domain/wire.ts` declares the external GraphQL shapes we normalize
-  FROM as app-owned types (a structural subset of the Fake payloads). Tests import the
-  seed only as realistic *fixtures*.
-- **Status model.** `lib/domain/states.ts` maps the 12 raw states → 6 buckets and is the
-  seam that absorbs unknown/custom state names (`bucketForState` falls back to
-  `planned`, never throws). It also owns `AUTOMATION_OWNED_STATES` (5, shown locked in
-  the editor), `WRITABLE_STATES` (7), and the bucket sort order. The raw state name is
-  always retained on the normalized `Issue`.
-- **Reviews (the subtlest).** `pairReviews` produces one outcome per roster reviewer:
-  it replays REQUESTED/REMOVED timeline events (last wins) and pairs the open request
-  against submissions. A submission at/after the open request → `completed` (the seed
-  stamps request and review at the same instant, so the pairing uses `>=`; only a
-  submission that clearly *pre-dates* a re-request stays `pending`). Open request with
-  no answer → `mooted` if the PR is closed/merged, else `pending`; a submission with no
-  open request → drive-by `completed`. Bots/outsiders are filtered up front. The
-  effective verdict is the latest *decisive* review (APPROVED/CHANGES_REQUESTED/
-  DISMISSED) — a trailing COMMENTED never clears an earlier changes-requested, matching
-  GitHub's blocking semantics. All time ordering compares parsed instants, not ISO
-  strings, so a differently-formatted timestamp (offset/precision) still pairs correctly.
-- **PR→issue resolution.** Branch name first, then title (`\bORB-\d+\b`), validated
-  against the live identifier set — a stale/typo key resolves to a surfaced orphan, not
-  a silent drop. Stacked PRs are detected per-repo via `baseRefName` → parent head
-  branch; a keyless child inherits the parent's issue.
-- **Attention (app-owned).** Linear has no "Blocked" state and no overdue flag, so both
-  are derived: `isOverdue` (past due and not Done/Canceled) and `derivedBlocked`
-  (open-PR CHANGES_REQUESTED, or a stale >2-day pending review on an In Review issue).
-  The manual "mark blocked" flag lives in `planningStore` and merges with this at the
-  store level (later milestone).
-- **Spans & the UTC rule.** `computeSpan` gives `start = plannedStart ?? startedAt`,
-  `end = dueDate ?? (start ? today : null)`; both null → unscheduled shelf. The planned
-  vs actual start edges are both returned so the gap can render as the plan-vs-reality
-  drift. `lib/gantt/scale.ts` anchors *everything* on UTC day indices (whole UTC days
-  since epoch) so a date-only `dueDate` and a full-ISO `startedAt` on the same calendar
-  day collapse to the same integer — the #1 Gantt off-by-one is designed out.
-- **Layout.** `packLanes` is greedy first-fit *in caller order* (not re-sorted), so the
-  caller's priority ordering (blocked/overdue first) is preserved as it packs rows.
-- **Review fixes (post-review).** Three edge-case bugs caught in review and fixed with
-  regression tests: (1) a keyless stacked PR whose parent is *also* keyless now inherits
-  transitively by walking the base-branch chain to the keyed root; (2) `computeSpan`
-  guarantees `end >= start` (clamps the span end up to the start), so neither a future
-  planned start with no due date **nor a due date earlier than the start** (an issue
-  started after it was already overdue) can produce a reversed interval — overdue stays
-  driven by `dueDate` separately; (3) a zero-length due-only marker on the window's first
-  column is now visible (single-day membership test, not the strict overlap test).
+- **We keep our own roster and data shapes.** The fake Linear/GitHub source stands in for
+  real external services, so app code never imports from it. `lib/domain/roster.ts` has
+  our own copy of the 6-person team (email ↔ GitHub login), and `lib/domain/wire.ts`
+  describes the API shapes we read. Tests use the fake data only as sample input.
+- **Statuses → colors.** `lib/domain/states.ts` groups Linear's 12 raw states into 6
+  buckets (the colors on the board). An unknown state falls back to "planned" instead of
+  crashing. It also tracks which states automation controls (locked in the editor) and
+  which we're allowed to write.
+- **Reviews (the hardest part).** For each PR we work out where each reviewer stands:
+  still waiting (`pending`), done (`completed`), or no longer relevant because the PR
+  closed (`mooted`). We replay the request/remove history (latest wins), ignore bots and
+  outside contributors, and treat "changes requested" as still blocking even if the
+  reviewer later just leaves a comment. Times are compared as real dates, not text, so
+  timestamp formatting can't trip it up.
+- **Matching PRs to issues.** We read the issue ID (like `ORB-104`) from the branch name
+  first, then the title. A stacked PR (built on another PR's branch) inherits its parent's
+  issue when it has none of its own. An unknown ID becomes a visible "orphan" rather than
+  being silently dropped.
+- **Blocked & overdue.** Linear has no "blocked" or "overdue" flag, so we compute them:
+  overdue = past its due date and not done/canceled; blocked = an open PR with changes
+  requested, or a review left waiting more than 2 days. A manual "mark blocked" toggle
+  gets merged in later at the store level.
+- **Timeline spans.** A bar runs from its start (planned start if set, otherwise the real
+  start) to its end (due date, or today if it's in progress). No start and no due date → it
+  goes on the "unscheduled" shelf. Both the planned and actual start are kept so the gap
+  between them can show plan-vs-reality.
+- **Dates use UTC everywhere.** A date-only due date and a full timestamp on the same day
+  map to the same "day number," so the classic Gantt off-by-one bug can't happen.
+- **Stacking bars into rows.** `packLanes` fits a lane's bars into as few rows as possible
+  without overlaps, keeping the caller's priority order (blocked/overdue on top).
+
+- **Edge cases found in review (each fixed with a test):**
+  1. A keyless stacked PR whose parent is *also* keyless now finds its issue by following
+     the chain up to the first PR that has one.
+  2. A bar can never end before it starts — e.g. an issue started after it was already
+     overdue. Overdue is still flagged separately.
+  3. A single-day marker (an issue with only a due date) shows up even when it sits on the
+     very first day of the view.
+  4. A "changes requested" review stays blocking even if the reviewer later just comments.
+  5. Review times are compared as real instants, so odd timestamp formats still line up.
 
 ## Tradeoffs / what you'd do next
 
