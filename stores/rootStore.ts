@@ -1,18 +1,22 @@
 import { ACCENTS, AccentName, ThemeMode, UiStore } from '@/stores/uiStore';
+import { DataStore } from '@/stores/dataStore';
 
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
 export const ACCENT_STORAGE_KEY = 'standup-gantt.accent';
 
 /**
- * Composition root for all stores. Later milestones add `data` and `planning`
- * stores alongside `ui`; for now it wires the UI store that drives theming.
+ * Composition root for all stores. Holds the UI store (theming, and later grouping/zoom
+ * /filters) and the data store (raw fetched issues/PRs + their normalized computeds). A
+ * later milestone adds the `planning` store (planned starts + manual blocked flags).
  */
 export class RootStore {
   ui: UiStore;
+  data: DataStore;
 
   constructor(init: { theme?: ThemeMode; accent?: AccentName } = {}) {
     this.ui = new UiStore(init);
+    this.data = new DataStore();
   }
 }
 

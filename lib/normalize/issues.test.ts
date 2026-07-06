@@ -3,6 +3,7 @@ import {
   knownIdentifiers,
   normalizeIssue,
   normalizeIssues,
+  normalizeIssuesMemoized,
   spanInterval,
 } from '@/lib/normalize/issues';
 import { dayIndexFromDateString } from '@/lib/gantt/scale';
@@ -43,6 +44,37 @@ describe('normalizeIssue', () => {
     const known = knownIdentifiers(issues);
     expect(known.size).toBe(32);
     expect(known.has('ORB-101')).toBe(true);
+  });
+});
+
+describe('normalizeIssuesMemoized', () => {
+  it('matches normalizeIssues field-for-field', () => {
+    expect(normalizeIssuesMemoized(nodes)).toEqual(normalizeIssues(nodes));
+  });
+
+  it('returns the same Issue reference for an unchanged node across calls', () => {
+    const node = byId('ORB-101');
+    const first = normalizeIssuesMemoized([node])[0];
+    const second = normalizeIssuesMemoized([node])[0];
+    expect(second).toBe(first); // cache hit — stable identity for downstream bail-outs
+  });
+
+  it('re-normalizes only the replaced node, keeping the rest stable', () => {
+    const first = normalizeIssuesMemoized(nodes);
+    // Simulate applyIssueNode: replace one node object, keep every other reference.
+    const replaced: RawLinearIssueNode = { ...byId('ORB-101'), title: 'Renamed' };
+    const nextNodes = nodes.map((node) => (node.identifier === 'ORB-101' ? replaced : node));
+
+    const second = normalizeIssuesMemoized(nextNodes);
+
+    second.forEach((issue, index) => {
+      if (issue.identifier === 'ORB-101') {
+        expect(issue.title).toBe('Renamed');
+        expect(issue).not.toBe(first[index]); // the changed node re-normalized
+      } else {
+        expect(issue).toBe(first[index]); // untouched rows kept their identity
+      }
+    });
   });
 });
 

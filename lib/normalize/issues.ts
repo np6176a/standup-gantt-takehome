@@ -55,6 +55,39 @@ export function normalizeIssues(nodes: readonly WireIssueNode[]): Issue[] {
   return nodes.map(normalizeIssue);
 }
 
+// Per-node memoization of issue normalization. Raw nodes are immutable once fetched — a
+// mutation REPLACES the node object rather than editing it in place (see
+// dataStore.applyIssueNode's `.map`), so a node's identity is a sound cache key: the same
+// object always normalizes to the same Issue. This buys two things when one issue changes:
+// only the single new node re-normalizes (the other N-1 keep their identity and hit the
+// cache), and unchanged rows keep a STABLE Issue reference, so downstream memoized
+// computeds and `observer` components can bail out instead of re-rendering.
+//
+// NOTE (perf — revisit at scale, see NOTES.md): this memoizes the normalize STEP only.
+// The rest of the pipeline (PR normalization, bucket sort, packLanes, grouping) still
+// rebuilds wholesale on any change. At the seed's ~32 issues / 40 PRs that is
+// imperceptible; the proper long-term fix is to make the store hold an observable per-id
+// Issue map so a single mutation flows through the WHOLE pipeline touching one entry, and
+// to memoize PR normalization keyed on (batch identity, known-identifier set) — PRs can't
+// use this simple per-node cache because their resolution is batch-level (stack
+// inheritance + validation against the live identifier set), not a pure function of one node.
+const normalizedIssueCache = new WeakMap<WireIssueNode, Issue>();
+
+/**
+ * Like {@link normalizeIssues} but memoized per raw node, so unchanged nodes are not
+ * re-normalized across calls and keep a stable {@link Issue} reference. Use this at the
+ * store boundary; {@link normalizeIssue}/{@link normalizeIssues} stay stateless for tests.
+ */
+export function normalizeIssuesMemoized(nodes: readonly WireIssueNode[]): Issue[] {
+  return nodes.map((node) => {
+    const cached = normalizedIssueCache.get(node);
+    if (cached) return cached;
+    const normalized = normalizeIssue(node);
+    normalizedIssueCache.set(node, normalized);
+    return normalized;
+  });
+}
+
 /** The set of live issue identifiers, for validating PR→issue resolution. */
 export function knownIdentifiers(issues: readonly Issue[]): Set<string> {
   return new Set(issues.map((issue) => issue.identifier));
