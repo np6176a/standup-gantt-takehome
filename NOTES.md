@@ -30,8 +30,8 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
 ### Domain, normalization & gantt logic (build step 1)
 
 This is the pure logic that turns messy API data into something the board can draw — no
-React or MobX, just functions that take data and return data, with 143 unit tests.
-Building it first (before any UI) is where the tricky date and edge-case bugs get caught.
+React or MobX, just functions that take data and return data, all unit-tested. Building
+it first (before any UI) is where the tricky date and edge-case bugs get caught.
 
 - **We keep our own roster and data shapes.** The fake Linear/GitHub source stands in for
   real external services, so app code never imports from it. `lib/domain/roster.ts` has
