@@ -65,6 +65,19 @@ describe('positioning', () => {
   it('reports a span wholly outside the window as not visible', () => {
     expect(barMetrics(200, 210, 100, 7).visible).toBe(false);
   });
+
+  it('renders a zero-length marker on the first visible day (leftPct 0)', () => {
+    const marker = barMetrics(100, 100, 100, 7); // due-only span exactly at window start
+    expect(marker.visible).toBe(true);
+    expect(marker.leftPct).toBe(0);
+    expect(marker.widthPct).toBe(0);
+  });
+
+  it('hides a marker just before the window and past its right edge', () => {
+    expect(barMetrics(99, 99, 100, 7).visible).toBe(false); // day before window
+    expect(barMetrics(107, 107, 100, 7).visible).toBe(false); // exclusive right edge
+    expect(barMetrics(106, 106, 100, 7).visible).toBe(true); // last day inside window
+  });
 });
 
 describe('zoom windows', () => {

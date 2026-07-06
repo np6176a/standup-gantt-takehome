@@ -128,12 +128,20 @@ export function barMetrics(
   const windowEndIdx = windowStartIdx + windowDays;
   const left = clampPercent(dayIndexToPercent(startIdx, windowStartIdx, windowDays));
   const right = clampPercent(dayIndexToPercent(endIdx, windowStartIdx, windowDays));
+  // A zero-length span is a marker (a due-only issue): it occupies the single day
+  // `startIdx`, so it is visible whenever that day is inside the half-open window
+  // [start, end) — including the very first column, where the strict `endIdx >
+  // windowStartIdx` overlap test would wrongly hide it. A real bar uses the overlap test.
+  const isMarker = startIdx === endIdx;
+  const visible = isMarker
+    ? startIdx >= windowStartIdx && startIdx < windowEndIdx
+    : startIdx < windowEndIdx && endIdx > windowStartIdx;
   return {
     leftPct: left,
     widthPct: Math.max(0, right - left),
     clippedLeft: startIdx < windowStartIdx,
     clippedRight: endIdx > windowEndIdx,
-    visible: endIdx > windowStartIdx && startIdx < windowEndIdx,
+    visible,
   };
 }
 
