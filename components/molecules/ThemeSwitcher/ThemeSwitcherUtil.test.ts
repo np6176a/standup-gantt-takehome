@@ -15,8 +15,8 @@ describe('otherTheme', () => {
 
 describe('themeLabel', () => {
   it('labels the active theme', () => {
-    expect(themeLabel('light')).toContain('Light');
-    expect(themeLabel('dark')).toContain('Dark');
+    expect(themeLabel('light')).toBe('Light');
+    expect(themeLabel('dark')).toBe('Dark');
   });
 });
 

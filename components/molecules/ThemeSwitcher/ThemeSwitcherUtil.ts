@@ -27,9 +27,9 @@ export const ACCENT_OPTIONS: readonly AccentOption[] = [
 export const otherTheme = (theme: ThemeMode): ThemeMode =>
   theme === 'light' ? 'dark' : 'light';
 
-/** Short label (with icon) describing the currently active theme. */
+/** Short text label naming the currently active theme (icon is rendered separately). */
 export const themeLabel = (theme: ThemeMode): string =>
-  theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+  theme === 'dark' ? 'Dark' : 'Light';
 
 /** Accessible label for the theme toggle button, naming the resulting theme. */
 export const themeToggleAriaLabel = (theme: ThemeMode): string =>

@@ -4,6 +4,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
+import { MoonIcon, PaletteIcon, SunIcon } from '@/components/icons';
 import {
   ACCENT_OPTIONS,
   themeLabel,
@@ -33,6 +34,7 @@ export const ThemeSwitcher = observer(
     if (!store) return null;
 
     const { ui } = store;
+    const ThemeIcon = ui.theme === 'dark' ? MoonIcon : SunIcon;
 
     return (
       <div
@@ -45,8 +47,9 @@ export const ThemeSwitcher = observer(
               type="button"
               onClick={() => ui.toggleTheme()}
               aria-label={themeToggleAriaLabel(ui.theme)}
-              className="rounded-md border border-border bg-surface-raised px-3 py-1 font-[var(--font-weight-semibold)] text-content transition-colors hover:bg-neutral-light"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-raised px-3 py-1 font-[var(--font-weight-semibold)] text-content transition-colors hover:bg-neutral-light"
             >
+              <ThemeIcon size={16} aria-hidden />
               {themeLabel(ui.theme)}
             </button>
 
@@ -55,6 +58,11 @@ export const ThemeSwitcher = observer(
               aria-label="Primary color"
               className="flex items-center gap-1.5"
             >
+              <PaletteIcon
+                size={16}
+                aria-hidden
+                className="text-content-secondary"
+              />
               {ACCENT_OPTIONS.map((option) => {
                 const selected = ui.accent === option.value;
                 return (
