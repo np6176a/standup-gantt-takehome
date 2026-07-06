@@ -11,30 +11,81 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
 
 ### Theming & design tokens (build step 0)
 
-- Colors are Tailwind-palette values expressed as CSS variables in `app/globals.css`,
-  wired into `tailwind.config.ts` `theme.extend.colors` as the single source of truth
-  (satisfies CLAUDE.md's CSS-variable rule and Tailwind ergonomics — `bg-primary`,
-  `text-content`, `bg-status-active`, etc.).
-- Three orthogonal switches on `<html>`: `.dark` class (light/dark theme, Tailwind
-  `darkMode: 'class'`), `[data-accent]` (swappable primary hue — default indigo, plus
-  violet/emerald/rose/amber/sky), and the accent scale drives `--color-primary`.
-- Per-theme values are picked for WCAG AA contrast. The primary fill is the accent-600
-  step in both themes (so `text-primary-foreground` contrast is theme-independent); cool
-  accents keep a white foreground, warm/light accents (amber/emerald/sky) override to a
-  dark foreground + lighter hover. Every `bg-primary` + foreground pair is >= 4.5:1 AA in
-  both themes (audited; rose lowest at 4.70). `--color-text-on-primary` is aliased to
-  `--color-primary-foreground` so `text-content-on-primary` can't drift from the per-accent
-  value. Light `text-muted` is slate-500 (slate-400 fails at 2.56:1). Status/attention
-  colors brighten in dark mode and have light + dark values; they are bucket FILL colors
-  (bars/badges/dots), not AA as small text on the light surface — noted in globals.css.
-- `uiStore` owns `theme` + `accent`; `StoreProvider` mirrors them to `<html>` via a MobX
-  `reaction` and persists to localStorage. An inline no-flash script in `app/layout.tsx`
-  applies the saved theme before first paint. The visible theme/accent switcher UI is a
-  later milestone; step 0 lays the token + store foundation.
-- Jest `testMatch` widened to also run `components/**/*.test.{ts,tsx}` (CLAUDE.md's
-  per-component `{Name}Util.test.ts` / `{Name}.test.tsx` files) so no component test is
-  silently skipped. Current tests are pure functions (node env); DOM render tests would
-  need a jsdom env, which is out of scope with Storybook serving as the visual layer.
+- **One source of truth for colors.** Colors are CSS variables in `app/globals.css`, and
+  `tailwind.config.ts` points classes like `bg-primary` at those variables. Change a
+  color once and it updates everywhere.
+- **Three independent switches on `<html>`:** light/dark theme (`.dark` class), a
+  swappable accent color (`[data-accent]` — indigo by default, plus five others), and the
+  accent feeds the primary color.
+- **Contrast is checked.** Every theme + accent combo meets WCAG AA (4.5:1) for text on
+  buttons. Warm accents (amber/emerald/sky) use dark text instead of white so they stay
+  readable. Status colors are fills for bars/badges/dots, not for small text.
+- **Theme is remembered.** `uiStore` holds the theme + accent, saves them to localStorage,
+  and a tiny inline script re-applies the saved theme before the first paint so there's no
+  flash of the wrong theme on load. The visible switcher UI comes in a later step.
+- **Tests.** Jest runs any `*.test.ts` / `*.test.tsx` under `lib/` and `components/`.
+  Everything tested so far is pure functions, so no browser is needed — Storybook covers
+  the visual side.
+
+### Domain, normalization & gantt logic (build step 1)
+
+This is the pure logic that turns messy API data into something the board can draw — no
+React or MobX, just functions that take data and return data, with 143 unit tests.
+Building it first (before any UI) is where the tricky date and edge-case bugs get caught.
+
+- **We keep our own roster and data shapes.** The fake Linear/GitHub source stands in for
+  real external services, so app code never imports from it. `lib/domain/roster.ts` has
+  our own copy of the 6-person team (email ↔ GitHub login), and `lib/domain/wire.ts`
+  describes the API shapes we read. Tests use the fake data only as sample input.
+- **Statuses → colors.** `lib/domain/states.ts` groups Linear's 12 raw states into 6
+  buckets (the colors on the board). An unknown state falls back to "planned" instead of
+  crashing. It also tracks which states automation controls (locked in the editor) and
+  which we're allowed to write.
+- **Reviews (the hardest part).** For each PR we work out where each reviewer stands:
+  still waiting (`pending`), done (`completed`), or no longer relevant because the PR
+  closed (`mooted`). We replay the request/remove history (latest wins), ignore bots and
+  outside contributors, and treat "changes requested" as still blocking until the
+  reviewer approves or dismisses — even if they later just leave a comment, or are
+  re-requested for a fresh review (a pending re-review doesn't clear the standing
+  verdict). Times are compared as real dates, not text, so timestamp formatting can't
+  trip it up.
+- **Matching PRs to issues.** We read the issue ID (like `ORB-104`) from the branch name
+  first, then the title. A stacked PR (built on another PR's branch) inherits its parent's
+  issue when it has none of its own. An unknown ID becomes a visible "orphan" rather than
+  being silently dropped.
+- **Blocked & overdue.** Linear has no "blocked" or "overdue" flag, so we compute them:
+  overdue = past its due date and not done/canceled; blocked = an open PR with changes
+  requested, or a review left waiting more than 2 days (on any unfinished issue — we key
+  off the PR, not Linear's automation-owned "In Review" state, which can lag the real PR
+  status). A manual "mark blocked" toggle gets merged in later at the store level.
+- **Timeline spans.** A bar runs from its start (planned start if set, otherwise the real
+  start) to its end (due date, or today if it's in progress). No start and no due date → it
+  goes on the "unscheduled" shelf. Both the planned and actual start are kept so the gap
+  between them can show plan-vs-reality. Spans are half-open day ranges `[start, end)`, and
+  the end is made exclusive so a bar covers whole calendar days — a task started and due the
+  same day is one day wide, and in-progress work covers today's column. An issue with only a
+  due date shows as a point marker (but still claims its day so two same-day markers don't
+  overlap).
+- **Dates use UTC everywhere.** A date-only due date and a full timestamp on the same day
+  map to the same "day number," so the classic Gantt off-by-one bug can't happen.
+- **Stacking bars into rows.** `packLanes` fits a lane's bars into as few rows as possible
+  without overlaps, keeping the caller's priority order (blocked/overdue on top).
+
+- **Edge cases found in review (each fixed with a test):**
+  1. A keyless stacked PR whose parent is *also* keyless now finds its issue by following
+     the chain up to the first PR that has one.
+  2. A bar can never end before it starts — e.g. an issue started after it was already
+     overdue. Overdue is still flagged separately.
+  3. A single-day marker (an issue with only a due date) shows up even when it sits on the
+     very first day of the view.
+  4. A "changes requested" review stays blocking until the reviewer approves/dismisses —
+     a later comment, or a re-request for fresh review, doesn't clear it.
+  5. Review *and* commit times are compared as real instants (not text), so mixed
+     timezone offsets / precisions can't mis-order a pairing or pick the wrong first commit.
+  6. A stacked PR with its *own* stale/typo issue key stays an orphan instead of borrowing
+     its parent's issue; only truly keyless PRs inherit.
+  7. Bar ends are exclusive so same-day and in-progress bars cover their last day, and
+     same-day due-only markers pack into separate rows instead of drawing on top of each other.
 
 ## Tradeoffs / what you'd do next
 
