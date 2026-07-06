@@ -19,6 +19,7 @@ const meta = {
   args: {
     leftPct: 33,
     visible: true,
+    label: 'Jul 6',
   },
 } satisfies Meta<typeof TodayLine>;
 

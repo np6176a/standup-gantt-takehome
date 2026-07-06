@@ -56,9 +56,13 @@ export function windowDaysForZoom(zoom: Zoom): number {
   return WINDOW_DAYS[zoom];
 }
 
-/** How far before today the window starts, so today sits near the left third. */
+/**
+ * How far before today the window starts. Week begins ON today so it runs current-day
+ * to the next instance of that weekday (e.g. Monday→Monday); the coarser zooms lead by a
+ * few days so today sits near the left third with a little past context.
+ */
 export const WINDOW_LEAD_DAYS: Record<Zoom, number> = {
-  week: 3,
+  week: 0,
   fortnight: 4,
   month: 7,
   quarter: 14,

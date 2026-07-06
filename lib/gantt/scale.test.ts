@@ -89,9 +89,10 @@ describe('zoom windows', () => {
     expect(windowDaysForZoom('year')).toBe(364);
   });
 
-  it('frames today near the left of the window', () => {
+  it('starts the week on today (current day → next same weekday), and leads the coarser zooms', () => {
     const today = dayIndexFromDateString('2026-07-06');
-    expect(defaultWindowStart(today, 'week')).toBe(today - 3);
+    expect(defaultWindowStart(today, 'week')).toBe(today);
+    expect(windowDaysForZoom('week')).toBe(7);
     expect(defaultWindowStart(today, 'month')).toBe(today - 7);
   });
 

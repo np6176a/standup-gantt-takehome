@@ -8,6 +8,7 @@ import { RAIL_WIDTH_PX, trackWidthPx } from '@/lib/gantt/density';
 import { dayIndexToPercent } from '@/lib/gantt/scale';
 import { GanttHeader } from '@/components/molecules/GanttHeader/GanttHeader';
 import { TodayLine } from '@/components/molecules/TodayLine/TodayLine';
+import { formatDayLabel } from '@/components/molecules/TodayLine/TodayLineUtil';
 import { GanttGroupRow } from '@/components/organisms/GanttGroupRow/GanttGroupRow';
 
 export interface GanttBoardProps {
@@ -60,11 +61,15 @@ export const GanttBoard = observer(({ className = '' }: GanttBoardProps) => {
 
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-y-0"
-            style={{ left: RAIL_WIDTH_PX, width: track }}
+            className="pointer-events-none absolute inset-y-0 right-0"
+            style={{ left: RAIL_WIDTH_PX }}
           >
             <div className="relative h-full">
-              <TodayLine leftPct={todayPct} visible={todayVisible} />
+              <TodayLine
+                leftPct={todayPct}
+                visible={todayVisible}
+                label={formatDayLabel(ui.todayIdx)}
+              />
             </div>
           </div>
         </div>
