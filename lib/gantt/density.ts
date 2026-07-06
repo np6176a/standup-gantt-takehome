@@ -20,6 +20,30 @@ export const LANE_PADDING_PX = 6;
 /** Height of a lane's "unscheduled" shelf strip, when it has no-date issues, in pixels. */
 export const SHELF_HEIGHT_PX = 34;
 
+/** Height of the thin PR-chip strip beneath a packed row that has PRs, in pixels. */
+export const PR_STRIP_PX = 14;
+
+/** How PR chips render at a zoom: full thin bars, collapsed dots, or hidden entirely. */
+export type PrChipMode = 'full' | 'dot' | 'hidden';
+
+/**
+ * PR-chip density per zoom, following the zoom table: Week/Month show full chips,
+ * Quarter collapses them to dots, Year drops inline chips (detail lives in the popover).
+ * Attention treatments on the issue bar itself never degrade — only these chips do.
+ */
+export const PR_CHIP_MODE: Record<Zoom, PrChipMode> = {
+  week: 'full',
+  fortnight: 'full',
+  month: 'full',
+  quarter: 'dot',
+  year: 'hidden',
+};
+
+/** The PR-chip render mode for a zoom. */
+export function prChipMode(zoom: Zoom): PrChipMode {
+  return PR_CHIP_MODE[zoom];
+}
+
 /**
  * Pixels allotted to one day at each zoom. Wide at Week (day labels + PR chips fit),
  * progressively tighter toward Year (slim bars). Multiplied by the window span to get

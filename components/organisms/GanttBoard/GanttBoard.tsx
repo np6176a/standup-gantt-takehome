@@ -56,6 +56,8 @@ export const GanttBoard = observer(function GanttBoard({ className = '' }: Gantt
               windowStartIdx={windowStartIdx}
               windowDays={windowDays}
               trackWidthPx={track}
+              todayIdx={ui.todayIdx}
+              onReviewsClick={() => ui.openReviewPanel(lane.key)}
             />
           ))}
 

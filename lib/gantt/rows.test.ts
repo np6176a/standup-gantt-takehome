@@ -5,7 +5,8 @@ import {
   type Lane,
 } from '@/lib/gantt/rows';
 import type { Bucket } from '@/lib/domain/states';
-import type { Issue, Person } from '@/lib/domain/types';
+import type { Issue, Person, RepoRef } from '@/lib/domain/types';
+import type { PullRequest } from '@/lib/normalize/pullRequests';
 import { ROSTER } from '@/lib/domain/roster';
 import { dayIndex } from '@/lib/gantt/scale';
 
@@ -162,5 +163,91 @@ describe('buildLanes — sorting and packing', () => {
     const lane = laneByKey(lanes, priya.id);
     expect(lane.rows).toHaveLength(0);
     expect(lane.unscheduled.map((member) => member.issue.id)).toEqual(['floating']);
+  });
+});
+
+const REPO: RepoRef = { owner: 'orbital', name: 'voyager' };
+
+/** A minimal PR carrying only the fields attention derivation reads. */
+function makePr(overrides: Partial<PullRequest> & { number: number }): PullRequest {
+  return {
+    repo: REPO,
+    title: `PR ${overrides.number}`,
+    state: 'OPEN',
+    url: `https://github.com/pr/${overrides.number}`,
+    author: null,
+    authorLogin: null,
+    issueKey: null,
+    headRefName: 'feature',
+    baseRefName: 'main',
+    stackParentKey: null,
+    firstCommitAt: iso('2026-07-01'),
+    createdAt: iso('2026-07-01'),
+    mergedAt: null,
+    closedAt: null,
+    updatedAt: iso('2026-07-01'),
+    reviewOutcomes: [],
+    hasChangesRequested: false,
+    ...overrides,
+  };
+}
+
+describe('buildLanes — attention enrichment', () => {
+  it('floats blocked above overdue above the bucket order', () => {
+    const issues = [
+      makeIssue({ id: 'plain', assignee: priya, bucket: 'active', dueDate: '2026-07-20' }),
+      makeIssue({ id: 'overdue', assignee: priya, bucket: 'active', startedAt: iso('2026-07-02'), dueDate: '2026-07-05' }),
+      makeIssue({ id: 'blocked', assignee: priya, bucket: 'active', dueDate: '2026-07-20' }),
+    ];
+    const prsByIssueId = new Map<string, PullRequest[]>([
+      ['blocked', [makePr({ number: 1, state: 'OPEN', hasChangesRequested: true })]],
+    ]);
+    const lanes = buildLanes({
+      issues,
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      prsByIssueId,
+    });
+    const lane = laneByKey(lanes, priya.id);
+    // All three overlap → one issue per packed row, ordered blocked → overdue → plain.
+    expect(lane.rows.map((row) => row[0].issue.id)).toEqual(['blocked', 'overdue', 'plain']);
+  });
+
+  it('tallies the lane badge summary and reviews-waiting from its person key', () => {
+    const issues = [
+      makeIssue({ id: 'a', assignee: priya, bucket: 'active', dueDate: '2026-07-01' }),
+      makeIssue({ id: 'b', assignee: priya, bucket: 'review', dueDate: '2026-07-20' }),
+    ];
+    const prsByIssueId = new Map<string, PullRequest[]>([
+      ['b', [makePr({ number: 2, state: 'OPEN', hasChangesRequested: true })]],
+    ]);
+    const lanes = buildLanes({
+      issues,
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      prsByIssueId,
+      reviewsWaitingByPersonId: new Map([[priya.id, 3]]),
+    });
+    const { summary } = laneByKey(lanes, priya.id);
+    expect(summary).toEqual({
+      blocked: 1,
+      overdue: 1,
+      active: 1,
+      inReview: 1,
+      reviewsWaiting: 3,
+    });
+  });
+
+  it('does not attach reviews-waiting to project-mode lanes', () => {
+    const lanes = buildLanes({
+      issues: [makeIssue({ id: '1', project: { id: 'p_a', name: 'Atlas' } })],
+      grouping: 'project',
+      people: ROSTER,
+      todayIdx: TODAY,
+      reviewsWaitingByPersonId: new Map([['p_a', 5]]),
+    });
+    expect(lanes[0].summary.reviewsWaiting).toBe(0);
   });
 });

@@ -60,6 +60,7 @@ const meta = {
     windowStartIdx,
     windowDays,
     trackWidthPx: trackWidthPx('month', windowDays),
+    todayIdx: today,
   },
 } satisfies Meta<typeof GanttGroupRow>;
 

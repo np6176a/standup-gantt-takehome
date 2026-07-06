@@ -50,6 +50,12 @@ export class UiStore {
 
   /** Which swimlane grouping the board renders. */
   grouping: Grouping = 'person';
+
+  /**
+   * The "Needs review" side panel: whether it's open and, when set, the reviewer person
+   * id it's filtered to (a lane's 👁 badge opens the panel filtered to that person).
+   */
+  reviewPanel: { open: boolean; personId: string | null } = { open: false, personId: null };
   /** Current timeline zoom; drives the window span and header tick density. */
   zoom: Zoom = 'fortnight';
   /** Left edge of the visible window, as a day index. Shifted by the ◀/▶/Today controls. */
@@ -112,5 +118,25 @@ export class UiStore {
   /** Recenter the window on today (the "Today" button). */
   goToToday() {
     this.windowStartIdx = shiftWindow(this.windowStartIdx, this.zoom, 0, this.todayIdx);
+  }
+
+  /** Open the "Needs review" panel, optionally filtered to one reviewer (a lane 👁 badge). */
+  openReviewPanel(personId: string | null = null) {
+    this.reviewPanel = { open: true, personId };
+  }
+
+  /** Close the "Needs review" panel (clears any person filter). */
+  closeReviewPanel() {
+    this.reviewPanel = { open: false, personId: null };
+  }
+
+  /**
+   * Toggle the "Needs review" panel from the toolbar (no person filter). Reopening after a
+   * filtered open clears the filter, so the toolbar control always shows the full list.
+   */
+  toggleReviewPanel() {
+    this.reviewPanel = this.reviewPanel.open
+      ? { open: false, personId: null }
+      : { open: true, personId: null };
   }
 }

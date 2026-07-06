@@ -4,6 +4,7 @@ import {
   ROW_HEIGHT_PX,
   laneHeightPx,
   pctToPx,
+  prChipMode,
   shouldShowBarLabel,
   trackWidthPx,
 } from '@/lib/gantt/density';
@@ -36,6 +37,16 @@ describe('shouldShowBarLabel', () => {
 
   it('never labels inline at year zoom', () => {
     expect(shouldShowBarLabel('year', 1000)).toBe(false);
+  });
+});
+
+describe('prChipMode', () => {
+  it('shows full chips at week/fortnight/month, dots at quarter, nothing at year', () => {
+    expect(prChipMode('week')).toBe('full');
+    expect(prChipMode('fortnight')).toBe('full');
+    expect(prChipMode('month')).toBe('full');
+    expect(prChipMode('quarter')).toBe('dot');
+    expect(prChipMode('year')).toBe('hidden');
   });
 });
 

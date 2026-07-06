@@ -6,7 +6,9 @@
 
 import type { Bucket } from '@/lib/domain/states';
 import type { Issue } from '@/lib/domain/types';
+import type { DerivedAttention } from '@/lib/normalize/attention';
 import type { Zoom } from '@/lib/gantt/scale';
+import { dayIndexFromDateString } from '@/lib/gantt/scale';
 import { shouldShowBarLabel } from '@/lib/gantt/density';
 
 /** The visual treatment for a status bucket. */
@@ -71,4 +73,53 @@ export function barAriaLabel(issue: Issue): string {
 /** Whether a bar of this pixel width shows its inline label at this zoom (delegates density). */
 export function labelVisible(zoom: Zoom, barWidthPx: number): boolean {
   return shouldShowBarLabel(zoom, barWidthPx);
+}
+
+// ── Attention overlays ────────────────────────────────────────────────────────
+// Blocked and overdue are the loud, first-class standup signals — they render at EVERY
+// zoom (never degraded away) and are visually distinct from each other and from the
+// bucket fills. Blocked outranks overdue for the ring color; the overdue hatch + clock
+// badge still layer on when an issue is both.
+
+/** The focus ring class for a bar in its attention state (blocked red outranks overdue red). */
+export function attentionRingClass(attention: DerivedAttention): string {
+  if (attention.blockedDerived) return 'ring-2 ring-attention-blocked';
+  if (attention.overdue) return 'ring-1 ring-attention-overdue';
+  return '';
+}
+
+/** True when either attention overlay applies (bar carries a red treatment). */
+export function hasAttention(attention: DerivedAttention): boolean {
+  return attention.blockedDerived || attention.overdue;
+}
+
+/** Fill class for the due-only diamond marker under attention (blocked/overdue → red). */
+export function markerAttentionFill(attention: DerivedAttention, bucketFill: string): string {
+  if (attention.blockedDerived) return 'bg-attention-blocked';
+  if (attention.overdue) return 'bg-attention-overdue';
+  return bucketFill;
+}
+
+/**
+ * Whole days an issue is past its due date (≥ 1 when overdue, else 0). Uses UTC day
+ * indices — the same off-by-one-safe basis as overdue derivation.
+ */
+export function daysOverdue(dueDate: string | null, todayIdx: number): number {
+  if (!dueDate) return 0;
+  return Math.max(0, todayIdx - dayIndexFromDateString(dueDate));
+}
+
+/** Compact overdue-days label for the red clock badge, e.g. "3d". */
+export function overdueBadgeText(days: number): string {
+  return `${days}d`;
+}
+
+/** Parenthetical attention suffix for the accessible label, e.g. " (blocked — …; overdue by 3 days)". */
+export function attentionAriaSuffix(attention: DerivedAttention, days: number): string {
+  const parts: string[] = [];
+  if (attention.blockedDerived) {
+    parts.push(attention.blockedReason ? `blocked — ${attention.blockedReason}` : 'blocked');
+  }
+  if (attention.overdue) parts.push(`overdue by ${days} day${days === 1 ? '' : 's'}`);
+  return parts.length > 0 ? ` (${parts.join('; ')})` : '';
 }

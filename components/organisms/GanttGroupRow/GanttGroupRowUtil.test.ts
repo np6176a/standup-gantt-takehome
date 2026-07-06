@@ -1,6 +1,7 @@
-import { placeRow } from '@/components/organisms/GanttGroupRow/GanttGroupRowUtil';
+import { placeChips, placeRow } from '@/components/organisms/GanttGroupRow/GanttGroupRowUtil';
 import type { PositionedIssue } from '@/lib/gantt/rows';
-import type { Issue } from '@/lib/domain/types';
+import type { Issue, RepoRef } from '@/lib/domain/types';
+import type { PullRequest } from '@/lib/normalize/pullRequests';
 import { computeSpan } from '@/lib/normalize/issues';
 import { dayIndex } from '@/lib/gantt/scale';
 import { trackWidthPx } from '@/lib/gantt/density';
@@ -8,8 +9,36 @@ import { trackWidthPx } from '@/lib/gantt/density';
 const START = dayIndex(new Date('2026-07-06T00:00:00.000Z'));
 const WINDOW_DAYS = 14;
 const TRACK = trackWidthPx('month', WINDOW_DAYS);
+const REPO: RepoRef = { owner: 'orbital', name: 'voyager' };
 
-function member(overrides: Partial<Issue> & { id: string }): PositionedIssue {
+function pr(number: number, over: Partial<PullRequest> = {}): PullRequest {
+  return {
+    number,
+    repo: REPO,
+    title: `PR ${number}`,
+    state: 'OPEN',
+    url: '',
+    author: null,
+    authorLogin: null,
+    issueKey: 'ORB-1',
+    headRefName: 'feature',
+    baseRefName: 'main',
+    stackParentKey: null,
+    firstCommitAt: '2026-07-07T12:00:00.000Z',
+    createdAt: '2026-07-07T12:00:00.000Z',
+    mergedAt: null,
+    closedAt: null,
+    updatedAt: null,
+    reviewOutcomes: [],
+    hasChangesRequested: false,
+    ...over,
+  };
+}
+
+function member(
+  overrides: Partial<Issue> & { id: string },
+  prs: readonly PullRequest[] = [],
+): PositionedIssue {
   const issue: Issue = {
     identifier: `ORB-${overrides.id}`,
     title: overrides.id,
@@ -30,7 +59,7 @@ function member(overrides: Partial<Issue> & { id: string }): PositionedIssue {
     dueDate: issue.dueDate,
     todayIdx: START + 3,
   });
-  return { issue, span };
+  return { issue, span, attention: { overdue: false, blockedDerived: false, blockedReason: null }, prs };
 }
 
 describe('placeRow', () => {
@@ -71,5 +100,30 @@ describe('placeRow', () => {
     );
     expect(placed[0].clippedLeft).toBe(true);
     expect(placed[0].leftPct).toBe(0);
+  });
+});
+
+describe('placeChips', () => {
+  it('places an in-window PR chip and flags a stacked child', () => {
+    const chips = placeChips(
+      member({ id: '1' }, [pr(501), pr(502, { stackParentKey: 'orbital/voyager#501' })]),
+      START,
+      WINDOW_DAYS,
+      START + 3,
+    );
+    expect(chips).toHaveLength(2);
+    expect(chips[0].stacked).toBe(false);
+    expect(chips[1].stacked).toBe(true);
+    expect(chips[0].widthPct).toBeGreaterThan(0);
+  });
+
+  it('drops a PR whose span falls outside the window', () => {
+    const chips = placeChips(
+      member({ id: '2' }, [pr(503, { firstCommitAt: '2026-01-01T00:00:00.000Z', mergedAt: '2026-01-03T00:00:00.000Z' })]),
+      START,
+      WINDOW_DAYS,
+      START + 3,
+    );
+    expect(chips).toHaveLength(0);
   });
 });

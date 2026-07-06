@@ -228,6 +228,23 @@
   }
 }
 
+@layer utilities {
+  /*
+    Overdue hatch: red diagonal stripes layered as a background IMAGE over a bar, so it
+    coexists with the bucket's background-color fill (which text still sits legibly on
+    top of). The overdue red stays loud at every zoom without hiding the bar's hue.
+  */
+  .bg-hatch-overdue {
+    background-image: repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--color-attention-overdue) 42%, transparent) 0,
+      color-mix(in srgb, var(--color-attention-overdue) 42%, transparent) 2px,
+      transparent 2px,
+      transparent 7px
+    );
+  }
+}
+
 @layer base {
   * {
     box-sizing: border-box;
