@@ -2,8 +2,16 @@
 
 import React, { createContext, useEffect, useState } from 'react';
 import { reaction } from 'mobx';
+import { enableStaticRendering } from 'mobx-react-lite';
 
 import { RootStore, createRootStore, persistPreferences } from '@/stores/rootStore';
+
+// On the server, `observer` components must not create subscriptions — otherwise
+// per-request reactions/stores can be retained. This runs at module load (before
+// any observer renders) and only disables reactivity server-side; the browser
+// bundle keeps it enabled. StoreProvider is imported by the root layout, so this
+// is set before the tree renders.
+enableStaticRendering(typeof window === 'undefined');
 
 /**
  * React context holding the app's {@link RootStore}. Components read stores via
