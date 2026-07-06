@@ -14,6 +14,8 @@ import {
   labelVisible,
   markerAttentionFill,
   overdueBadgeText,
+  statusTagClass,
+  statusTagLabel,
 } from '@/components/molecules/IssueBar/IssueBarUtil';
 
 /** No-attention default so the bar renders plainly when callers don't pass flags (stories). */
@@ -129,8 +131,8 @@ export const IssueBar = ({
           </span>
         )}
         {showLabel && (
-          <span className="whitespace-nowrap rounded bg-neutral-light px-1 py-px text-[0.625rem] text-content-secondary">
-            {issue.stateName}
+          <span className={`whitespace-nowrap rounded px-1 py-px text-[0.625rem] ${statusTagClass(attention)}`}>
+            {statusTagLabel(issue, attention)}
           </span>
         )}
       </span>

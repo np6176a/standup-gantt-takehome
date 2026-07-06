@@ -9,6 +9,8 @@ import {
   labelVisible,
   markerAttentionFill,
   overdueBadgeText,
+  statusTagClass,
+  statusTagLabel,
 } from '@/components/molecules/IssueBar/IssueBarUtil';
 import type { Bucket } from '@/lib/domain/states';
 import type { Issue } from '@/lib/domain/types';
@@ -99,5 +101,17 @@ describe('attention overlays', () => {
     expect(attentionAriaSuffix(OVERDUE, 1)).toBe(' (overdue by 1 day)');
     expect(attentionAriaSuffix(BLOCKED, 0)).toBe(' (blocked — changes requested on #503)');
     expect(attentionAriaSuffix(BOTH, 3)).toBe(' (blocked — stuck; overdue by 3 days)');
+  });
+
+  it('shows "Blocked" in the status tag when blocked, else the raw state', () => {
+    expect(statusTagLabel(issue, BLOCKED)).toBe('Blocked');
+    expect(statusTagLabel(issue, BOTH)).toBe('Blocked');
+    expect(statusTagLabel(issue, OVERDUE)).toBe('On Staging');
+    expect(statusTagLabel(issue, NONE)).toBe('On Staging');
+  });
+
+  it('uses attention styling for the status tag when blocked', () => {
+    expect(statusTagClass(BLOCKED)).toContain('text-attention-blocked');
+    expect(statusTagClass(NONE)).toContain('bg-neutral-light');
   });
 });

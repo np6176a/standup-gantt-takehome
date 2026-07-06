@@ -109,6 +109,18 @@ export function daysOverdue(dueDate: string | null, todayIdx: number): number {
   return Math.max(0, todayIdx - dayIndexFromDateString(dueDate));
 }
 
+/** The status tag label: "Blocked" when blocked, else the raw state name. */
+export function statusTagLabel(issue: Issue, attention: DerivedAttention): string {
+  if (attention.blockedDerived) return 'Blocked';
+  return issue.stateName;
+}
+
+/** Tailwind classes for the status tag background under attention. */
+export function statusTagClass(attention: DerivedAttention): string {
+  if (attention.blockedDerived) return 'bg-attention-blocked/20 text-attention-blocked';
+  return 'bg-neutral-light text-content-secondary';
+}
+
 /** Compact overdue-days label for the red clock badge, e.g. "3d". */
 export function overdueBadgeText(days: number): string {
   return `${days}d`;
