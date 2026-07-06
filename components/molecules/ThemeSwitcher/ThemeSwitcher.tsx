@@ -4,6 +4,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
+import { Button } from '@/components/atoms/Button/Button';
 import { ChevronDownIcon, MoonIcon, PaletteIcon, SunIcon } from '@/components/icons';
 import {
   ACCENT_OPTIONS,
@@ -67,24 +68,26 @@ export const ThemeSwitcher = observer(
       >
         {mounted ? (
           <>
-            <button
-              type="button"
+            <Button
+              variant="outlined"
+              size="sm"
               onClick={() => ui.toggleTheme()}
               aria-label={themeToggleAriaLabel(ui.theme)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-raised px-3 py-1 font-[var(--font-weight-semibold)] text-content transition-colors hover:bg-neutral-light"
+              className="gap-1.5"
             >
               <ThemeIcon size={16} aria-hidden />
               {themeLabel(ui.theme)}
-            </button>
+            </Button>
 
             <div ref={accentRef} className="relative">
-              <button
-                type="button"
+              <Button
+                variant="outlined"
+                size="sm"
                 onClick={() => setAccentOpen((open) => !open)}
                 aria-label={`Primary color: ${activeAccent.label}`}
                 aria-haspopup="menu"
                 aria-expanded={accentOpen}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-raised px-2 py-1 text-content transition-colors hover:bg-neutral-light"
+                className="gap-1.5 px-2"
               >
                 <PaletteIcon size={16} aria-hidden className="text-content-secondary" />
                 <span
@@ -99,7 +102,7 @@ export const ThemeSwitcher = observer(
                     accentOpen ? 'rotate-180' : ''
                   }`}
                 />
-              </button>
+              </Button>
 
               {accentOpen ? (
                 <div

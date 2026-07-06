@@ -1,6 +1,7 @@
 import React from 'react';
 
 import type { Zoom } from '@/lib/gantt/scale';
+import { Button } from '@/components/atoms/Button/Button';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import {
   ZOOM_OPTIONS,
@@ -21,9 +22,6 @@ export interface TimeWindowControlsProps extends React.HTMLAttributes<HTMLDivEle
   /** Optional className for styling overrides. */
   className?: string;
 }
-
-const navButtonClass =
-  'inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface-raised text-content transition-colors hover:bg-neutral-light';
 
 /**
  * Timeline zoom selector (Week/Month/Quarter/Year) paired with ◀ Today ▶ navigation.
@@ -58,19 +56,15 @@ export const TimeWindowControls = ({
       </label>
 
       <div className="inline-flex items-center gap-1">
-        <button type="button" aria-label="Previous window" onClick={onPrev} className={navButtonClass}>
+        <Button variant="outlined" size="icon" aria-label="Previous window" onClick={onPrev}>
           <ChevronLeftIcon size={16} aria-hidden />
-        </button>
-        <button
-          type="button"
-          onClick={onToday}
-          className="h-8 rounded-md border border-border bg-surface-raised px-3 text-[0.875rem] font-[var(--font-weight-semibold)] text-content transition-colors hover:bg-neutral-light"
-        >
+        </Button>
+        <Button variant="outlined" size="sm" onClick={onToday} className="h-8">
           Today
-        </button>
-        <button type="button" aria-label="Next window" onClick={onNext} className={navButtonClass}>
+        </Button>
+        <Button variant="outlined" size="icon" aria-label="Next window" onClick={onNext}>
           <ChevronRightIcon size={16} aria-hidden />
-        </button>
+        </Button>
       </div>
     </div>
   );

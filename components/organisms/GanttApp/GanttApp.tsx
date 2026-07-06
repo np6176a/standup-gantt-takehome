@@ -4,6 +4,7 @@ import React, { useContext, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
+import { Button } from '@/components/atoms/Button/Button';
 import { Toolbar } from '@/components/organisms/Toolbar/Toolbar';
 import { GanttBoard } from '@/components/organisms/GanttBoard/GanttBoard';
 
@@ -46,13 +47,9 @@ export const GanttApp = observer(({ className = '' }: GanttAppProps) => {
       {data.status === 'error' && (
         <StatusPanel>
           <p className="mb-3 text-attention-overdue">Couldn’t load the board: {data.error}</p>
-          <button
-            type="button"
-            onClick={() => data.loadAll()}
-            className="rounded-md bg-primary px-4 py-2 font-[var(--font-weight-semibold)] text-primary-foreground transition-colors hover:bg-primary-hover"
-          >
+          <Button variant="primary" size="md" onClick={() => data.loadAll()}>
             Retry
-          </button>
+          </Button>
         </StatusPanel>
       )}
 
