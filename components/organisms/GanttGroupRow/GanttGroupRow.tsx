@@ -74,7 +74,7 @@ export const GanttGroupRow = ({
               <div
                 key={band.idx}
                 aria-hidden
-                className="absolute inset-y-0 bg-neutral-light/60"
+                className="absolute inset-y-0 bg-neutral-light opacity-60"
                 style={{ left: `${band.leftPct}%`, width: `${band.widthPct}%` }}
               />
             ),

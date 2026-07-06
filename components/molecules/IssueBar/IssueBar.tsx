@@ -77,8 +77,8 @@ export const IssueBar = ({
       title={ariaLabel}
       aria-label={ariaLabel}
       onClick={() => onSelect?.(issue.id)}
-      className={`absolute inset-y-1 flex min-w-[0.5rem] items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${cornerClass} ${treatment.barClass} ${className}`}
-      style={{ left: `${leftPct}%`, width: `max(0.5rem, ${widthPct}%)` }}
+      className={`absolute inset-y-1 flex items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${className}`}
+      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
     >
       {showLabel && (
         <>

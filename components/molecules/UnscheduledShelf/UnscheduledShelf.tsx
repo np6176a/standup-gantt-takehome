@@ -36,7 +36,7 @@ export const UnscheduledShelf = ({
   return (
     <div className={`flex h-full items-center ${className}`} {...props}>
       <div
-        className="sticky flex max-w-full items-center gap-2 overflow-x-auto bg-surface/95 px-3 py-1"
+        className="sticky flex max-w-full items-center gap-2 overflow-x-auto bg-surface px-3 py-1"
         style={{ left: stickyLeftPx }}
       >
         <span className="shrink-0 text-[0.6875rem] font-[var(--font-weight-semibold)] uppercase tracking-[0.03em] text-content-muted">
