@@ -2,13 +2,16 @@
 
 import React, { createContext, useEffect, useState } from 'react';
 import { reaction } from 'mobx';
+import { enableStaticRendering } from 'mobx-react-lite';
 
-import {
-  ACCENT_STORAGE_KEY,
-  RootStore,
-  THEME_STORAGE_KEY,
-  createRootStore,
-} from '@/stores/rootStore';
+import { RootStore, createRootStore, persistPreferences } from '@/stores/rootStore';
+
+// On the server, `observer` components must not create subscriptions — otherwise
+// per-request reactions/stores can be retained. This runs at module load (before
+// any observer renders) and only disables reactivity server-side; the browser
+// bundle keeps it enabled. StoreProvider is imported by the root layout, so this
+// is set before the tree renders.
+enableStaticRendering(typeof window === 'undefined');
 
 /**
  * React context holding the app's {@link RootStore}. Components read stores via
@@ -37,8 +40,7 @@ export const StoreProvider = ({ children }: StoreProviderProps) => {
         const root = document.documentElement;
         root.classList.toggle('dark', theme === 'dark');
         root.dataset.accent = accent;
-        window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-        window.localStorage.setItem(ACCENT_STORAGE_KEY, accent);
+        persistPreferences(theme, accent);
       },
       { fireImmediately: true },
     );

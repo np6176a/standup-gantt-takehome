@@ -18,20 +18,27 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
 - Three orthogonal switches on `<html>`: `.dark` class (light/dark theme, Tailwind
   `darkMode: 'class'`), `[data-accent]` (swappable primary hue — default indigo, plus
   violet/emerald/rose/amber/sky), and the accent scale drives `--color-primary`.
-- Per-theme values are picked for WCAG AA contrast: light uses the 600 accent step on
-  white with white foreground; dark brightens accents/statuses (400–500 steps) against
-  slate-950. Status buckets and attention (blocked/overdue) each have light + dark values.
+- Per-theme values are picked for WCAG AA contrast. The primary fill is the accent-600
+  step in both themes (so `text-primary-foreground` contrast is theme-independent); cool
+  accents keep a white foreground, warm/light accents (amber/emerald/sky) override to a
+  dark foreground + lighter hover. Every `bg-primary` + foreground pair is >= 4.5:1 AA in
+  both themes (audited; rose lowest at 4.70). `--color-text-on-primary` is aliased to
+  `--color-primary-foreground` so `text-content-on-primary` can't drift from the per-accent
+  value. Light `text-muted` is slate-500 (slate-400 fails at 2.56:1). Status/attention
+  colors brighten in dark mode and have light + dark values; they are bucket FILL colors
+  (bars/badges/dots), not AA as small text on the light surface — noted in globals.css.
 - `uiStore` owns `theme` + `accent`; `StoreProvider` mirrors them to `<html>` via a MobX
   `reaction` and persists to localStorage. An inline no-flash script in `app/layout.tsx`
   applies the saved theme before first paint. The visible theme/accent switcher UI is a
   later milestone; step 0 lays the token + store foundation.
-- Jest `testMatch` widened to also run `components/**/*.test.ts` (CLAUDE.md's per-component
-  `{Name}Util.test.ts` files) — pure functions, node env is fine; DOM render tests are out
-  of scope with Storybook serving as the visual layer.
+- Jest `testMatch` widened to also run `components/**/*.test.{ts,tsx}` (CLAUDE.md's
+  per-component `{Name}Util.test.ts` / `{Name}.test.tsx` files) so no component test is
+  silently skipped. Current tests are pure functions (node env); DOM render tests would
+  need a jsdom env, which is out of scope with Storybook serving as the visual layer.
 
 ### Domain, normalization & gantt scale (build step 1)
 
-All of this is pure, framework-free, and unit-tested under `lib/` (135 tests) before
+All of this is pure, framework-free, and unit-tested under `lib/` (139 tests) before
 any UI — the highest value-per-hour work and the part most likely to hide off-by-one
 and edge-case bugs.
 
@@ -70,6 +77,12 @@ and edge-case bugs.
   day collapse to the same integer — the #1 Gantt off-by-one is designed out.
 - **Layout.** `packLanes` is greedy first-fit *in caller order* (not re-sorted), so the
   caller's priority ordering (blocked/overdue first) is preserved as it packs rows.
+- **Review fixes (post-review).** Three edge-case bugs caught in review and fixed with
+  regression tests: (1) a keyless stacked PR whose parent is *also* keyless now inherits
+  transitively by walking the base-branch chain to the keyed root; (2) `computeSpan`
+  clamps the no-due-date end to `max(start, today)` so a future planned start can't make
+  a reversed interval; (3) a zero-length due-only marker on the window's first column is
+  now visible (single-day membership test, not the strict overlap test).
 
 ## Tradeoffs / what you'd do next
 

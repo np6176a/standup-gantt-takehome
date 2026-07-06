@@ -25,21 +25,48 @@ const isAccentName = (value: string | null): value is AccentName =>
   value !== null && (ACCENTS as readonly string[]).includes(value);
 
 /**
+ * Read a key from localStorage, returning null if Web Storage is unavailable.
+ * Access can throw a `SecurityError` when storage is denied (privacy settings,
+ * sandboxed iframe), so every read is guarded.
+ */
+function safeReadStorage(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Read persisted theme/accent from localStorage, falling back to the OS
  * color-scheme preference for theme and indigo for accent. Safe to call during
- * SSR (returns empty defaults when `window` is undefined).
+ * SSR (returns empty defaults when `window` is undefined) and when storage is
+ * denied (falls back to defaults instead of throwing).
  */
 function readInitialPreferences(): { theme?: ThemeMode; accent?: AccentName } {
   if (typeof window === 'undefined') return {};
 
-  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-  const storedAccent = window.localStorage.getItem(ACCENT_STORAGE_KEY);
+  const storedTheme = safeReadStorage(THEME_STORAGE_KEY);
+  const storedAccent = safeReadStorage(ACCENT_STORAGE_KEY);
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 
   return {
     theme: isThemeMode(storedTheme) ? storedTheme : prefersDark ? 'dark' : 'light',
     accent: isAccentName(storedAccent) ? storedAccent : 'indigo',
   };
+}
+
+/**
+ * Persist theme/accent to localStorage. Best-effort: silently ignores failures
+ * when storage is unavailable so callers never crash on a `SecurityError`.
+ */
+export function persistPreferences(theme: ThemeMode, accent: AccentName): void {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    window.localStorage.setItem(ACCENT_STORAGE_KEY, accent);
+  } catch {
+    // Storage denied — preferences won't survive reload, but the app keeps working.
+  }
 }
 
 /** Create the root store, seeding UI preferences from localStorage / OS. */

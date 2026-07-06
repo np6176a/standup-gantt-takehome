@@ -20,12 +20,17 @@ export const metadata: Metadata = {
 // and fallbacks in stores/rootStore.ts.
 const noFlashScript = `
 (function () {
-  try {
-    var t = localStorage.getItem('standup-gantt.theme');
-    if (t !== 'light' && t !== 'dark') {
+  function read(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  var t = read('standup-gantt.theme');
+  if (t !== 'light' && t !== 'dark') {
+    try {
       t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    var a = localStorage.getItem('standup-gantt.accent') || 'indigo';
+    } catch (e) { t = 'light'; }
+  }
+  var a = read('standup-gantt.accent') || 'indigo';
+  try {
     var root = document.documentElement;
     if (t === 'dark') root.classList.add('dark');
     root.dataset.accent = a;
