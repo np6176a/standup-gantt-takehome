@@ -72,6 +72,16 @@ export function resolveIssueKey(
   return null;
 }
 
+/**
+ * Whether the branch or title contains an ORB-### token at all — valid or not. Lets
+ * a stale/typo'd key (matches the pattern but isn't a known identifier) be told apart
+ * from a truly keyless PR: the former is a surfaced orphan, only the latter inherits a
+ * stacked parent's issue.
+ */
+export function hasIssueKeyToken(headRefName: string, title: string): boolean {
+  return ISSUE_KEY_RE.test(headRefName) || ISSUE_KEY_RE.test(title);
+}
+
 /** The earliest commit date on a PR (its start edge), falling back to createdAt. */
 function firstCommitAt(node: WirePullRequestNode): string | null {
   const dates = node.commits.nodes.map((entry) => entry.commit.committedDate).filter(Boolean);
@@ -96,20 +106,26 @@ export function normalizePullRequests(
   // Index every PR's head branch → its PR key and the info needed to walk the stack
   // (its own resolved issue key + the branch it is based on).
   const headToPrKey = new Map<string, string>();
-  const stackInfoByScope = new Map<string, { ownKey: string | null; repo: RepoRef; baseRefName: string }>();
+  const stackInfoByScope = new Map<
+    string,
+    { ownKey: string | null; hasKeyToken: boolean; repo: RepoRef; baseRefName: string }
+  >();
   for (const { repo, node } of raws) {
     const scope = headScope(repo, node.headRefName);
     headToPrKey.set(scope, prKey(repo, node.number));
     stackInfoByScope.set(scope, {
       ownKey: resolveIssueKey(node.headRefName, node.title, knownIdentifiers),
+      hasKeyToken: hasIssueKeyToken(node.headRefName, node.title),
       repo,
       baseRefName: node.baseRefName,
     });
   }
 
-  // Resolve a branch's issue key by walking UP the stack until a PR carries its own
-  // key. A keyless PR inherits transitively, so a grandchild whose parent is itself
-  // keyless still reaches the keyed root. The visited set guards against a base cycle.
+  // Resolve a branch's issue key by walking UP the stack. A valid own key wins. A PR
+  // that carries a key TOKEN which isn't a known identifier (stale/typo) is a surfaced
+  // orphan — it does NOT inherit, so a typo never silently borrows the parent's issue.
+  // Only a truly keyless PR (no token at all) inherits, transitively, so a grandchild
+  // whose parent is itself keyless still reaches the keyed root. Visited set guards a cycle.
   const inheritedIssueKey = (startScope: string): string | null => {
     const visited = new Set<string>();
     let scope: string | undefined = startScope;
@@ -118,6 +134,7 @@ export function normalizePullRequests(
       const info = stackInfoByScope.get(scope);
       if (!info) return null;
       if (info.ownKey) return info.ownKey;
+      if (info.hasKeyToken) return null; // stale/typo key → orphan, don't inherit
       if (!info.baseRefName || info.baseRefName === 'main') return null;
       scope = headScope(info.repo, info.baseRefName);
     }

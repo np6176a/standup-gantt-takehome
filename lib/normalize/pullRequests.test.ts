@@ -106,6 +106,30 @@ describe('normalizePullRequests', () => {
     expect(grandchild.stackParentKey).toBe(prKey(repo, 597)); // immediate parent only
   });
 
+  it('treats a stacked PR with its own stale/typo key as an orphan, not an inheritor', () => {
+    const repo = { owner: 'orbital', name: 'voyager' };
+    const root = raws.find((entry) => entry.node.number === 508)!.node; // carries ORB-106
+    const parent: { repo: typeof repo; node: RawGithubPullRequestNode } = {
+      repo,
+      node: { ...root, number: 596, headRefName: 'iolsen/orb-106-root' },
+    };
+    const staleChild: { repo: typeof repo; node: RawGithubPullRequestNode } = {
+      repo,
+      node: {
+        ...root,
+        number: 595,
+        title: 'ORB-999: typo, not a real issue', // matches the pattern, unknown identifier
+        headRefName: 'iolsen/orb-999-typo',
+        baseRefName: parent.node.headRefName, // stacked on the ORB-106 root
+      },
+    };
+    const child = normalizePullRequests([parent, staleChild], known).find(
+      (entry) => entry.number === 595,
+    )!;
+    expect(child.issueKey).toBeNull(); // stale key → orphan, does NOT inherit ORB-106
+    expect(child.stackParentKey).toBe(prKey(repo, 596)); // still structurally stacked
+  });
+
   it('keeps an outside author’s login but resolves no roster person', () => {
     const outside = pr(504);
     expect(outside.author).toBeNull();
