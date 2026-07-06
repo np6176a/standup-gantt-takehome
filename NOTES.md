@@ -21,8 +21,12 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
 - Per-theme values are picked for WCAG AA contrast. The primary fill is the accent-600
   step in both themes (so `text-primary-foreground` contrast is theme-independent); cool
   accents keep a white foreground, warm/light accents (amber/emerald/sky) override to a
-  dark foreground + lighter hover. Status buckets and attention colors brighten in dark
-  mode and each have light + dark values.
+  dark foreground + lighter hover. Every `bg-primary` + foreground pair is >= 4.5:1 AA in
+  both themes (audited; rose lowest at 4.70). `--color-text-on-primary` is aliased to
+  `--color-primary-foreground` so `text-content-on-primary` can't drift from the per-accent
+  value. Light `text-muted` is slate-500 (slate-400 fails at 2.56:1). Status/attention
+  colors brighten in dark mode and have light + dark values; they are bucket FILL colors
+  (bars/badges/dots), not AA as small text on the light surface — noted in globals.css.
 - `uiStore` owns `theme` + `accent`; `StoreProvider` mirrors them to `<html>` via a MobX
   `reaction` and persists to localStorage. An inline no-flash script in `app/layout.tsx`
   applies the saved theme before first paint. The visible theme/accent switcher UI is a

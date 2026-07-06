@@ -12,7 +12,13 @@
   Three orthogonal switches:
     - Theme:  `.dark` on <html> flips the light/dark semantic layer.
     - Accent: `[data-accent="..."]` on <html> swaps the primary hue (default indigo).
-    - Both are chosen for WCAG AA contrast within their theme.
+
+  Contrast (audited in both themes, all accents): the neutral text tokens
+  (`text-primary/secondary/muted`) and every `bg-primary` + `*-foreground`/hover
+  pair meet WCAG AA (>= 4.5:1). Status/attention tokens are bucket FILL colors for
+  bars, badges, and dots (graphical elements, >= 3:1 as objects) — they are NOT AA
+  as small text on the light surface, so render small state labels in a neutral
+  text token (or the accent's darker step), not the raw status color.
 */
 
 @layer base {
@@ -145,8 +151,10 @@
 
     --color-text-primary: #0f172a; /* slate-900 */
     --color-text-secondary: #475569; /* slate-600 */
-    --color-text-muted: #94a3b8; /* slate-400 */
-    --color-text-on-primary: #ffffff;
+    --color-text-muted: #64748b; /* slate-500 — slate-400 (2.56:1) fails AA as text on white */
+    /* Alias, not a second value: inherits the per-accent overrides above so
+       text-content-on-primary can never drift from text-primary-foreground. */
+    --color-text-on-primary: var(--color-primary-foreground);
 
     --color-neutral-light: #f1f5f9; /* slate-100 */
     --color-neutral-medium: #cbd5e1; /* slate-300 */
@@ -183,7 +191,7 @@
     --color-text-primary: #f8fafc; /* slate-50 */
     --color-text-secondary: #cbd5e1; /* slate-300 */
     --color-text-muted: #94a3b8; /* slate-400 */
-    --color-text-on-primary: #ffffff;
+    --color-text-on-primary: var(--color-primary-foreground);
 
     --color-neutral-light: #1e293b; /* slate-800 */
     --color-neutral-medium: #475569; /* slate-600 */
