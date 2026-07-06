@@ -27,9 +27,10 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
   `reaction` and persists to localStorage. An inline no-flash script in `app/layout.tsx`
   applies the saved theme before first paint. The visible theme/accent switcher UI is a
   later milestone; step 0 lays the token + store foundation.
-- Jest `testMatch` widened to also run `components/**/*.test.ts` (CLAUDE.md's per-component
-  `{Name}Util.test.ts` files) — pure functions, node env is fine; DOM render tests are out
-  of scope with Storybook serving as the visual layer.
+- Jest `testMatch` widened to also run `components/**/*.test.{ts,tsx}` (CLAUDE.md's
+  per-component `{Name}Util.test.ts` / `{Name}.test.tsx` files) so no component test is
+  silently skipped. Current tests are pure functions (node env); DOM render tests would
+  need a jsdom env, which is out of scope with Storybook serving as the visual layer.
 
 ## Tradeoffs / what you'd do next
 
