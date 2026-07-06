@@ -1,0 +1,55 @@
+import React from 'react';
+
+import type { Issue } from '@/lib/domain/types';
+import { BUCKET_DOT_CLASS } from '@/components/molecules/UnscheduledShelf/UnscheduledShelfUtil';
+
+export interface UnscheduledShelfProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** No-date issues for this lane (no start and no due date, so they have no bar). */
+  issues: readonly Issue[];
+  /** Opens an issue's detail (where its dates can be set). */
+  onSelectIssue?: (issueId: string) => void;
+  /** Optional className for styling overrides. */
+  className?: string;
+}
+
+/**
+ * A compact strip of chips for a lane's unscheduled issues — work that has neither a
+ * start nor a due date, so it can't sit on the timeline but must stay visible and
+ * selectable (scheduling happens in the detail popover). The chips stay pinned to the
+ * left as the timeline scrolls. Renders nothing when the lane has no such issues.
+ */
+export const UnscheduledShelf = ({
+  issues,
+  onSelectIssue,
+  className = '',
+  ...props
+}: UnscheduledShelfProps) => {
+  if (issues.length === 0) return null;
+
+  return (
+    <div className={`flex h-full items-center ${className}`} {...props}>
+      <div className="sticky left-0 flex max-w-full items-center gap-2 overflow-x-auto bg-surface/95 px-3 py-1">
+        <span className="shrink-0 text-[0.6875rem] font-[var(--font-weight-semibold)] uppercase tracking-[0.03em] text-content-muted">
+          Unscheduled
+        </span>
+        {issues.map((issue) => (
+          <button
+            key={issue.id}
+            type="button"
+            title={`${issue.identifier}: ${issue.title} — ${issue.stateName}`}
+            aria-label={`${issue.identifier}: ${issue.title} — ${issue.stateName}`}
+            onClick={() => onSelectIssue?.(issue.id)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-raised px-2 py-1 text-[0.75rem] text-content transition-colors hover:bg-neutral-light"
+          >
+            <span
+              aria-hidden
+              className={`h-2 w-2 shrink-0 rounded-full ${BUCKET_DOT_CLASS[issue.bucket]}`}
+            />
+            <span className="font-[var(--font-weight-semibold)]">{issue.identifier}</span>
+            <span className="text-content-muted">{issue.stateName}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};

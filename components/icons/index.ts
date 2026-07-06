@@ -9,4 +9,8 @@ export {
   Sun1 as SunIcon,
   MoonStar1 as MoonIcon,
   ColourPalette3 as PaletteIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  ChevronDown as ChevronDownIcon,
+  Calendar as CalendarIcon,
 } from '@tailgrids/icons';
