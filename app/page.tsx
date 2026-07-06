@@ -10,6 +10,8 @@
 
 import { useEffect, useState } from "react";
 
+import { ThemeSwitcher } from "@/components/molecules/ThemeSwitcher/ThemeSwitcher";
+
 // An example `issues` GraphQL query, trimmed to the field set fake-Linear serves.
 // Replace or extend it as you build.
 const ISSUES_QUERY = `
@@ -117,6 +119,9 @@ export default function FakeExamplePage() {
         color: "var(--color-text-primary)",
       }}
     >
+      <div style={{ marginBottom: "1.5rem" }}>
+        <ThemeSwitcher />
+      </div>
       <p>Standup Gantt takehome. Build your Gantt here. Raw Fake source payloads below.</p>
       {error ? (
         <pre style={{ color: "var(--color-attention-overdue)" }}>Error: {error}</pre>
