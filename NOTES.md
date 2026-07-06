@@ -44,9 +44,11 @@ Building it first (before any UI) is where the tricky date and edge-case bugs ge
 - **Reviews (the hardest part).** For each PR we work out where each reviewer stands:
   still waiting (`pending`), done (`completed`), or no longer relevant because the PR
   closed (`mooted`). We replay the request/remove history (latest wins), ignore bots and
-  outside contributors, and treat "changes requested" as still blocking even if the
-  reviewer later just leaves a comment. Times are compared as real dates, not text, so
-  timestamp formatting can't trip it up.
+  outside contributors, and treat "changes requested" as still blocking until the
+  reviewer approves or dismisses — even if they later just leave a comment, or are
+  re-requested for a fresh review (a pending re-review doesn't clear the standing
+  verdict). Times are compared as real dates, not text, so timestamp formatting can't
+  trip it up.
 - **Matching PRs to issues.** We read the issue ID (like `ORB-104`) from the branch name
   first, then the title. A stacked PR (built on another PR's branch) inherits its parent's
   issue when it has none of its own. An unknown ID becomes a visible "orphan" rather than
@@ -76,7 +78,8 @@ Building it first (before any UI) is where the tricky date and edge-case bugs ge
      overdue. Overdue is still flagged separately.
   3. A single-day marker (an issue with only a due date) shows up even when it sits on the
      very first day of the view.
-  4. A "changes requested" review stays blocking even if the reviewer later just comments.
+  4. A "changes requested" review stays blocking until the reviewer approves/dismisses —
+     a later comment, or a re-request for fresh review, doesn't clear it.
   5. Review *and* commit times are compared as real instants (not text), so mixed
      timezone offsets / precisions can't mis-order a pairing or pick the wrong first commit.
   6. A stacked PR with its *own* stale/typo issue key stays an orphan instead of borrowing
