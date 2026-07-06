@@ -39,8 +39,14 @@
     --accent-950: #1e1b4b;
   }
 
-  /* Alternate accents (Tailwind palettes) — user-switchable primary color. */
-  [data-accent='violet'] {
+  /*
+    Alternate accents (Tailwind palettes) — user-switchable primary color.
+    Cool hues (indigo/violet/rose) keep a white foreground; warm/light hues
+    (amber/emerald/sky) override to a dark foreground + lighter hover so
+    `bg-primary text-primary-foreground` stays >= WCAG AA at every accent.
+    `:root[data-accent]` (0,2,0) outranks `.dark` (0,1,0) so these win in both themes.
+  */
+  :root[data-accent='violet'] {
     --accent-50: #f5f3ff;
     --accent-100: #ede9fe;
     --accent-200: #ddd6fe;
@@ -54,7 +60,7 @@
     --accent-950: #2e1065;
   }
 
-  [data-accent='emerald'] {
+  :root[data-accent='emerald'] {
     --accent-50: #ecfdf5;
     --accent-100: #d1fae5;
     --accent-200: #a7f3d0;
@@ -66,9 +72,12 @@
     --accent-800: #065f46;
     --accent-900: #064e3b;
     --accent-950: #022c22;
+
+    --color-primary-foreground: #020617; /* dark text — emerald-600 fails white */
+    --color-primary-hover: var(--accent-500);
   }
 
-  [data-accent='rose'] {
+  :root[data-accent='rose'] {
     --accent-50: #fff1f2;
     --accent-100: #ffe4e6;
     --accent-200: #fecdd3;
@@ -82,7 +91,7 @@
     --accent-950: #4c0519;
   }
 
-  [data-accent='amber'] {
+  :root[data-accent='amber'] {
     --accent-50: #fffbeb;
     --accent-100: #fef3c7;
     --accent-200: #fde68a;
@@ -94,9 +103,12 @@
     --accent-800: #92400e;
     --accent-900: #78350f;
     --accent-950: #451a03;
+
+    --color-primary-foreground: #020617; /* dark text — amber-600 is only 3.19:1 on white */
+    --color-primary-hover: var(--accent-500);
   }
 
-  [data-accent='sky'] {
+  :root[data-accent='sky'] {
     --accent-50: #f0f9ff;
     --accent-100: #e0f2fe;
     --accent-200: #bae6fd;
@@ -108,10 +120,16 @@
     --accent-800: #075985;
     --accent-900: #0c4a6e;
     --accent-950: #082f49;
+
+    --color-primary-foreground: #020617; /* dark text — sky-600 fails white */
+    --color-primary-hover: var(--accent-500);
   }
 
   /* Light theme (default) — Tailwind slate neutrals. */
   :root {
+    /* Primary fill is accent-600 in both themes so foreground contrast is
+       theme-independent; foreground defaults to white (cool hues pass AA at 600)
+       and warm hues override it above. */
     --color-primary: var(--accent-600);
     --color-primary-hover: var(--accent-700);
     --color-primary-muted: var(--accent-100);
@@ -149,8 +167,8 @@
 
   /* Dark theme — brightened accents/statuses for contrast on slate-950. */
   .dark {
-    --color-primary: var(--accent-500);
-    --color-primary-hover: var(--accent-400);
+    --color-primary: var(--accent-600);
+    --color-primary-hover: var(--accent-700);
     --color-primary-muted: var(--accent-900);
     --color-primary-foreground: #ffffff;
 

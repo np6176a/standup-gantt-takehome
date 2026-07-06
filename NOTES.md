@@ -18,9 +18,11 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
 - Three orthogonal switches on `<html>`: `.dark` class (light/dark theme, Tailwind
   `darkMode: 'class'`), `[data-accent]` (swappable primary hue — default indigo, plus
   violet/emerald/rose/amber/sky), and the accent scale drives `--color-primary`.
-- Per-theme values are picked for WCAG AA contrast: light uses the 600 accent step on
-  white with white foreground; dark brightens accents/statuses (400–500 steps) against
-  slate-950. Status buckets and attention (blocked/overdue) each have light + dark values.
+- Per-theme values are picked for WCAG AA contrast. The primary fill is the accent-600
+  step in both themes (so `text-primary-foreground` contrast is theme-independent); cool
+  accents keep a white foreground, warm/light accents (amber/emerald/sky) override to a
+  dark foreground + lighter hover. Status buckets and attention colors brighten in dark
+  mode and each have light + dark values.
 - `uiStore` owns `theme` + `accent`; `StoreProvider` mirrors them to `<html>` via a MobX
   `reaction` and persists to localStorage. An inline no-flash script in `app/layout.tsx`
   applies the saved theme before first paint. The visible theme/accent switcher UI is a
