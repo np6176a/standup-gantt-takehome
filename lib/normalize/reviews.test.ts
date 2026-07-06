@@ -54,12 +54,10 @@ describe('pairReviews', () => {
     expect(hasChangesRequested(pairReviews(pr(519)))).toBe(false);
   });
 
-  it('#530: a re-requested reviewer is pending, but their prior changes-requested still stands', () => {
-    const theo = outcomeFor(530, 'theoramos');
-    expect(theo?.status).toBe('pending'); // owes a fresh review (re-requested)
-    expect(theo?.reviewState).toBe('CHANGES_REQUESTED'); // ...but the CR keeps blocking
+  it('#530: a reviewer re-requested after asking for changes is pending, so no outstanding CR', () => {
+    expect(outcomeFor(530, 'theoramos')?.status).toBe('pending');
     expect(outcomeFor(530, 'dcho')?.status).toBe('completed');
-    expect(hasChangesRequested(pairReviews(pr(530)))).toBe(true);
+    expect(hasChangesRequested(pairReviews(pr(530)))).toBe(false);
   });
 });
 

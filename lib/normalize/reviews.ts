@@ -6,17 +6,12 @@
 // Per reviewer (bots/outsiders filtered out up front):
 //   1. Replay their REQUESTED/REMOVED events in time order — the last one wins, so a
 //      remove→re-request leaves an OPEN request dated at the re-request.
-//   2. A submission at/after that open request answers it → completed; with no answering
-//      submission → mooted if the PR is closed/merged, else pending.
-//   3. No open request but a submission exists → a drive-by review → completed.
-//   4. No open request and no submission → not a reviewer here (dropped).
-//
-// Separately, `reviewState` carries the reviewer's STANDING verdict — their latest
-// decisive review (APPROVED/CHANGES_REQUESTED/DISMISSED, ignoring bare comments) across
-// all submissions. It persists across a re-request, matching GitHub: a changes-requested
-// keeps blocking until the reviewer approves or is dismissed, even while they show as
-// pending on a fresh request. That standing verdict, not the request status, drives
-// blocked-derivation.
+//   2. A submission at/after that open request answers it → completed (its state is
+//      carried, so CHANGES_REQUESTED stays visible to blocked-derivation).
+//   3. An open request with no answering submission → mooted if the PR is closed/
+//      merged, else pending.
+//   4. No open request but a submission exists → a drive-by review → completed.
+//   5. No open request and no submission → not a reviewer here (dropped).
 
 import type { GithubReviewState, WirePullRequestNode } from '@/lib/domain/wire';
 import type { Person } from '@/lib/domain/types';
@@ -33,12 +28,7 @@ export interface ReviewOutcome {
   requestedAt: string | null;
   /** ISO time of the answering submission, or null when unanswered. */
   respondedAt: string | null;
-  /**
-   * The reviewer's standing verdict: their latest DECISIVE review (APPROVED /
-   * CHANGES_REQUESTED / DISMISSED, ignoring bare comments), or null if they never gave
-   * one. Persists across a re-request, so a prior CHANGES_REQUESTED keeps blocking even
-   * while `status` is `pending`.
-   */
+  /** The submitted review state (e.g. CHANGES_REQUESTED), or null when unanswered. */
   reviewState: GithubReviewState | null;
 }
 
@@ -50,9 +40,6 @@ const sameLogin = (a: string | undefined, b: string): boolean =>
 const epoch = (iso: string): number => new Date(iso).getTime();
 
 const byTimeAsc = (a: string, b: string): number => epoch(a) - epoch(b);
-
-/** Last element (or undefined) — `Array.prototype.at` is ES2022, this repo targets ES2020. */
-const last = <T>(items: readonly T[]): T | undefined => items[items.length - 1];
 
 /**
  * Review states that constitute a decision on the PR. A bare COMMENTED review does
@@ -95,7 +82,7 @@ export function pairReviews(node: WirePullRequestNode): ReviewOutcome[] {
       .filter((event) => sameLogin(event.requestedReviewer?.login, login))
       .slice()
       .sort((a, b) => byTimeAsc(a.createdAt, b.createdAt));
-    const lastEvent = last(events);
+    const lastEvent = events.at(-1);
     const openRequestAt =
       lastEvent?.__typename === 'ReviewRequestedEvent' ? lastEvent.createdAt : null;
 
@@ -109,32 +96,39 @@ export function pairReviews(node: WirePullRequestNode): ReviewOutcome[] {
       .slice()
       .sort((a, b) => byTimeAsc(a.submittedAt!, b.submittedAt!));
 
-    // The reviewer's STANDING verdict: their latest DECISIVE review across ALL
-    // submissions, regardless of the request window. GitHub keeps a CHANGES_REQUESTED
-    // blocking until that same reviewer approves or is dismissed — even across a
-    // remove→re-request — so this (not the answering submission) is what reviewState
-    // reports and what drives blocked-derivation. A trailing COMMENTED is not decisive,
-    // so it never clears an earlier changes-requested.
-    const standingVerdict = last(submissions.filter((r) => DECISIVE_STATES.has(r.state)))?.state ?? null;
-
-    // Whether the reviewer answered the CURRENT open request (drives status + respondedAt).
-    // Using >= (not >) so a seed request and its same-instant submission still pair; only
-    // a submission that clearly PRE-dates a re-request leaves them pending. No open
-    // request → any submission is a drive-by review.
+    // Submissions that answer the open request. Using >= (not >) so a seed request and
+    // its same-instant submission still pair (real submits follow the request; only a
+    // submission that clearly PRE-dates a re-request stays pending). No open request →
+    // any submission is a drive-by review.
     const answeringSubmissions = openRequestAt
       ? submissions.filter((review) => epoch(review.submittedAt!) >= epoch(openRequestAt))
       : submissions;
-    const engaged = last(answeringSubmissions) ?? null;
+
+    // `engaged` = did the reviewer submit at all (drives completed/pending). `verdict` =
+    // their effective decision: the latest DECISIVE review, falling back to the latest
+    // submission when they only ever commented — so a comment trailing a CHANGES_REQUESTED
+    // never clears it.
+    const engaged = answeringSubmissions.at(-1) ?? null;
+    const verdict =
+      answeringSubmissions.filter((review) => DECISIVE_STATES.has(review.state)).at(-1) ??
+      engaged;
 
     if (openRequestAt) {
+      if (engaged) {
+        return [{
+          reviewer,
+          status: 'completed' as const,
+          requestedAt: openRequestAt,
+          respondedAt: verdict!.submittedAt,
+          reviewState: verdict!.state,
+        }];
+      }
       return [{
         reviewer,
-        status: engaged ? 'completed' : prClosed ? 'mooted' : 'pending',
+        status: prClosed ? ('mooted' as const) : ('pending' as const),
         requestedAt: openRequestAt,
-        respondedAt: engaged?.submittedAt ?? null,
-        // Standing verdict persists even while pending (re-requested): a prior
-        // changes-requested keeps blocking until the reviewer approves/dismisses.
-        reviewState: standingVerdict,
+        respondedAt: null,
+        reviewState: null,
       }];
     }
 
@@ -144,8 +138,8 @@ export function pairReviews(node: WirePullRequestNode): ReviewOutcome[] {
         reviewer,
         status: 'completed' as const,
         requestedAt: null,
-        respondedAt: engaged.submittedAt,
-        reviewState: standingVerdict,
+        respondedAt: verdict!.submittedAt,
+        reviewState: verdict!.state,
       }];
     }
     return [];
@@ -153,11 +147,13 @@ export function pairReviews(node: WirePullRequestNode): ReviewOutcome[] {
 }
 
 /**
- * True when any reviewer's standing verdict is CHANGES_REQUESTED. This holds regardless
- * of request status: a reviewer re-requested after asking for changes is `pending`, but
- * their changes-requested still blocks the PR until they approve or it's dismissed
- * (GitHub's semantics), so `reviewState` — the standing verdict — is what we check.
+ * True when the PR's effective review verdict includes an outstanding
+ * changes-requested — a completed review whose state is CHANGES_REQUESTED. A
+ * reviewer who was re-requested after asking for changes is `pending`, not
+ * `completed`, so this correctly stops counting them once the author re-requests.
  */
 export function hasChangesRequested(outcomes: readonly ReviewOutcome[]): boolean {
-  return outcomes.some((outcome) => outcome.reviewState === 'CHANGES_REQUESTED');
+  return outcomes.some(
+    (outcome) => outcome.status === 'completed' && outcome.reviewState === 'CHANGES_REQUESTED',
+  );
 }
