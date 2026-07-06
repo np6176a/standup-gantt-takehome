@@ -58,17 +58,17 @@ describe('fetchPullRequests', () => {
     expect(horizonPrs).toHaveLength(3);
   });
 
-  it('skips a NOT_FOUND repo/state (repository: null + errors) instead of failing the whole sweep', async () => {
+  it('skips a NOT_FOUND repo/state (repository: null + NOT_FOUND error) instead of failing the whole sweep', async () => {
     console.warn = jest.fn();
     global.fetch = jest.fn(async (_endpoint: string, init?: RequestInit) => {
       const { variables } = JSON.parse(init?.body as string) as {
         variables: { name: string; state: string };
       };
-      // Make one slice fail the GraphQL way (HTTP 200 + errors envelope).
+      // Make one slice fail the way GitHub reports a missing repo (HTTP 200 partial).
       if (variables.name === 'horizon' && variables.state === 'CLOSED') {
         return jsonResponse({
           data: { repository: null },
-          errors: [{ message: 'Could not resolve to a Repository' }],
+          errors: [{ type: 'NOT_FOUND', message: 'Could not resolve to a Repository' }],
         });
       }
       return jsonResponse({ data: { repository: { pullRequests: { nodes: [prNode(1)] } } } });
@@ -79,5 +79,17 @@ describe('fetchPullRequests', () => {
     // 5 successful slices, the 6th skipped — and it warned rather than threw.
     expect(prs).toHaveLength(5);
     expect(console.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('rethrows a non-NOT_FOUND failure instead of hiding it as an empty slice', async () => {
+    console.warn = jest.fn();
+    // A generic GraphQL error (transport/schema/outage) — NOT a missing repo. Swallowing
+    // it would let the board load as "ready" with missing PRs, so it must propagate.
+    global.fetch = jest.fn(async () =>
+      jsonResponse({ errors: [{ message: 'Internal server error' }] }),
+    ) as typeof fetch;
+
+    await expect(fetchPullRequests()).rejects.toThrow('Internal server error');
+    expect(console.warn).not.toHaveBeenCalled();
   });
 });

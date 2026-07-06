@@ -5,7 +5,7 @@
 import type { PositionedIssue } from '@/lib/gantt/rows';
 import { pctToPx } from '@/lib/gantt/density';
 import { barMetrics } from '@/lib/gantt/scale';
-import { spanInterval } from '@/lib/normalize/issues';
+import { renderInterval } from '@/lib/normalize/issues';
 
 /** A bar's fully-resolved placement within the window, ready to hand to IssueBar. */
 export interface PlacedBar {
@@ -30,7 +30,7 @@ export function placeRow(
 ): PlacedBar[] {
   const placed: PlacedBar[] = [];
   for (const member of members) {
-    const interval = spanInterval(member.span);
+    const interval = renderInterval(member.span);
     if (!interval) continue;
     const metrics = barMetrics(interval.start, interval.end, windowStartIdx, windowDays);
     if (!metrics.visible) continue;

@@ -82,11 +82,16 @@ export function hasIssueKeyToken(headRefName: string, title: string): boolean {
   return ISSUE_KEY_RE.test(headRefName) || ISSUE_KEY_RE.test(title);
 }
 
-/** The earliest commit date on a PR (its start edge), falling back to createdAt. */
+/** Epoch millis of an ISO timestamp — compare instants numerically, not by string
+ *  (lexicographic order breaks across mixed offsets/precisions). */
+const epoch = (iso: string): number => new Date(iso).getTime();
+
+/** The earliest commit date on a PR (its start edge), falling back to createdAt.
+ *  Earliest by instant, so mixed timezone offsets can't pick the wrong commit. */
 function firstCommitAt(node: WirePullRequestNode): string | null {
   const dates = node.commits.nodes.map((entry) => entry.commit.committedDate).filter(Boolean);
   if (dates.length === 0) return node.createdAt ?? null;
-  return dates.slice().sort((a, b) => a.localeCompare(b))[0];
+  return dates.reduce((earliest, date) => (epoch(date) < epoch(earliest) ? date : earliest));
 }
 
 /** A repo-scoped head-branch key, so stack lookups can't collide across repos. */

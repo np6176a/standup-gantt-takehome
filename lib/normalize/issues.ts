@@ -101,7 +101,12 @@ export interface IssueSpan {
   actualStartIdx: number | null;
   /** Visual left edge: planned start if set, else actual start. Null when neither exists. */
   startIdx: number | null;
-  /** Right edge: due date if set, else today when the bar has started, else null. */
+  /**
+   * Inclusive last day the item covers: due date if set, else today when the bar has
+   * started, else null. This is a semantic anchor (for date labels); the half-open
+   * packing/geometry interval is produced by {@link spanInterval}, which turns it into
+   * an exclusive edge.
+   */
   endIdx: number | null;
   /** True when the issue has no start and no due date (belongs on the unscheduled shelf). */
   unscheduled: boolean;
@@ -144,13 +149,46 @@ export function computeSpan({ plannedStart, startedAt, dueDate, todayIdx }: Span
 }
 
 /**
- * The packing interval for a span, or null when unscheduled. A due-only span (start
- * null, end set) collapses to a zero-length marker at the due date, and vice versa,
- * so packing always has a concrete `[start, end)`.
+ * True for a due-only span: no start, just a due date. It renders as a point (a marker)
+ * at the due day rather than as a bar, but still occupies its day for packing so two
+ * markers on the same day don't stack on top of each other.
+ */
+export function isDueOnlyMarker(span: IssueSpan): boolean {
+  return span.startIdx === null && span.endIdx !== null;
+}
+
+/** Real-bar half-open interval: inclusive `endIdx` made exclusive so whole days are
+ *  covered. `lastDay` is `endIdx` (always ≥ start for a real bar); `?? startIdx` is
+ *  only a guard. Not exported — callers use {@link spanInterval} / {@link renderInterval}. */
+function realBarInterval(span: IssueSpan): Interval {
+  const lastDay = span.endIdx ?? span.startIdx!;
+  return { start: span.startIdx!, end: lastDay + 1 };
+}
+
+/**
+ * The **packing** interval (for `packLanes`) — every scheduled item claims at least one
+ * whole day. A real bar is `[startIdx, endIdx + 1)` (same-day task = one day wide,
+ * open-ended work covers today). A due-only marker occupies its due day
+ * `[endIdx, endIdx + 1)` so two same-day markers pack into separate rows rather than
+ * drawing on top of each other. Null only when the span is unscheduled.
+ *
+ * NOTE: this is NOT the render geometry for a marker — a marker renders as a point, so
+ * bar placement uses {@link renderInterval}, which keeps a marker zero-length.
  */
 export function spanInterval(span: IssueSpan): Interval | null {
   if (span.unscheduled) return null;
-  const start = span.startIdx ?? span.endIdx!;
-  const end = span.endIdx ?? span.startIdx!;
-  return { start, end };
+  if (isDueOnlyMarker(span)) return { start: span.endIdx!, end: span.endIdx! + 1 };
+  return realBarInterval(span);
+}
+
+/**
+ * The **render** interval that `barMetrics` consumes. Identical to {@link spanInterval}
+ * for a real bar, but a due-only marker is zero-length `[endIdx, endIdx)` so `barMetrics`
+ * draws it as a point (its `startIdx === endIdx` marker path) rather than a one-day bar.
+ * Null only when the span is unscheduled.
+ */
+export function renderInterval(span: IssueSpan): Interval | null {
+  if (span.unscheduled) return null;
+  if (isDueOnlyMarker(span)) return { start: span.endIdx!, end: span.endIdx! };
+  return realBarInterval(span);
 }

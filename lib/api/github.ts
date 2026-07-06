@@ -11,7 +11,7 @@
 // source impersonates GitHub, and which repos a team watches is our configuration.
 
 import type { PullRequestState, RepoRef, WirePullRequestNode } from '@/lib/domain/wire';
-import { postGraphql } from '@/lib/api/graphql';
+import { GraphQLRequestError, postGraphql } from '@/lib/api/graphql';
 
 /** The fake-GitHub GraphQL endpoint (app/api/fake/github). */
 export const GITHUB_ENDPOINT = '/api/fake/github';
@@ -64,11 +64,22 @@ interface PullRequestsQueryData {
   repository: { pullRequests: { nodes: WirePullRequestNode[] } } | null;
 }
 
+/** True only when the failure is GitHub's "missing repo" case (every error `NOT_FOUND`). */
+function isRepoNotFound(error: unknown): boolean {
+  return (
+    error instanceof GraphQLRequestError &&
+    error.errors.length > 0 &&
+    error.errors.every((node) => node.type === 'NOT_FOUND')
+  );
+}
+
 /**
  * Fetch the PRs for one repo + state. A NOT_FOUND repo (GitHub's HTTP-200 partial:
- * `repository: null` plus a top-level error) makes {@link postGraphql} reject; we
- * swallow it to an empty slice so one bad repo degrades to a partial board rather than
- * failing the whole load — the same per-repo skip the real API forces.
+ * `repository: null` plus a top-level `NOT_FOUND` error) is an expected per-repo skip —
+ * we degrade it to an empty slice so one missing repo yields a partial board, the same
+ * skip the real API forces. Every OTHER failure (transport error, schema/query error,
+ * endpoint outage) is a real load failure and is RETHROWN: swallowing it would let
+ * `loadAll` report `ready` with missing PRs, making the board look empty of review work.
  */
 async function fetchRepoState(
   repo: RepoRef,
@@ -83,8 +94,9 @@ async function fetchRepoState(
     const nodes = data.repository?.pullRequests.nodes ?? [];
     return nodes.map((node) => ({ repo, node }));
   } catch (error) {
-    // eslint-disable-next-line no-console -- surfacing a skipped repo/state is intentional (spec: don't drop silently).
-    console.warn(`fake-GitHub: skipping ${repo.owner}/${repo.name} [${state}]:`, error);
+    if (!isRepoNotFound(error)) throw error;
+    // eslint-disable-next-line no-console -- surfacing a skipped repo is intentional (spec: don't drop silently).
+    console.warn(`fake-GitHub: skipping missing repo ${repo.owner}/${repo.name} [${state}]`);
     return [];
   }
 }

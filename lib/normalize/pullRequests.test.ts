@@ -140,6 +140,29 @@ describe('normalizePullRequests', () => {
     expect(pr(502).firstCommitAt).toBe(raws.find((e) => e.node.number === 502)!.node.commits.nodes[0].commit.committedDate);
   });
 
+  it('picks the earliest commit by instant, not by ISO string ordering', () => {
+    const base = raws.find((e) => e.node.number === 502)!.node;
+    const commit = (date: string) => ({ commit: { committedDate: date, authoredDate: date } });
+    const node: RawGithubPullRequestNode = {
+      ...base,
+      number: 594,
+      headRefName: 'pnadkarni/orb-101-multi-commit',
+      commits: {
+        // Lexicographically "2026-07-01…" sorts first, but in UTC it is 2026-07-02T09:30Z —
+        // almost a day LATER than the +14:00 commit (2026-07-01T11:00Z), which is the real start.
+        nodes: [
+          commit('2026-07-01T23:30:00.000-10:00'),
+          commit('2026-07-02T01:00:00.000+14:00'),
+        ],
+      },
+    };
+    const [normalized] = normalizePullRequests(
+      [{ repo: { owner: 'orbital', name: 'voyager' }, node }],
+      known,
+    );
+    expect(normalized.firstCommitAt).toBe('2026-07-02T01:00:00.000+14:00');
+  });
+
   it('groups PRs by issue, excluding orphans, and keeps parallel PRs together', () => {
     const grouped = prsByIssueKey(normalized);
     expect(grouped.get('ORB-119')?.map((p) => p.number).sort()).toEqual([511, 528, 529]);

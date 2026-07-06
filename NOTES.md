@@ -30,8 +30,8 @@ A short writeup to submit with your repo. Keep it brief: a page or two is plenty
 ### Domain, normalization & gantt logic (build step 1)
 
 This is the pure logic that turns messy API data into something the board can draw — no
-React or MobX, just functions that take data and return data, all unit-tested. Building it
-first (before any UI) is where the tricky date and edge-case bugs get caught.
+React or MobX, just functions that take data and return data, all unit-tested. Building
+it first (before any UI) is where the tricky date and edge-case bugs get caught.
 
 - **We keep our own roster and data shapes.** The fake Linear/GitHub source stands in for
   real external services, so app code never imports from it. `lib/domain/roster.ts` has
@@ -44,9 +44,11 @@ first (before any UI) is where the tricky date and edge-case bugs get caught.
 - **Reviews (the hardest part).** For each PR we work out where each reviewer stands:
   still waiting (`pending`), done (`completed`), or no longer relevant because the PR
   closed (`mooted`). We replay the request/remove history (latest wins), ignore bots and
-  outside contributors, and treat "changes requested" as still blocking even if the
-  reviewer later just leaves a comment. Times are compared as real dates, not text, so
-  timestamp formatting can't trip it up.
+  outside contributors, and treat "changes requested" as still blocking until the
+  reviewer approves or dismisses — even if they later just leave a comment, or are
+  re-requested for a fresh review (a pending re-review doesn't clear the standing
+  verdict). Times are compared as real dates, not text, so timestamp formatting can't
+  trip it up.
 - **Matching PRs to issues.** We read the issue ID (like `ORB-104`) from the branch name
   first, then the title. A stacked PR (built on another PR's branch) inherits its parent's
   issue when it has none of its own. An unknown ID becomes a visible "orphan" rather than
@@ -59,7 +61,11 @@ first (before any UI) is where the tricky date and edge-case bugs get caught.
 - **Timeline spans.** A bar runs from its start (planned start if set, otherwise the real
   start) to its end (due date, or today if it's in progress). No start and no due date → it
   goes on the "unscheduled" shelf. Both the planned and actual start are kept so the gap
-  between them can show plan-vs-reality.
+  between them can show plan-vs-reality. Spans are half-open day ranges `[start, end)`, and
+  the end is made exclusive so a bar covers whole calendar days — a task started and due the
+  same day is one day wide, and in-progress work covers today's column. An issue with only a
+  due date shows as a point marker (but still claims its day so two same-day markers don't
+  overlap).
 - **Dates use UTC everywhere.** A date-only due date and a full timestamp on the same day
   map to the same "day number," so the classic Gantt off-by-one bug can't happen.
 - **Stacking bars into rows.** `packLanes` fits a lane's bars into as few rows as possible
@@ -72,8 +78,14 @@ first (before any UI) is where the tricky date and edge-case bugs get caught.
      overdue. Overdue is still flagged separately.
   3. A single-day marker (an issue with only a due date) shows up even when it sits on the
      very first day of the view.
-  4. A "changes requested" review stays blocking even if the reviewer later just comments.
-  5. Review times are compared as real instants, so odd timestamp formats still line up.
+  4. A "changes requested" review stays blocking until the reviewer approves/dismisses —
+     a later comment, or a re-request for fresh review, doesn't clear it.
+  5. Review *and* commit times are compared as real instants (not text), so mixed
+     timezone offsets / precisions can't mis-order a pairing or pick the wrong first commit.
+  6. A stacked PR with its *own* stale/typo issue key stays an orphan instead of borrowing
+     its parent's issue; only truly keyless PRs inherit.
+  7. Bar ends are exclusive so same-day and in-progress bars cover their last day, and
+     same-day due-only markers pack into separate rows instead of drawing on top of each other.
 
 ### API layer & data store (build step 2)
 
@@ -88,8 +100,11 @@ How the app fetches data, and the store that holds it and hands out ready-to-use
   so we ask for every combination (2 repos × 3 states) at once with `Promise.all`, tagging
   each PR with the repo it came from.
 - **The repo list belongs to the app,** not the fake source — the same choice as the roster.
-- **One missing repo doesn't fail the load.** A not-found repo still returns HTTP 200 with
-  an error; we log it and skip just that slice, so the board loads with the rest.
+- **One missing repo doesn't fail the load — but real errors do.** A not-found repo still
+  returns HTTP 200 with a `NOT_FOUND` error; we log it and skip just that slice, so the
+  board loads with the rest. Any other failure (transport, schema, outage) is rethrown
+  rather than swallowed — otherwise the load would look `ready` with missing PRs and the
+  board would seem empty of review work.
 - **The store holds raw data and derives the rest.** `dataStore` keeps only the raw issues
   and PRs plus a status flag; every view (issues, pull requests, PRs grouped by issue,
   pending reviews per person, counts per state) is a one-line getter over a pure `lib/`

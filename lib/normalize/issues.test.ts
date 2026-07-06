@@ -1,12 +1,15 @@
 import {
   computeSpan,
+  isDueOnlyMarker,
   knownIdentifiers,
   normalizeIssue,
   normalizeIssues,
   normalizeIssuesMemoized,
+  renderInterval,
   spanInterval,
 } from '@/lib/normalize/issues';
 import { dayIndexFromDateString } from '@/lib/gantt/scale';
+import { packLanes } from '@/lib/gantt/layout';
 import { seedLinearIssueNodes, type RawLinearIssueNode } from '@/lib/fake-source/seed';
 
 const NOW = new Date('2026-07-06T12:00:00.000Z');
@@ -89,27 +92,52 @@ describe('computeSpan', () => {
     });
   };
 
-  it('ORB-101: started with a due date → start at actual, end at due', () => {
+  it('ORB-101: started with a due date → start at actual, inclusive end at due', () => {
     const span = spanFor('ORB-101');
     expect(span.startIdx).toBe(span.actualStartIdx);
     expect(span.actualStartIdx).not.toBeNull();
     expect(span.endIdx).toBe(dayIndexFromDateString(byId('ORB-101').dueDate!));
     expect(span.unscheduled).toBe(false);
+    // Packing interval is half-open: the exclusive end covers the inclusive due day.
+    expect(spanInterval(span)).toEqual({ start: span.startIdx, end: span.endIdx! + 1 });
   });
 
-  it('ORB-103: open-ended (started, no due) → runs to today', () => {
+  it('ORB-103: open-ended (started, no due) → runs through today (covers today’s column)', () => {
     const span = spanFor('ORB-103');
     expect(span.startIdx).not.toBeNull();
     expect(span.endIdx).toBe(TODAY_IDX);
+    expect(spanInterval(span)!.end).toBe(TODAY_IDX + 1); // includes today, not up to its start
   });
 
-  it('ORB-102: planned-not-started (no start, future due) → start null, end at due, still scheduled', () => {
+  it('ORB-116: started and due on the same day → a one-day-wide bar, not a zero-width marker', () => {
+    const span = spanFor('ORB-116'); // startedAt today, dueDate today
+    expect(span.startIdx).toBe(span.endIdx);
+    expect(isDueOnlyMarker(span)).toBe(false);
+    expect(spanInterval(span)).toEqual({ start: span.startIdx, end: span.startIdx! + 1 });
+  });
+
+  it('ORB-102: planned-not-started (no start, future due) → a due-only marker', () => {
     const span = spanFor('ORB-102');
     expect(span.startIdx).toBeNull();
     expect(span.endIdx).toBe(dayIndexFromDateString(byId('ORB-102').dueDate!));
     expect(span.unscheduled).toBe(false);
-    // spanInterval collapses a due-only span to a marker at the due date.
-    expect(spanInterval(span)).toEqual({ start: span.endIdx, end: span.endIdx });
+    expect(isDueOnlyMarker(span)).toBe(true);
+    // Packing interval occupies the due day (so same-day markers don't collide)...
+    expect(spanInterval(span)).toEqual({ start: span.endIdx, end: span.endIdx! + 1 });
+    // ...but the RENDER interval is zero-length, so barMetrics draws it as a point.
+    expect(renderInterval(span)).toEqual({ start: span.endIdx, end: span.endIdx });
+  });
+
+  it('renderInterval matches spanInterval for a real bar (only markers differ)', () => {
+    const bar = spanFor('ORB-101');
+    expect(renderInterval(bar)).toEqual(spanInterval(bar));
+  });
+
+  it('two due-only issues on the same day pack into separate rows', () => {
+    const marker = () =>
+      computeSpan({ plannedStart: null, startedAt: null, dueDate: '2026-07-20', todayIdx: TODAY_IDX });
+    const rows = packLanes([marker(), marker()], (span) => spanInterval(span)!);
+    expect(rows).toHaveLength(2); // not stacked on top of each other at the same x
   });
 
   it('ORB-107: no start and no due → unscheduled, no packing interval', () => {
@@ -129,7 +157,8 @@ describe('computeSpan', () => {
     expect(span.startIdx).toBe(future);
     expect(span.endIdx).toBe(future); // clamped to start, not pulled back to today
     expect(span.endIdx!).toBeGreaterThanOrEqual(span.startIdx!);
-    expect(spanInterval(span)).toEqual({ start: future, end: future });
+    // A real (started/planned) bar is one day wide, not a zero-width interval.
+    expect(spanInterval(span)).toEqual({ start: future, end: future + 1 });
   });
 
   it('never produces a reversed span when the due date precedes the start (started late)', () => {
