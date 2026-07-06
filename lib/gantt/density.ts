@@ -27,6 +27,7 @@ export const SHELF_HEIGHT_PX = 34;
  */
 export const PX_PER_DAY: Record<Zoom, number> = {
   week: 104,
+  fortnight: 60,
   month: 34,
   quarter: 13,
   year: 4.5,
@@ -44,6 +45,7 @@ export function trackWidthPx(zoom: Zoom, windowDays: number): number {
  */
 export const BAR_LABEL_MIN_PX: Record<Zoom, number> = {
   week: 0,
+  fortnight: 0,
   month: 0,
   quarter: 56,
   year: Number.POSITIVE_INFINITY,

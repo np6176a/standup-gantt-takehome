@@ -39,6 +39,14 @@ export const Week: Story = {
   },
 };
 
+export const Fortnight: Story = {
+  args: {
+    zoom: 'fortnight',
+    windowStartIdx: defaultWindowStart(today, 'fortnight'),
+    windowDays: windowDaysForZoom('fortnight'),
+  },
+};
+
 export const Quarter: Story = {
   args: {
     zoom: 'quarter',

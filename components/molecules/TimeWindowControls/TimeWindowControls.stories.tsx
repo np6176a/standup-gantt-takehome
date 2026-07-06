@@ -26,4 +26,6 @@ export const Month: Story = {};
 
 export const Week: Story = { args: { zoom: 'week' } };
 
+export const Fortnight: Story = { args: { zoom: 'fortnight' } };
+
 export const Year: Story = { args: { zoom: 'year' } };

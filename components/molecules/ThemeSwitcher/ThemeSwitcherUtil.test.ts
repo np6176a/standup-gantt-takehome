@@ -1,6 +1,7 @@
 import { ACCENTS } from '@/stores/uiStore';
 import {
   ACCENT_OPTIONS,
+  accentOption,
   otherTheme,
   themeLabel,
   themeToggleAriaLabel,
@@ -37,6 +38,14 @@ describe('ACCENT_OPTIONS', () => {
     ACCENT_OPTIONS.forEach((option) => {
       expect(option.label.length).toBeGreaterThan(0);
       expect(option.swatch).toMatch(/^#[0-9a-f]{6}$/i);
+    });
+  });
+});
+
+describe('accentOption', () => {
+  it('returns the matching option for each accent', () => {
+    ACCENT_OPTIONS.forEach((option) => {
+      expect(accentOption(option.value)).toBe(option);
     });
   });
 });

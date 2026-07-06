@@ -9,8 +9,8 @@
 /** Milliseconds in one day. */
 export const DAY_MS = 86_400_000;
 
-/** The four zoom levels. Each derives its own window span and tick density. */
-export type Zoom = 'week' | 'month' | 'quarter' | 'year';
+/** The zoom levels, in coarsening order. Each derives its own window span and tick density. */
+export type Zoom = 'week' | 'fortnight' | 'month' | 'quarter' | 'year';
 
 /** UTC midnight (in ms) of the calendar day containing `date`. */
 export function utcDayStartMs(date: Date): number {
@@ -45,6 +45,7 @@ export function isWeekendIndex(idx: number): boolean {
 /** Days spanned by the visible window at each zoom (drives percentage positioning). */
 export const WINDOW_DAYS: Record<Zoom, number> = {
   week: 7,
+  fortnight: 14,
   month: 35,
   quarter: 91,
   year: 364,
@@ -58,6 +59,7 @@ export function windowDaysForZoom(zoom: Zoom): number {
 /** How far before today the window starts, so today sits near the left third. */
 export const WINDOW_LEAD_DAYS: Record<Zoom, number> = {
   week: 3,
+  fortnight: 4,
   month: 7,
   quarter: 14,
   year: 45,
@@ -71,6 +73,7 @@ export function defaultWindowStart(todayIdx: number, zoom: Zoom): number {
 /** How many days ◀/▶ shifts the window — one "zoom unit". */
 export const WINDOW_SHIFT_DAYS: Record<Zoom, number> = {
   week: 7,
+  fortnight: 14,
   month: 28,
   quarter: 91,
   year: 364,

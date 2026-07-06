@@ -83,6 +83,7 @@ describe('positioning', () => {
 describe('zoom windows', () => {
   it('has the expected span per zoom', () => {
     expect(windowDaysForZoom('week')).toBe(7);
+    expect(windowDaysForZoom('fortnight')).toBe(14);
     expect(windowDaysForZoom('month')).toBe(35);
     expect(windowDaysForZoom('quarter')).toBe(91);
     expect(windowDaysForZoom('year')).toBe(364);
@@ -99,6 +100,7 @@ describe('zoom windows', () => {
     const start = defaultWindowStart(today, 'week');
     expect(shiftWindow(start, 'week', 1, today)).toBe(start + 7);
     expect(shiftWindow(start, 'week', -1, today)).toBe(start - 7);
+    expect(shiftWindow(start, 'fortnight', 1, today)).toBe(start + 14);
     expect(shiftWindow(start + 999, 'week', 0, today)).toBe(defaultWindowStart(today, 'week'));
   });
 });

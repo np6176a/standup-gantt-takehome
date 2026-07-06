@@ -1,13 +1,20 @@
 import { ZOOM_OPTIONS, isZoom } from '@/components/molecules/TimeWindowControls/TimeWindowControlsUtil';
 
 describe('ZOOM_OPTIONS', () => {
-  it('lists the four zooms in coarsening order', () => {
+  it('lists the zooms in coarsening order', () => {
     expect(ZOOM_OPTIONS.map((option) => option.value)).toEqual([
       'week',
+      'fortnight',
       'month',
       'quarter',
       'year',
     ]);
+  });
+
+  it('exposes the 2-week window as an option', () => {
+    const fortnight = ZOOM_OPTIONS.find((option) => option.value === 'fortnight');
+    expect(fortnight?.label).toBe('2 Weeks');
+    expect(isZoom('fortnight')).toBe(true);
   });
 });
 

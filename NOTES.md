@@ -142,8 +142,8 @@ filter, the detail popover, and mutations are deliberately still to come (steps 
   standup, every teammate gets a lane even with zero issues (so nobody is invisible), with
   an "Unassigned" lane appended only when needed. Projects are derived from the issues, so
   empty ones don't clutter; "No project" sorts last.
-- **One scale, drawn at four densities.** The zoom (Week/Month/Quarter/Year) picks the
-  window span and a pixels-per-day (`lib/gantt/density.ts`), which sets the timeline track
+- **One scale, drawn at five densities.** The zoom (Week/2 Weeks/Month/Quarter/Year) picks
+  the window span and a pixels-per-day (`lib/gantt/density.ts`), which sets the timeline track
   width so tight windows scroll horizontally instead of crushing. Bars are positioned as
   percentages of that track, so the same components render at every zoom. Labels degrade
   before bars do — a rule encoded as a pure `shouldShowBarLabel` threshold; the header

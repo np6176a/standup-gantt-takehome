@@ -9,8 +9,9 @@ const start = dayIndex(new Date('2026-07-06T00:00:00.000Z')); // a Monday
 const DAYS = 14;
 
 describe('HEADER_LAYERS', () => {
-  it('shows day cells only at week, and month bands at the coarse zooms', () => {
+  it('shows day cells at the fine zooms, and month bands at the coarse zooms', () => {
     expect(HEADER_LAYERS.week.showDayCells).toBe(true);
+    expect(HEADER_LAYERS.fortnight.showDayCells).toBe(true);
     expect(HEADER_LAYERS.month.showDayCells).toBe(false);
     expect(HEADER_LAYERS.year.showMonthBands).toBe(true);
     expect(HEADER_LAYERS.year.showWeekendShading).toBe(false);

@@ -15,7 +15,8 @@ describe('trackWidthPx', () => {
   });
 
   it('gives tighter zooms a smaller day width', () => {
-    expect(PX_PER_DAY.week).toBeGreaterThan(PX_PER_DAY.month);
+    expect(PX_PER_DAY.week).toBeGreaterThan(PX_PER_DAY.fortnight);
+    expect(PX_PER_DAY.fortnight).toBeGreaterThan(PX_PER_DAY.month);
     expect(PX_PER_DAY.month).toBeGreaterThan(PX_PER_DAY.quarter);
     expect(PX_PER_DAY.quarter).toBeGreaterThan(PX_PER_DAY.year);
   });

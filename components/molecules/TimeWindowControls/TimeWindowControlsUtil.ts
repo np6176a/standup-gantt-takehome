@@ -6,9 +6,10 @@ export interface ZoomOption {
   label: string;
 }
 
-/** The four zoom levels, in coarsening order. Month is the default (seed density). */
+/** The zoom levels, in coarsening order. Month is the default (seed density). */
 export const ZOOM_OPTIONS: readonly ZoomOption[] = [
   { value: 'week', label: 'Week' },
+  { value: 'fortnight', label: '2 Weeks' },
   { value: 'month', label: 'Month' },
   { value: 'quarter', label: 'Quarter' },
   { value: 'year', label: 'Year' },

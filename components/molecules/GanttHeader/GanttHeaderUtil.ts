@@ -27,6 +27,7 @@ export const WEEKDAY_LABEL: readonly string[] = ['S', 'M', 'T', 'W', 'T', 'F', '
 /** The tick layers each zoom draws (see the zoom table in the plan). */
 export const HEADER_LAYERS: Record<Zoom, HeaderLayers> = {
   week: { showWeekendShading: true, showDayCells: true, showWeekTicks: false, showMonthBands: false },
+  fortnight: { showWeekendShading: true, showDayCells: true, showWeekTicks: false, showMonthBands: false },
   month: { showWeekendShading: true, showDayCells: false, showWeekTicks: true, showMonthBands: true },
   quarter: { showWeekendShading: false, showDayCells: false, showWeekTicks: true, showMonthBands: true },
   year: { showWeekendShading: false, showDayCells: false, showWeekTicks: false, showMonthBands: true },

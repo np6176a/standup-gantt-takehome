@@ -23,6 +23,10 @@ export const ACCENT_OPTIONS: readonly AccentOption[] = [
   { value: 'sky', label: 'Sky', swatch: '#0ea5e9' },
 ] as const;
 
+/** The option describing an accent, falling back to the first (indigo) if unknown. */
+export const accentOption = (accent: AccentName): AccentOption =>
+  ACCENT_OPTIONS.find((option) => option.value === accent) ?? ACCENT_OPTIONS[0];
+
 /** The theme that a toggle would switch to from the given one. */
 export const otherTheme = (theme: ThemeMode): ThemeMode =>
   theme === 'light' ? 'dark' : 'light';
