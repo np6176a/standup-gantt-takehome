@@ -2,15 +2,223 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Minimal global reset. The example page uses inline styles; style your Gantt
-   however you prefer (CSS modules, Tailwind, plain CSS -- your call). */
-* {
-  box-sizing: border-box;
+/*
+  Design tokens.
+
+  Colors come from the Tailwind palette (https://tailwindcss.com/docs/colors).
+  Everything is expressed as CSS variables so a single source of truth feeds both
+  plain CSS and Tailwind's `theme.extend.colors` (see tailwind.config.ts).
+
+  Three orthogonal switches:
+    - Theme:  `.dark` on <html> flips the light/dark semantic layer.
+    - Accent: `[data-accent="..."]` on <html> swaps the primary hue (default indigo).
+
+  Contrast (audited in both themes, all accents): the neutral text tokens
+  (`text-primary/secondary/muted`) and every `bg-primary` + `*-foreground`/hover
+  pair meet WCAG AA (>= 4.5:1). Status/attention tokens are bucket FILL colors for
+  bars, badges, and dots (graphical elements, >= 3:1 as objects) — they are NOT AA
+  as small text on the light surface, so render small state labels in a neutral
+  text token (or the accent's darker step), not the raw status color.
+*/
+
+@layer base {
+  :root {
+    /* Typography (Outfit is wired via next/font in app/layout.tsx as --font-outfit) */
+    --font-sans: var(--font-outfit), ui-sans-serif, system-ui, -apple-system,
+      'Segoe UI', sans-serif;
+    --font-weight-regular: 400;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Primary accent scale — default Tailwind Indigo.
+       Recolor the whole primary hue by setting [data-accent] on <html>. */
+    --accent-50: #eef2ff;
+    --accent-100: #e0e7ff;
+    --accent-200: #c7d2fe;
+    --accent-300: #a5b4fc;
+    --accent-400: #818cf8;
+    --accent-500: #6366f1;
+    --accent-600: #4f46e5;
+    --accent-700: #4338ca;
+    --accent-800: #3730a3;
+    --accent-900: #312e81;
+    --accent-950: #1e1b4b;
+  }
+
+  /*
+    Alternate accents (Tailwind palettes) — user-switchable primary color.
+    Cool hues (indigo/violet/rose) keep a white foreground; warm/light hues
+    (amber/emerald/sky) override to a dark foreground + lighter hover so
+    `bg-primary text-primary-foreground` stays >= WCAG AA at every accent.
+    `:root[data-accent]` (0,2,0) outranks `.dark` (0,1,0) so these win in both themes.
+  */
+  :root[data-accent='violet'] {
+    --accent-50: #f5f3ff;
+    --accent-100: #ede9fe;
+    --accent-200: #ddd6fe;
+    --accent-300: #c4b5fd;
+    --accent-400: #a78bfa;
+    --accent-500: #8b5cf6;
+    --accent-600: #7c3aed;
+    --accent-700: #6d28d9;
+    --accent-800: #5b21b6;
+    --accent-900: #4c1d95;
+    --accent-950: #2e1065;
+  }
+
+  :root[data-accent='emerald'] {
+    --accent-50: #ecfdf5;
+    --accent-100: #d1fae5;
+    --accent-200: #a7f3d0;
+    --accent-300: #6ee7b7;
+    --accent-400: #34d399;
+    --accent-500: #10b981;
+    --accent-600: #059669;
+    --accent-700: #047857;
+    --accent-800: #065f46;
+    --accent-900: #064e3b;
+    --accent-950: #022c22;
+
+    --color-primary-foreground: #020617; /* dark text — emerald-600 fails white */
+    --color-primary-hover: var(--accent-500);
+  }
+
+  :root[data-accent='rose'] {
+    --accent-50: #fff1f2;
+    --accent-100: #ffe4e6;
+    --accent-200: #fecdd3;
+    --accent-300: #fda4af;
+    --accent-400: #fb7185;
+    --accent-500: #f43f5e;
+    --accent-600: #e11d48;
+    --accent-700: #be123c;
+    --accent-800: #9f1239;
+    --accent-900: #881337;
+    --accent-950: #4c0519;
+  }
+
+  :root[data-accent='amber'] {
+    --accent-50: #fffbeb;
+    --accent-100: #fef3c7;
+    --accent-200: #fde68a;
+    --accent-300: #fcd34d;
+    --accent-400: #fbbf24;
+    --accent-500: #f59e0b;
+    --accent-600: #d97706;
+    --accent-700: #b45309;
+    --accent-800: #92400e;
+    --accent-900: #78350f;
+    --accent-950: #451a03;
+
+    --color-primary-foreground: #020617; /* dark text — amber-600 is only 3.19:1 on white */
+    --color-primary-hover: var(--accent-500);
+  }
+
+  :root[data-accent='sky'] {
+    --accent-50: #f0f9ff;
+    --accent-100: #e0f2fe;
+    --accent-200: #bae6fd;
+    --accent-300: #7dd3fc;
+    --accent-400: #38bdf8;
+    --accent-500: #0ea5e9;
+    --accent-600: #0284c7;
+    --accent-700: #0369a1;
+    --accent-800: #075985;
+    --accent-900: #0c4a6e;
+    --accent-950: #082f49;
+
+    --color-primary-foreground: #020617; /* dark text — sky-600 fails white */
+    --color-primary-hover: var(--accent-500);
+  }
+
+  /* Light theme (default) — Tailwind slate neutrals. */
+  :root {
+    /* Primary fill is accent-600 in both themes so foreground contrast is
+       theme-independent; foreground defaults to white (cool hues pass AA at 600)
+       and warm hues override it above. */
+    --color-primary: var(--accent-600);
+    --color-primary-hover: var(--accent-700);
+    --color-primary-muted: var(--accent-100);
+    --color-primary-foreground: #ffffff;
+
+    --color-secondary: #0d9488; /* teal-600 */
+    --color-tertiary: #7c3aed; /* violet-600 */
+
+    --color-bg: #ffffff;
+    --color-surface: #f8fafc; /* slate-50 */
+    --color-surface-raised: #ffffff;
+    --color-border: #e2e8f0; /* slate-200 */
+
+    --color-text-primary: #0f172a; /* slate-900 */
+    --color-text-secondary: #475569; /* slate-600 */
+    --color-text-muted: #64748b; /* slate-500 — slate-400 (2.56:1) fails AA as text on white */
+    /* Alias, not a second value: inherits the per-accent overrides above so
+       text-content-on-primary can never drift from text-primary-foreground. */
+    --color-text-on-primary: var(--color-primary-foreground);
+
+    --color-neutral-light: #f1f5f9; /* slate-100 */
+    --color-neutral-medium: #cbd5e1; /* slate-300 */
+    --color-neutral-dark: #64748b; /* slate-500 */
+
+    /* Status buckets */
+    --color-status-active: #2563eb; /* blue-600 */
+    --color-status-review: #7c3aed; /* violet-600 */
+    --color-status-shipping: #0d9488; /* teal-600 */
+    --color-status-planned: #94a3b8; /* slate-400 */
+    --color-status-done: #16a34a; /* green-600 */
+    --color-status-dropped: #94a3b8; /* slate-400 */
+
+    /* Attention overlays — both red, distinguished by shade + bar treatment. */
+    --color-attention-blocked: #dc2626; /* red-600 */
+    --color-attention-overdue: #ef4444; /* red-500 */
+  }
+
+  /* Dark theme — brightened accents/statuses for contrast on slate-950. */
+  .dark {
+    --color-primary: var(--accent-600);
+    --color-primary-hover: var(--accent-700);
+    --color-primary-muted: var(--accent-900);
+    --color-primary-foreground: #ffffff;
+
+    --color-secondary: #2dd4bf; /* teal-400 */
+    --color-tertiary: #a78bfa; /* violet-400 */
+
+    --color-bg: #020617; /* slate-950 */
+    --color-surface: #0f172a; /* slate-900 */
+    --color-surface-raised: #1e293b; /* slate-800 */
+    --color-border: #334155; /* slate-700 */
+
+    --color-text-primary: #f8fafc; /* slate-50 */
+    --color-text-secondary: #cbd5e1; /* slate-300 */
+    --color-text-muted: #94a3b8; /* slate-400 */
+    --color-text-on-primary: var(--color-primary-foreground);
+
+    --color-neutral-light: #1e293b; /* slate-800 */
+    --color-neutral-medium: #475569; /* slate-600 */
+    --color-neutral-dark: #94a3b8; /* slate-400 */
+
+    --color-status-active: #60a5fa; /* blue-400 */
+    --color-status-review: #a78bfa; /* violet-400 */
+    --color-status-shipping: #2dd4bf; /* teal-400 */
+    --color-status-planned: #64748b; /* slate-500 */
+    --color-status-done: #4ade80; /* green-400 */
+    --color-status-dropped: #64748b; /* slate-500 */
+
+    --color-attention-blocked: #f87171; /* red-400 */
+    --color-attention-overdue: #fb7185; /* rose-400 */
+  }
 }
 
-body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #18241b;
-  background: #eef3ea;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-weight: var(--font-weight-regular);
+    color: var(--color-text-primary);
+    background: var(--color-bg);
+  }
 }

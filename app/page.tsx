@@ -10,6 +10,8 @@
 
 import { useEffect, useState } from "react";
 
+import { ThemeSwitcher } from "@/components/molecules/ThemeSwitcher/ThemeSwitcher";
+
 // An example `issues` GraphQL query, trimmed to the field set fake-Linear serves.
 // Replace or extend it as you build.
 const ISSUES_QUERY = `
@@ -95,17 +97,34 @@ export default function FakeExamplePage() {
     ) : (
       <pre
         data-testid={testid}
-        style={{ background: "#f5f5f5", padding: "1rem", overflowX: "auto", borderRadius: 6 }}
+        style={{
+          background: "var(--color-surface)",
+          color: "var(--color-text-primary)",
+          border: "1px solid var(--color-border)",
+          padding: "1rem",
+          overflowX: "auto",
+          borderRadius: 6,
+        }}
       >
         {JSON.stringify(payload, null, 2)}
       </pre>
     );
 
   return (
-    <main style={{ fontFamily: "ui-monospace, monospace", padding: "2rem", lineHeight: 1.5 }}>
+    <main
+      style={{
+        fontFamily: "ui-monospace, monospace",
+        padding: "2rem",
+        lineHeight: 1.5,
+        color: "var(--color-text-primary)",
+      }}
+    >
+      <div style={{ marginBottom: "1.5rem" }}>
+        <ThemeSwitcher />
+      </div>
       <p>Standup Gantt takehome. Build your Gantt here. Raw Fake source payloads below.</p>
       {error ? (
-        <pre style={{ color: "crimson" }}>Error: {error}</pre>
+        <pre style={{ color: "var(--color-attention-overdue)" }}>Error: {error}</pre>
       ) : (
         <>
           <p>Raw fake-Linear payload (issues):</p>
