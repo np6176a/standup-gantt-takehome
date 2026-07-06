@@ -7,14 +7,15 @@
 // `bucketForState` never throws on an unrecognized name.
 
 /** Semantic status bucket. Drives bar color, sort rank, and lane-header badges. */
-export type Bucket = 'active' | 'review' | 'shipping' | 'planned' | 'done' | 'dropped';
+export type Bucket = 'active' | 'review' | 'shipping' | 'planned' | 'triage' | 'done' | 'dropped';
 
 /** The raw Linear states that make up each bucket (source of truth for the legend). */
 export const STATES_BY_BUCKET: Record<Bucket, readonly string[]> = {
   active: ['In Progress', 'Design Exploration'],
   review: ['In Review'],
   shipping: ['On Develop', 'On Staging', 'On Prod'],
-  planned: ['Todo', 'Selected For Development', 'Backlog', 'Triage'],
+  planned: ['Todo', 'Selected For Development', 'Backlog'],
+  triage: ['Triage'],
   done: ['Done'],
   dropped: ['Canceled'],
 };
@@ -25,6 +26,7 @@ export const BUCKET_LABELS: Record<Bucket, string> = {
   review: 'In Review',
   shipping: 'Shipping',
   planned: 'Planned',
+  triage: 'Triage',
   done: 'Done',
   dropped: 'Dropped',
 };
@@ -85,8 +87,9 @@ export const BUCKET_ORDER: Record<Bucket, number> = {
   review: 1,
   shipping: 2,
   planned: 3,
-  done: 4,
-  dropped: 5,
+  triage: 4,
+  done: 5,
+  dropped: 6,
 };
 
 /** The sort rank of a bucket (lower sorts first). */

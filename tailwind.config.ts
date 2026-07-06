@@ -54,6 +54,8 @@ const config: Config = {
           'done-muted': 'var(--color-status-done-muted)',
           dropped: 'var(--color-status-dropped)',
           'dropped-muted': 'var(--color-status-dropped-muted)',
+          triage: 'var(--color-status-triage)',
+          'triage-muted': 'var(--color-status-triage-muted)',
         },
         attention: {
           blocked: 'var(--color-attention-blocked)',

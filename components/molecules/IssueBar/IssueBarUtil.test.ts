@@ -43,7 +43,7 @@ const issue: Issue = {
 
 describe('BUCKET_TREATMENT', () => {
   it('covers every bucket', () => {
-    const buckets: Bucket[] = ['active', 'review', 'shipping', 'planned', 'done', 'dropped'];
+    const buckets: Bucket[] = ['active', 'review', 'shipping', 'planned', 'triage', 'done', 'dropped'];
     for (const bucket of buckets) expect(BUCKET_TREATMENT[bucket]).toBeDefined();
   });
 

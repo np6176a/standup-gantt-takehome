@@ -19,7 +19,7 @@ describe('bucketForState', () => {
     ['Todo', 'planned'],
     ['Selected For Development', 'planned'],
     ['Backlog', 'planned'],
-    ['Triage', 'planned'],
+    ['Triage', 'triage'],
     ['Done', 'done'],
     ['Canceled', 'dropped'],
   ];
@@ -59,11 +59,12 @@ describe('automation-owned vs writable states', () => {
 });
 
 describe('bucketRank', () => {
-  it('orders active → review → shipping → planned → done → dropped', () => {
+  it('orders active → review → shipping → planned → triage → done → dropped', () => {
     expect(bucketRank('active')).toBeLessThan(bucketRank('review'));
     expect(bucketRank('review')).toBeLessThan(bucketRank('shipping'));
     expect(bucketRank('shipping')).toBeLessThan(bucketRank('planned'));
-    expect(bucketRank('planned')).toBeLessThan(bucketRank('done'));
+    expect(bucketRank('planned')).toBeLessThan(bucketRank('triage'));
+    expect(bucketRank('triage')).toBeLessThan(bucketRank('done'));
     expect(bucketRank('done')).toBeLessThan(bucketRank('dropped'));
     expect(BUCKET_ORDER.active).toBe(0);
   });

@@ -21,6 +21,7 @@ const BUCKET_SWATCH: Record<Bucket, string> = {
   review: 'bg-status-review-muted border border-status-review',
   shipping: 'bg-status-shipping-muted border border-status-shipping',
   planned: 'bg-surface-raised border border-status-planned',
+  triage: 'bg-status-triage-muted border border-status-triage',
   done: 'bg-status-done-muted border border-status-done',
   dropped: 'bg-surface-raised border border-dashed border-status-dropped',
 };

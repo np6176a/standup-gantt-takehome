@@ -53,6 +53,11 @@ export const BUCKET_TREATMENT: Record<Bucket, BucketTreatment> = {
     markerClass: 'bg-status-planned',
     ghost: true,
   },
+  triage: {
+    barClass: 'bg-status-triage-muted text-content border-l-2 border-status-triage',
+    markerClass: 'bg-status-triage',
+    ghost: false,
+  },
   dropped: {
     barClass: 'border border-dashed border-status-dropped bg-surface-raised text-content-muted line-through',
     markerClass: 'bg-status-dropped',
