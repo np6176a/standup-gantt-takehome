@@ -115,12 +115,12 @@ export interface BarMetrics {
 }
 
 /**
- * Compute a bar's clamped placement within a window. For a real bar, pass the half-open
- * `[startIdx, endIdx)` interval from `spanInterval` (its exclusive end already covers the
- * inclusive last day). A due-only marker is drawn as a zero-length point at its due day
- * (`startIdx === endIdx`), which stays visible even on the window's first column. Clamps
- * to the window and reports clipping on either edge (e.g. the long-running ORB-106 that
- * begins weeks before the range).
+ * Compute a bar's clamped placement within a window. Pass the half-open interval from
+ * `renderInterval` (NOT `spanInterval`, which is the packing interval): a real bar's
+ * exclusive end covers its inclusive last day, while a due-only marker is zero-length
+ * (`startIdx === endIdx`) and is drawn as a point that stays visible even on the window's
+ * first column. Clamps to the window and reports clipping on either edge (e.g. the
+ * long-running ORB-106 that begins weeks before the range).
  */
 export function barMetrics(
   startIdx: number,

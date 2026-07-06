@@ -4,6 +4,7 @@ import {
   knownIdentifiers,
   normalizeIssue,
   normalizeIssues,
+  renderInterval,
   spanInterval,
 } from '@/lib/normalize/issues';
 import { dayIndexFromDateString } from '@/lib/gantt/scale';
@@ -89,9 +90,15 @@ describe('computeSpan', () => {
     expect(span.endIdx).toBe(dayIndexFromDateString(byId('ORB-102').dueDate!));
     expect(span.unscheduled).toBe(false);
     expect(isDueOnlyMarker(span)).toBe(true);
-    // A marker occupies its due day for packing (so same-day markers don't collide),
-    // even though it renders as a point at endIdx.
+    // Packing interval occupies the due day (so same-day markers don't collide)...
     expect(spanInterval(span)).toEqual({ start: span.endIdx, end: span.endIdx! + 1 });
+    // ...but the RENDER interval is zero-length, so barMetrics draws it as a point.
+    expect(renderInterval(span)).toEqual({ start: span.endIdx, end: span.endIdx });
+  });
+
+  it('renderInterval matches spanInterval for a real bar (only markers differ)', () => {
+    const bar = spanFor('ORB-101');
+    expect(renderInterval(bar)).toEqual(spanInterval(bar));
   });
 
   it('two due-only issues on the same day pack into separate rows', () => {

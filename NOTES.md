@@ -77,7 +77,8 @@ Building it first (before any UI) is where the tricky date and edge-case bugs ge
   3. A single-day marker (an issue with only a due date) shows up even when it sits on the
      very first day of the view.
   4. A "changes requested" review stays blocking even if the reviewer later just comments.
-  5. Review times are compared as real instants, so odd timestamp formats still line up.
+  5. Review *and* commit times are compared as real instants (not text), so mixed
+     timezone offsets / precisions can't mis-order a pairing or pick the wrong first commit.
   6. A stacked PR with its *own* stale/typo issue key stays an orphan instead of borrowing
      its parent's issue; only truly keyless PRs inherit.
   7. Bar ends are exclusive so same-day and in-progress bars cover their last day, and
