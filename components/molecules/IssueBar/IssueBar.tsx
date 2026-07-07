@@ -53,16 +53,23 @@ export const IssueBar = ({
   const treatment = BUCKET_TREATMENT[issue.bucket];
   const ariaLabel = barAriaLabel(issue);
 
+  const interactive = Boolean(onSelect);
+
   if (isMarker) {
-    return (
+    const markerClass = `absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${treatment.markerClass} ${className}`;
+    const markerStyle = { left: `${leftPct}%` };
+
+    return interactive ? (
       <button
         type="button"
         title={ariaLabel}
         aria-label={ariaLabel}
-        onClick={() => onSelect?.(issue.id)}
-        className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${treatment.markerClass} ${className}`}
-        style={{ left: `${leftPct}%` }}
+        onClick={() => onSelect!(issue.id)}
+        className={markerClass}
+        style={markerStyle}
       />
+    ) : (
+      <div title={ariaLabel} aria-label={ariaLabel} className={markerClass} style={markerStyle} />
     );
   }
 
@@ -70,24 +77,31 @@ export const IssueBar = ({
   const cornerClass = `${clippedLeft ? 'rounded-l-none' : 'rounded-l-md'} ${
     clippedRight ? 'rounded-r-none' : 'rounded-r-md'
   }`;
+  const barClass = `absolute inset-y-1 flex items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${className}`;
+  const barStyle = { left: `${leftPct}%`, width: `${widthPct}%` };
+  const barLabel = showLabel && (
+    <>
+      <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
+      <span className="ml-auto shrink-0 whitespace-nowrap rounded bg-neutral-light px-1 py-px text-[0.625rem] text-content-secondary">
+        {issue.stateName}
+      </span>
+    </>
+  );
 
-  return (
+  return interactive ? (
     <button
       type="button"
       title={ariaLabel}
       aria-label={ariaLabel}
-      onClick={() => onSelect?.(issue.id)}
-      className={`absolute inset-y-1 flex items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${className}`}
-      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+      onClick={() => onSelect!(issue.id)}
+      className={barClass}
+      style={barStyle}
     >
-      {showLabel && (
-        <>
-          <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
-          <span className="ml-auto shrink-0 whitespace-nowrap rounded bg-neutral-light px-1 py-px text-[0.625rem] text-content-secondary">
-            {issue.stateName}
-          </span>
-        </>
-      )}
+      {barLabel}
     </button>
+  ) : (
+    <div title={ariaLabel} aria-label={ariaLabel} className={barClass} style={barStyle}>
+      {barLabel}
+    </div>
   );
 };

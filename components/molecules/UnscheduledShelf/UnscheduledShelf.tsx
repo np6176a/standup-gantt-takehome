@@ -42,23 +42,37 @@ export const UnscheduledShelf = ({
         <span className="shrink-0 text-[0.6875rem] font-[var(--font-weight-semibold)] uppercase tracking-[0.03em] text-content-muted">
           Unscheduled
         </span>
-        {issues.map((issue) => (
-          <button
-            key={issue.id}
-            type="button"
-            title={`${issue.identifier}: ${issue.title} — ${issue.stateName}`}
-            aria-label={`${issue.identifier}: ${issue.title} — ${issue.stateName}`}
-            onClick={() => onSelectIssue?.(issue.id)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-raised px-2 py-1 text-[0.75rem] text-content transition-colors hover:bg-neutral-light"
-          >
-            <span
-              aria-hidden
-              className={`h-2 w-2 shrink-0 rounded-full ${BUCKET_DOT_CLASS[issue.bucket]}`}
-            />
-            <span className="font-[var(--font-weight-semibold)]">{issue.identifier}</span>
-            <span className="text-content-muted">{issue.stateName}</span>
-          </button>
-        ))}
+        {issues.map((issue) => {
+          const chipLabel = `${issue.identifier}: ${issue.title} — ${issue.stateName}`;
+          const chipClass = `inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-raised px-2 py-1 text-[0.75rem] text-content ${onSelectIssue ? 'transition-colors hover:bg-neutral-light' : ''}`;
+          const chipContent = (
+            <>
+              <span
+                aria-hidden
+                className={`h-2 w-2 shrink-0 rounded-full ${BUCKET_DOT_CLASS[issue.bucket]}`}
+              />
+              <span className="font-[var(--font-weight-semibold)]">{issue.identifier}</span>
+              <span className="text-content-muted">{issue.stateName}</span>
+            </>
+          );
+
+          return onSelectIssue ? (
+            <button
+              key={issue.id}
+              type="button"
+              title={chipLabel}
+              aria-label={chipLabel}
+              onClick={() => onSelectIssue(issue.id)}
+              className={chipClass}
+            >
+              {chipContent}
+            </button>
+          ) : (
+            <div key={issue.id} title={chipLabel} aria-label={chipLabel} className={chipClass}>
+              {chipContent}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
