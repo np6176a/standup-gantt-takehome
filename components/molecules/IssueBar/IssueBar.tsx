@@ -96,7 +96,7 @@ export const IssueBar = ({
       title={ariaLabel}
       aria-label={ariaLabel}
       onClick={() => onSelect?.(issue.id)}
-      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${attention.overdue ? 'bg-hatch-overdue' : ''} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
+      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
       style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
     >
       {attention.blockedDerived && (

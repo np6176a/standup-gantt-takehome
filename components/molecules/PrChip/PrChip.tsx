@@ -17,11 +17,11 @@ const REVIEW_ICON: Record<ReviewDotState, React.ReactNode> = {
   none: <MinusIcon size={10} />,
 };
 
-const REVIEW_LABEL: Record<ReviewDotState, string | null> = {
+const REVIEW_LABEL: Record<ReviewDotState, string> = {
   changes: 'changes requested',
-  pending: null,
-  approved: null,
-  none: null,
+  pending: 'review pending',
+  approved: 'approved',
+  none: '',
 };
 
 export interface PrChipProps {
@@ -62,7 +62,7 @@ export const PrChip = ({
       <span aria-hidden className={`flex shrink-0 items-center ${dot.className}`}>
         {REVIEW_ICON[state]}
       </span>
-      {reviewLabel && (
+      {reviewLabel.length > 0 && (
         <span className={`truncate text-[0.5625rem] font-[var(--font-weight-semibold)] ${dot.className}`}>
           {reviewLabel}
         </span>
