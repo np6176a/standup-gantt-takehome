@@ -249,3 +249,22 @@
     background: var(--color-bg);
   }
 }
+
+/* Layout: the sticky lane-rail width. One variable drives the rail, the today-line
+   offset, and the shelves' sticky-left, so they stay in lockstep as the rail narrows
+   on smaller screens — a slim rail on tablet, an avatar-only strip on mobile. */
+:root {
+  --rail-width: 220px;
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --rail-width: 160px;
+  }
+}
+
+@media (max-width: 639px) {
+  :root {
+    --rail-width: 56px;
+  }
+}

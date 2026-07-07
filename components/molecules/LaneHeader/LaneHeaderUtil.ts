@@ -36,8 +36,28 @@ export const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   reviews: 'bg-neutral-light text-content-secondary',
 };
 
+/** Solid dot color per tone, for the mobile avatar-rail attention readout. */
+export const BADGE_DOT_CLASS: Record<BadgeTone, string> = {
+  blocked: 'bg-attention-blocked',
+  overdue: 'bg-attention-overdue',
+  active: 'bg-status-active',
+  review: 'bg-status-review',
+  reviews: 'bg-neutral-medium',
+};
+
 const reviewsLabel = (count: number): string =>
   `${count} review${count === 1 ? '' : 's'} waiting`;
+
+/**
+ * The attention signals shown as stacked dots on the mobile avatar rail, where the full
+ * badge cluster can't fit. Only the loud standup signals — blocked, overdue, reviews
+ * waiting — in priority order and non-zero only, so a glance at the collapsed rail still
+ * surfaces who needs attention. Returns an empty array for a quiet lane.
+ */
+export function attentionDots(summary: LaneSummary): LaneBadge[] {
+  const loud: BadgeTone[] = ['blocked', 'overdue', 'reviews'];
+  return laneBadges(summary).filter((badge) => loud.includes(badge.tone));
+}
 
 /**
  * Build the lane header's badge cluster from its summary. Only non-zero counts appear,

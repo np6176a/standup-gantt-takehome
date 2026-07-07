@@ -8,7 +8,7 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - App code never imports the fake source — `lib/domain/roster.ts` (the 6-person team) and `wire.ts` (API shapes) are app-owned; the fake source is only sample input in tests.
 - Dates are **UTC everywhere**, so the classic Gantt off-by-one can't happen.
 - Jest covers pure functions (no DOM); Storybook is the visual layer. Store-bound organisms skip stories — the sanctioned cut line.
-- Status: **290 tests pass**; typecheck, lint, and `next build` clean.
+- Status: **307 tests pass**; typecheck, lint, and `next build` clean.
 
 ## Step 0 — Theming & tokens
 
@@ -56,6 +56,22 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - **Issue detail is a right-side drawer**, the create modal a centered / bottom sheet — both on the shared `ModalSheet` (✕ / backdrop / Escape).
 - **Scoped interactions:** only a bar's title row opens the drawer (the PR-chip band stays its own target); each PR chip's hit area is content-width. In "Needs review", the PR id opens GitHub and the issue id opens the drawer.
 - **New atoms:** `Select` + `DateInput`, each with a tested util.
+
+## Step 6 — State filter, attention chip & planning persistence
+
+- **State filter with live counts:** the toolbar "States" popover lists all 12 raw states grouped by bucket, each a checkbox with a live issue count (a MobX computed, so it re-tallies after every mutation). Per-bucket and per-state toggles, show-all / reset, and a badge on the button showing how many states are hidden. Defaults hide Backlog / Triage / Canceled.
+- **Attention chip:** a board-wide blocked/overdue rollup in the toolbar; clicking it toggles an "attention-only" filter that narrows the board to just the flagged issues.
+- **Both filters apply upstream** in `buildLanes` (state visibility + attention-only) before grouping/packing, so the counts, the lanes, and the badges can't disagree.
+- **Planning persists:** `planningStore` restores its snapshot (planned starts + manual blocked flags) from localStorage on boot and a single `reaction` writes changes back — so "I'm blocked" and a hand-set planned start survive a reload. A follow-up hardened the restore path to normalize a non-string blocked reason.
+
+## Step 7 — Polish: responsive, loading & density
+
+- **One variable drives the rail width.** `--rail-width` (220 px desktop → 160 px tablet → 56 px mobile) feeds the sticky rail, the today-line offset, and the shelves' sticky-left in lockstep, so they never drift as the layout narrows — a pure-CSS responsive story with no JS breakpoint state.
+- **The rail collapses to an avatar strip on mobile.** Below `sm` the lane header hides its title and full badge cluster and shows the loud signals (blocked / overdue / reviews-waiting) as stacked dots under the avatar, so you can still read who needs attention on a 375 px screen. The full cluster returns at `sm+`.
+- **Sheets already breakpoint-switch.** The `ModalSheet` (built in step 5) centers on `sm+` and docks as a bottom sheet on mobile; the issue drawer is a full-height side drawer — so the popover and create modal came responsive for free.
+- **Loading gate gets a real spinner.** New `Spinner` atom (inherits `currentColor`, `role="status"` + sr-only label, tested util) replaces the bare loading text; error (with retry) and empty gates were already in place.
+- **Density degrades, attention never does.** Confirmed the zoom table still holds after the responsive pass: labels → PR chips → chip-dots drop out as you zoom toward Year, but bars and the red blocked/overdue treatments render at every zoom.
+- **Verification:** 307 unit tests pass (new: the mobile attention-dot selection + the spinner dimensions); typecheck, lint (only the pre-existing seed-test warning), and `next build` clean.
 
 ### Attention treatments, PR chips & review panel (build step 4)
 
@@ -133,12 +149,24 @@ both writing through fake-Linear's `issueUpdate` / `issueCreate`.
 
 ## Tradeoffs / what you'd do next
 
-- Known rough edges or incomplete areas.
-- What you would improve with more time.
-- Any assumptions you made about the product or data.
+**Assumptions about the data / product**
+
+- **Blocked is app-owned.** Fake-Linear has no "Blocked" state, so blocked is derived (open PR with changes-requested, or a pending review > 2 days on an In-Review issue) unioned with a manual flag stored client-side. The derived signal is keyed off the *PR*, not the automation-owned "In Review" state, which lags reality.
+- **Planned start is local-only.** Linear only exposes actual `startedAt` (automation-stamped, read-only) and a writable `dueDate`; there's no planned-start field and start-date writes are rejected. So planned start lives in `planningStore` (localStorage), and the ghost-vs-solid gap on a bar *is* the plan-vs-reality answer.
+- **App code never imports the fake source.** The fake source impersonates an external system, so the 6-person roster (`lib/domain/roster.ts`) and the API wire shapes are transcribed into app-owned modules; the fake source is only sample input in tests.
+- **Dates are UTC everywhere** — date-only `dueDate` vs full-ISO timestamps is the classic Gantt off-by-one, so day boundaries are computed in UTC throughout.
+
+**Known rough edges / what I'd do next**
+
+- **Toolbar on mobile wraps rather than condensing.** It stays usable at 375 px (flex-wrap) but the plan's fuller mobile treatment — grouping/zoom as compact selects and state-filter + attention behind one filter icon opening a bottom sheet — is not built. Next pass.
+- **Mobile avatar rail is display-only.** It shows the loud attention signals as dots but doesn't yet tap-to-expand the full badge cluster inline; the review panel is only reachable from the toolbar at that width.
+- **No DOM render tests.** Per the 10 h scope, Jest covers the pure `lib/` + `*Util.ts` logic and Storybook is the visual layer; store-bound organisms have no standalone stories (a sanctioned cut). Adding jsdom + Testing Library for the interactive flows (mutation forms, filter toggles) is the next test investment.
+- **Focus mode** (spotlight one lane, `j`/`k` to advance) was scoped as a stretch and left out.
+- **No virtualization.** Unneeded at the seed's scale (32 issues / 40 PRs); a real workspace with thousands of issues would want row virtualization on the board.
 
 ## AI tool usage
 
-- Which tools you used.
-- How you directed them, where you pushed back, and what you changed by hand.
-- How you verified the generated code or designs.
+- **Tool:** Claude Code (Opus 4.8) as the primary pair, driven step-by-step against the pre-written build plan (`.context/attachments/…`), one milestone per branch/PR.
+- **How I directed it:** each step was scoped from the plan's build-order table with explicit guardrails — the repo `CLAUDE.md` conventions (directory-per-component, `Util.ts` + tests, `@/` imports, CSS-variable tokens, required-boolean props), "pure logic in `lib/`, MobX only at the state boundary", and "never cut review-pairing correctness or blocked/overdue visibility". I had it write the pure functions and their tests *before* any UI (steps 0–1) so the hard parts (review pairing, UTC day math, attention derivation) were locked down and unit-tested first.
+- **Where I pushed back / changed by hand:** the review-pairing state machine (removed → re-requested with a pre-dating submission stays *pending*; changes-requested stays blocking until approve/dismiss) needed correcting against the seeded edge cases (#501–#507). I kept the store computeds to one-line delegations to tested `lib/` functions rather than letting logic leak into the stores, and moved constants/pure helpers out of components into `Util.ts` files where the first draft inlined them.
+- **How I verified:** `pnpm test` (307 pure-function tests over the seeded edge cases — orphans, stacked PRs, bot/outside reviewers, mooted requests, overdue/blocked derivation, UTC day indices, lane packing), `pnpm typecheck`, `pnpm lint`, `next build`, plus Storybook as the visual matrix for the bar/chip/lane states (every bucket, blocked, overdue, clipped) and manual `pnpm dev` against the specific seeded edge cases the plan calls out.

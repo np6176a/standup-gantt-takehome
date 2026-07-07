@@ -13,6 +13,8 @@ import {
 import { WaveformLines } from '@tailgrids/icons';
 import {
   BADGE_TONE_CLASS,
+  BADGE_DOT_CLASS,
+  attentionDots,
   laneBadges,
   laneCountLabel,
 } from '@/components/molecules/LaneHeader/LaneHeaderUtil';
@@ -45,6 +47,11 @@ export interface LaneHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
  * title, an issue-count summary, and the attention badge cluster. The badges lead with
  * blocked/overdue so standup can be run from the rail alone; the reviews badge is a button
  * that opens the "Needs review" panel filtered to this person.
+ *
+ * Responsive: on `sm+` the rail is wide enough for the avatar + title + full badge
+ * cluster. Below `sm` the rail collapses to an avatar-only strip, so the title/cluster
+ * hide and the loud attention signals (blocked/overdue/reviews) render as stacked dots
+ * beneath the avatar instead.
  */
 export const LaneHeader = ({
   title,
@@ -56,9 +63,13 @@ export const LaneHeader = ({
   ...props
 }: LaneHeaderProps) => {
   const badges = laneBadges(summary);
+  const dots = attentionDots(summary);
 
   return (
-    <div className={`flex h-full items-center gap-2.5 px-3 py-2 ${className}`} {...props}>
+    <div
+      className={`flex h-full flex-col items-center justify-center gap-1 px-1 py-2 sm:flex-row sm:justify-start sm:gap-2.5 sm:px-3 ${className}`}
+      {...props}
+    >
       {person ? (
         <Avatar name={person.name} size="md" />
       ) : (
@@ -69,7 +80,24 @@ export const LaneHeader = ({
           #
         </span>
       )}
-      <span className="min-w-0 grow">
+
+      {dots.length > 0 && (
+        <span
+          className="flex items-center gap-1 sm:hidden"
+          aria-label={dots.map((dot) => dot.label).join(', ')}
+        >
+          {dots.map((dot) => (
+            <span
+              key={dot.key}
+              aria-hidden
+              title={dot.label}
+              className={`h-1.5 w-1.5 rounded-full ${BADGE_DOT_CLASS[dot.tone]}`}
+            />
+          ))}
+        </span>
+      )}
+
+      <span className="hidden min-w-0 grow sm:block">
         <span className="block truncate text-[0.9375rem] font-[var(--font-weight-semibold)] capitalize text-content">
           {title}
         </span>

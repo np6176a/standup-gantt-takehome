@@ -1,4 +1,8 @@
-import { laneBadges, laneCountLabel } from '@/components/molecules/LaneHeader/LaneHeaderUtil';
+import {
+  attentionDots,
+  laneBadges,
+  laneCountLabel,
+} from '@/components/molecules/LaneHeader/LaneHeaderUtil';
 import type { LaneSummary } from '@/lib/gantt/rows';
 
 const EMPTY: LaneSummary = { blocked: 0, overdue: 0, active: 0, inReview: 0, reviewsWaiting: 0 };
@@ -35,5 +39,17 @@ describe('laneBadges', () => {
     expect(badge.label).toBe('3 reviews waiting');
     expect(badge.interactive).toBe(true);
     expect(laneBadges({ ...EMPTY, blocked: 1 })[0].interactive).toBe(false);
+  });
+});
+
+describe('attentionDots', () => {
+  it('keeps only the loud signals (blocked/overdue/reviews) in priority order', () => {
+    const dots = attentionDots({ blocked: 1, overdue: 2, active: 3, inReview: 4, reviewsWaiting: 5 });
+    expect(dots.map((dot) => dot.key)).toEqual(['blocked', 'overdue', 'reviews']);
+  });
+
+  it('drops the activity-only signals and stays empty for a quiet lane', () => {
+    expect(attentionDots(EMPTY)).toEqual([]);
+    expect(attentionDots({ ...EMPTY, active: 2, inReview: 1 })).toEqual([]);
   });
 });
