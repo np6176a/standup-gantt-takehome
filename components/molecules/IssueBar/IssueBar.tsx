@@ -46,7 +46,7 @@ export interface IssueBarProps {
   attention: DerivedAttention;
   /** Today's day index, for the overdue-days badge. */
   todayIdx: number;
-  /** Opens the issue detail (wired in a later milestone). */
+  /** Opens the issue detail popover. */
   onSelect?: (issueId: string) => void;
   /** Optional className for styling overrides. */
   className?: string;

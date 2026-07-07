@@ -33,7 +33,7 @@ export interface PrChipProps {
   mode: PrChipMode;
   /** Whether the chip is a stacked child (rendered with an indent connector affordance). */
   stacked: boolean;
-  /** Opens the PR (wired in a later milestone). */
+  /** Opens the PR (deep-links out to GitHub). */
   onSelect?: (pr: PullRequest) => void;
   /** Optional className for styling overrides. */
   className?: string;

@@ -9,6 +9,8 @@ import { Legend } from '@/components/molecules/Legend/Legend';
 import { Toolbar } from '@/components/organisms/Toolbar/Toolbar';
 import { GanttBoard } from '@/components/organisms/GanttBoard/GanttBoard';
 import { ReviewAttentionPanel } from '@/components/organisms/ReviewAttentionPanel/ReviewAttentionPanel';
+import { IssueDetailPopover } from '@/components/organisms/IssueDetailPopover/IssueDetailPopover';
+import { IssueCreateModal } from '@/components/organisms/IssueCreateModal/IssueCreateModal';
 
 export interface GanttAppProps {
   /** Optional className for styling overrides. */
@@ -68,10 +70,17 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
           />
           <div className="flex min-h-0 grow">
             <GanttBoard className="m-4 min-h-0 min-w-0 grow" />
-            {ui.reviewPanel.open && <ReviewAttentionPanel />}
+            {ui.reviewPanel.open && (
+              <ReviewAttentionPanel
+                onSelectPr={(pr) => window.open(pr.url, '_blank', 'noopener,noreferrer')}
+              />
+            )}
           </div>
         </>
       )}
+
+      {store.selectedIssue && <IssueDetailPopover key={store.selectedIssue.id} />}
+      {ui.createModalOpen && <IssueCreateModal />}
     </main>
   );
 });

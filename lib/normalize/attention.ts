@@ -91,3 +91,32 @@ export function deriveAttention(
     blockedReason: blocked.reason,
   };
 }
+
+/** The app-owned "mark blocked" flag from planningStore (blocked + optional reason). */
+export interface ManualBlockedFlag {
+  blocked: boolean;
+  reason?: string;
+}
+
+/** Fallback reason shown when an issue is manually blocked with no reason given. */
+export const MANUAL_BLOCKED_REASON = 'marked blocked';
+
+/**
+ * Merge the app-owned manual "mark blocked" flag into an issue's derived attention:
+ * blocked becomes the union of the two sources, so a bar reads blocked whether the signal
+ * is derived (changes requested / stale review) or someone flagged it in standup. A
+ * derived reason is kept when present (it names the concrete signal); otherwise the
+ * manual reason — or a default when none was given — is used. `overdue` is untouched.
+ */
+export function mergeManualBlocked(
+  derived: DerivedAttention,
+  manual: ManualBlockedFlag | undefined,
+): DerivedAttention {
+  if (!manual?.blocked) return derived;
+  const manualReason = manual.reason?.trim();
+  return {
+    ...derived,
+    blockedDerived: true,
+    blockedReason: derived.blockedReason ?? (manualReason || MANUAL_BLOCKED_REASON),
+  };
+}

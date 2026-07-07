@@ -11,7 +11,13 @@ import {
   type PullRequest,
 } from '@/lib/normalize/pullRequests';
 import type { ReviewOutcome } from '@/lib/normalize/reviews';
-import { fetchIssues } from '@/lib/api/linear';
+import {
+  fetchIssues,
+  createIssue,
+  updateIssue,
+  type IssueCreateInput,
+  type IssueUpdateInput,
+} from '@/lib/api/linear';
 import { fetchPullRequests, type RawPullRequest } from '@/lib/api/github';
 
 /** The lifecycle of the one-shot initial load. Drives the app's loading/error gates. */
@@ -140,5 +146,26 @@ export class DataStore {
     this.rawIssues = exists
       ? this.rawIssues.map((issue) => (issue.id === node.id ? node : issue))
       : [...this.rawIssues, node];
+  }
+
+  /**
+   * Apply an update to one issue (status / due date / assignee / title) and splice the
+   * returned node in. Apply-the-response, not optimistic: the write resolves to the
+   * complete updated node, so there's no local guessing to reconcile. Rejects on a failed
+   * write (unknown assignee, rejected start-date key, …) so the caller's form can show it.
+   */
+  async saveIssue(id: string, input: IssueUpdateInput): Promise<void> {
+    const node = await updateIssue(id, input);
+    runInAction(() => this.applyIssueNode(node));
+  }
+
+  /**
+   * Create an issue and splice the new node in. Returns the new node so the caller can,
+   * e.g., select it. Rejects on a failed write (blank title, unknown assignee).
+   */
+  async createNewIssue(input: IssueCreateInput): Promise<WireIssueNode> {
+    const node = await createIssue(input);
+    runInAction(() => this.applyIssueNode(node));
+    return node;
   }
 }

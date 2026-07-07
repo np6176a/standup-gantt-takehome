@@ -1,8 +1,11 @@
 import {
+  MANUAL_BLOCKED_REASON,
   STALE_REVIEW_DAYS,
   deriveAttention,
   derivedBlocked,
   isOverdue,
+  mergeManualBlocked,
+  type DerivedAttention,
 } from '@/lib/normalize/attention';
 import { knownIdentifiers, normalizeIssues } from '@/lib/normalize/issues';
 import { normalizePullRequests, prsByIssueKey, type PullRequest } from '@/lib/normalize/pullRequests';
@@ -122,5 +125,40 @@ describe('deriveAttention', () => {
       blockedDerived: true,
       blockedReason: 'changes requested on #503',
     });
+  });
+});
+
+describe('mergeManualBlocked', () => {
+  const notBlocked: DerivedAttention = { overdue: false, blockedDerived: false, blockedReason: null };
+  const derivedBlockedAttn: DerivedAttention = {
+    overdue: false,
+    blockedDerived: true,
+    blockedReason: 'changes requested on #503',
+  };
+
+  it('returns the derived attention unchanged when no manual flag is set', () => {
+    expect(mergeManualBlocked(notBlocked, undefined)).toBe(notBlocked);
+    expect(mergeManualBlocked(notBlocked, { blocked: false })).toBe(notBlocked);
+  });
+
+  it('flags blocked with the manual reason when only the manual flag is set', () => {
+    const merged = mergeManualBlocked(notBlocked, { blocked: true, reason: 'waiting on design' });
+    expect(merged.blockedDerived).toBe(true);
+    expect(merged.blockedReason).toBe('waiting on design');
+  });
+
+  it('falls back to a default reason when the manual flag has none', () => {
+    const merged = mergeManualBlocked(notBlocked, { blocked: true });
+    expect(merged.blockedReason).toBe(MANUAL_BLOCKED_REASON);
+  });
+
+  it('keeps the concrete derived reason when both sources are blocked', () => {
+    const merged = mergeManualBlocked(derivedBlockedAttn, { blocked: true, reason: 'manual note' });
+    expect(merged.blockedReason).toBe('changes requested on #503');
+  });
+
+  it('leaves overdue untouched', () => {
+    const overdueOnly: DerivedAttention = { ...notBlocked, overdue: true };
+    expect(mergeManualBlocked(overdueOnly, { blocked: true }).overdue).toBe(true);
   });
 });

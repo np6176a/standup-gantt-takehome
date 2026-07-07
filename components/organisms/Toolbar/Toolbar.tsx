@@ -4,7 +4,8 @@ import React, { useContext } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
-import { EyeIcon } from '@/components/icons';
+import { EyeIcon, PlusIcon } from '@/components/icons';
+import { Button } from '@/components/atoms/Button/Button';
 import { GroupingToggle } from '@/components/molecules/GroupingToggle/GroupingToggle';
 import { TimeWindowControls } from '@/components/molecules/TimeWindowControls/TimeWindowControls';
 import { ThemeSwitcher } from '@/components/molecules/ThemeSwitcher/ThemeSwitcher';
@@ -17,8 +18,9 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
 /**
  * The board's top toolbar: grouping toggle (People/Projects), time-window controls
  * (zoom + ◀ Today ▶), a "Needs review" toggle (opens the review panel, badged with the
- * total waiting count), and the theme switcher. Wires the controlled molecules to the UI
- * store; state filters, the attention chip, search, and "+ New issue" arrive later.
+ * total waiting count), a "+ New issue" button (opens the create modal), and the theme
+ * switcher. Wires the controlled molecules to the UI store; state filters, the attention
+ * chip, and search arrive later.
  */
 export const Toolbar = observer(function Toolbar({ className = '', ...props }: ToolbarProps) {
   const store = useContext(StoreContext);
@@ -67,6 +69,13 @@ export const Toolbar = observer(function Toolbar({ className = '', ...props }: T
           </span>
         )}
       </button>
+
+      <Button variant="primary" size="sm" onClick={() => ui.openCreateModal()}>
+        <span aria-hidden className="mr-1 flex items-center">
+          <PlusIcon size={16} />
+        </span>
+        New issue
+      </Button>
 
       <ThemeSwitcher />
     </div>

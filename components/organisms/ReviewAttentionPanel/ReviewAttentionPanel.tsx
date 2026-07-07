@@ -28,7 +28,7 @@ const REVIEW_ICON: Record<ReviewDotState, React.ReactNode> = {
 };
 
 export interface ReviewAttentionPanelProps {
-  /** Opens a PR from a review row (wired in a later milestone). */
+  /** Opens a PR from a review row (deep-links out to GitHub). */
   onSelectPr?: (pr: PullRequest) => void;
   /** Optional className for styling overrides. */
   className?: string;

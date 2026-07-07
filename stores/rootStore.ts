@@ -2,6 +2,8 @@ import { makeAutoObservable } from 'mobx';
 
 import { ACCENTS, AccentName, ThemeMode, UiStore } from '@/stores/uiStore';
 import { DataStore } from '@/stores/dataStore';
+import { PlanningStore } from '@/stores/planningStore';
+import type { Issue } from '@/lib/domain/types';
 import { buildLanes, type Lane } from '@/lib/gantt/rows';
 import { dateFromDayIndex, localTodayIndex } from '@/lib/gantt/scale';
 
@@ -18,21 +20,30 @@ export interface RootStoreInit {
 }
 
 /**
- * Composition root for all stores. Holds the UI store (theming + grouping/zoom/window)
- * and the data store (raw fetched issues/PRs + their normalized computeds), and exposes
- * the board's grouped/packed rows as a cross-store computed. A later milestone adds the
- * `planning` store (planned starts + manual blocked flags).
+ * Composition root for all stores. Holds the UI store (theming + grouping/zoom/window +
+ * selection), the data store (raw fetched issues/PRs + their normalized computeds), and
+ * the planning store (app-owned planned starts + manual blocked flags), and exposes the
+ * board's grouped/packed rows as a cross-store computed.
  */
 export class RootStore {
   ui: UiStore;
   data: DataStore;
+  planning: PlanningStore;
 
   constructor(init: RootStoreInit = {}) {
     this.ui = new UiStore(init);
     this.data = new DataStore();
-    // `ui`/`data` are already observable stores — expose them as plain refs so only
-    // `ganttRows` here becomes a (cross-store) computed.
-    makeAutoObservable(this, { ui: false, data: false }, { autoBind: true });
+    this.planning = new PlanningStore();
+    // `ui`/`data`/`planning` are already observable stores — expose them as plain refs so
+    // only the cross-store computeds here (`ganttRows`, `selectedIssue`) become computed.
+    makeAutoObservable(this, { ui: false, data: false, planning: false }, { autoBind: true });
+  }
+
+  /** The issue the detail popover is open on, or null when nothing is selected. */
+  get selectedIssue(): Issue | null {
+    const id = this.ui.selectedIssueId;
+    if (!id) return null;
+    return this.data.issues.find((issue) => issue.id === id) ?? null;
   }
 
   /** Count of still-pending review requests per reviewer person id (drives the lane 👁 badge). */
@@ -57,6 +68,8 @@ export class RootStore {
       grouping: this.ui.grouping,
       people: this.data.people,
       todayIdx: this.ui.todayIdx,
+      plannedStarts: this.planning.plannedStarts,
+      blockedFlags: this.planning.blockedFlags,
       prsByIssueId: this.data.prsByIssueId,
       now: dateFromDayIndex(this.ui.todayIdx),
       reviewsWaitingByPersonId: this.reviewsWaitingByPersonId,

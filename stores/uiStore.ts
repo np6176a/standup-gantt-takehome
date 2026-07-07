@@ -40,9 +40,10 @@ export interface UiStoreInit {
 
 /**
  * Observable UI-only state: theme/accent (drive the CSS design tokens) plus the
- * board's grouping, zoom, and visible time window. Holds only small scalars; every
+ * board's grouping, zoom, visible time window, and selection (which issue's detail
+ * popover is open, whether the create modal is open). Holds only small scalars; every
  * heavier derivation (the grouped/packed rows) lives in a computed that delegates to
- * a pure `lib/gantt` function. Later milestones add state filters and selection.
+ * a pure `lib/gantt` function. A later milestone adds the state filters.
  */
 export class UiStore {
   theme: ThemeMode = 'light';
@@ -59,6 +60,14 @@ export class UiStore {
    * id it's filtered to (a lane's 👁 badge opens the panel filtered to that person).
    */
   reviewPanel: { open: boolean; personId: string | null } = { open: false, personId: null };
+
+  /** Id of the issue the detail popover is open on, or null when closed. */
+  selectedIssueId: string | null = null;
+  /** Whether the "New issue" create modal is open. */
+  createModalOpen: boolean = false;
+  /** Assignee to pre-fill the create modal with (a lane's "+" prefill), or null. */
+  createAssigneeId: string | null = null;
+
   /** Current timeline zoom; drives the window span and header tick density. */
   zoom: Zoom = 'fortnight';
   /** Left edge of the visible window, as a day index. Shifted by the ◀/▶/Today controls. */
@@ -146,5 +155,27 @@ export class UiStore {
     this.reviewPanel = this.reviewPanel.open
       ? { open: false, personId: null }
       : { open: true, personId: null };
+  }
+
+  /** Open the issue detail popover on an issue (clicking its bar / marker / shelf chip). */
+  selectIssue(issueId: string) {
+    this.selectedIssueId = issueId;
+  }
+
+  /** Close the issue detail popover. */
+  clearSelectedIssue() {
+    this.selectedIssueId = null;
+  }
+
+  /** Open the "New issue" modal, optionally pre-filled with an assignee (a lane "+"). */
+  openCreateModal(assigneeId: string | null = null) {
+    this.createAssigneeId = assigneeId;
+    this.createModalOpen = true;
+  }
+
+  /** Close the "New issue" modal (clears any assignee prefill). */
+  closeCreateModal() {
+    this.createModalOpen = false;
+    this.createAssigneeId = null;
   }
 }

@@ -172,8 +172,7 @@ and a legend. This is where the board earns the "run standup fast" goal.
 - **Attention is derived once, in the pure layer, and flows through the rows.** `buildLanes`
   now enriches each issue with its derived attention (overdue / blocked) and its resolved
   PRs, so the store's `ganttRows` carries everything the bars and lane headers need. The
-  manual "mark blocked" flag isn't wired yet (it lives in `planningStore`, step 6) — only
-  the derived signals show for now.
+  manual "mark blocked" flag is merged into this derived result at the row level (step 5).
 - **Blocked and overdue never degrade.** Labels and PR chips thin out as you zoom out, but
   the red treatments stay at every zoom (they're the whole point). Blocked gets a red ring +
   thick red left edge + ⛔; overdue gets a red diagonal hatch + a clock badge counting days
@@ -201,6 +200,42 @@ and a legend. This is where the board earns the "run standup fast" goal.
   visual states (blocked/overdue/both bars, every PR-chip review state + dot mode, the badge
   cluster, the legend). The `ReviewAttentionPanel` reads the store, so — consistent with the
   step-3 decision — it has no standalone story; its logic lives in a tested pure util.
+
+### Issue popover, create modal & mutation plumbing (build step 5)
+
+Actions without leaving the board: click a bar to edit an issue, "+ New issue" to create one,
+both writing through fake-Linear's `issueUpdate` / `issueCreate`.
+
+- **Apply-the-response, not optimistic.** `lib/api/linear.ts` gains `updateIssue` /
+  `createIssue`; both select the full issue node via one shared fragment (a mutation reads
+  back exactly what a query would), and `dataStore` splices the returned node in by id so
+  the board's computeds re-derive. There's no local guessing to reconcile, and a rejected
+  write (unknown assignee, the forbidden start-date key) rejects through `postGraphql` into
+  the form's `catch` as a faithful inline error rather than a silent no-op.
+- **The popover edits in place, field by field.** Status / assignee / due date / title save
+  the moment they change (Linear-style), showing a "Saving…" / error line. Automation-owned
+  states render locked with a "set by GitHub automation" hint — the status select offers the
+  full 12-state ladder but only the 7 writable states are selectable. Assignee can't be
+  cleared to null (fake-Linear rejects it), so "Unassigned" is a disabled placeholder.
+- **Planned start & "mark blocked" are app-owned** — they live in the new `planningStore`
+  (`plannedStarts`, `blockedFlags`), not Linear. The manual blocked flag is merged with the
+  derived signal by the pure `mergeManualBlocked`, so a bar reads blocked from either source
+  (the popover also surfaces the derived "Auto-flagged: …" reason separately). Planned start
+  feeds the ghost segment via the existing `computeSpan`. **The store is in-memory this
+  step; its localStorage persistence is wired in step 6** (it already exposes a `snapshot`).
+- **Shared `ModalSheet` shell.** Both surfaces reuse one dismissible container (✕ / backdrop
+  / Escape), centered on `sm+` and docked as a bottom sheet on small screens — the
+  breakpoint-switched container the responsive plan calls for, ready ahead of step 7.
+- **New atoms.** `Select` (native, so device pickers and keyboard behaviour come free) and
+  `DateInput` (emits the app's "YYYY-MM-DD"-or-null shape, with an inline clear), each with a
+  tested pure util.
+- **PR deep-links.** Bar/shelf clicks open the popover; PR chips and review-panel rows now
+  open the PR on GitHub (`window.open`), closing the "rows deep-link to the PR" loop.
+- **Verification.** Typecheck and lint clean (only a pre-existing seed-test warning); 270
+  unit tests pass — new ones cover the mutation option lists (status ladder, assignee
+  placeholder, create-input mapping) and the manual-blocked merge. Consistent with the
+  step-3/4 decision, the store-bound organisms (popover, modal) have no standalone stories;
+  their logic lives in tested pure utils, and the new atoms + `ModalSheet` do get stories.
 
 ## Tradeoffs / what you'd do next
 
