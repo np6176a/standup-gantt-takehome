@@ -48,8 +48,8 @@ export function prChipInterval(pr: PullRequest, todayIdx: number): Interval | nu
   if (!startIso) return null;
   const start = dayIndexFromDateString(startIso);
   const endIso = pr.mergedAt ?? pr.closedAt;
-  const end = endIso ? dayIndexFromDateString(endIso) : todayIdx;
-  return { start, end: Math.max(end, start) };
+  const endDay = endIso ? dayIndexFromDateString(endIso) : todayIdx;
+  return { start, end: Math.max(endDay + 1, start + 1) };
 }
 
 /** The chip's short label — the PR number. */

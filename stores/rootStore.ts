@@ -3,7 +3,7 @@ import { makeAutoObservable } from 'mobx';
 import { ACCENTS, AccentName, ThemeMode, UiStore } from '@/stores/uiStore';
 import { DataStore } from '@/stores/dataStore';
 import { buildLanes, type Lane } from '@/lib/gantt/rows';
-import { dateFromDayIndex, localTodayIndex } from '@/lib/gantt/scale';
+import { localTodayIndex } from '@/lib/gantt/scale';
 
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
@@ -58,7 +58,7 @@ export class RootStore {
       people: this.data.people,
       todayIdx: this.ui.todayIdx,
       prsByIssueId: this.data.prsByIssueId,
-      now: dateFromDayIndex(this.ui.todayIdx),
+      now: new Date(),
       reviewsWaitingByPersonId: this.reviewsWaitingByPersonId,
     });
   }
