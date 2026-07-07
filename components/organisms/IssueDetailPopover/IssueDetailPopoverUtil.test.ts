@@ -28,20 +28,41 @@ const baseIssue = (overrides: Partial<Issue>): Issue => ({
 });
 
 describe('statusOptions', () => {
-  const options = statusOptions();
+  describe('for a writable-state issue', () => {
+    const options = statusOptions(baseIssue({ stateName: 'Todo', automationOwned: false }));
 
-  it('lists all 12 raw states', () => {
-    expect(options).toHaveLength(12);
+    it('lists all 12 raw states', () => {
+      expect(options).toHaveLength(12);
+    });
+
+    it('disables exactly the 5 automation-owned states', () => {
+      expect(options.filter((option) => option.disabled)).toHaveLength(5);
+      expect(options.find((option) => option.value === 'In Progress')?.disabled).toBe(true);
+    });
+
+    it('leaves writable states (including Canceled) selectable', () => {
+      expect(options.find((option) => option.value === 'Todo')?.disabled).toBeFalsy();
+      expect(options.find((option) => option.value === 'Canceled')?.disabled).toBeFalsy();
+    });
+
+    it('labels automation states with the GitHub-automation hint', () => {
+      expect(options.find((option) => option.value === 'In Progress')?.label).toBe(
+        'In Progress (Set by GitHub automation)',
+      );
+    });
   });
 
-  it('disables exactly the 5 automation-owned states', () => {
-    expect(options.filter((option) => option.disabled)).toHaveLength(5);
-    const inProgress = options.find((option) => option.value === 'In Progress');
-    expect(inProgress?.disabled).toBe(true);
-  });
+  describe('for an automation-state issue', () => {
+    const options = statusOptions(baseIssue({ stateName: 'In Progress', automationOwned: true }));
 
-  it('leaves writable states selectable', () => {
-    expect(options.find((option) => option.value === 'Todo')?.disabled).toBeFalsy();
+    it('leaves only Cancel selectable', () => {
+      const selectable = options.filter((option) => !option.disabled).map((option) => option.value);
+      expect(selectable).toEqual(['Canceled']);
+    });
+
+    it('keeps every other writable state locked', () => {
+      expect(options.find((option) => option.value === 'Todo')?.disabled).toBe(true);
+    });
   });
 });
 

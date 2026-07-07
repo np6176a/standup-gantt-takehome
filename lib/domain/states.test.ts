@@ -13,7 +13,7 @@ describe('bucketForState', () => {
     ['In Progress', 'active'],
     ['Design Exploration', 'active'],
     ['In Review', 'review'],
-    ['On Develop', 'shipping'],
+    ['On Develop', 'active'],
     ['On Staging', 'shipping'],
     ['On Prod', 'shipping'],
     ['Todo', 'planned'],

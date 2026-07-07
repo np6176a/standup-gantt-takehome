@@ -11,9 +11,11 @@ export type Bucket = 'active' | 'review' | 'shipping' | 'planned' | 'triage' | '
 
 /** The raw Linear states that make up each bucket (source of truth for the legend). */
 export const STATES_BY_BUCKET: Record<Bucket, readonly string[]> = {
-  active: ['In Progress', 'Design Exploration'],
+  // "On Develop" groups with the Active bucket: work deployed to the dev environment is
+  // still in-flight, so it reads as "In Progress" rather than Shipping (staging/prod).
+  active: ['In Progress', 'Design Exploration', 'On Develop'],
   review: ['In Review'],
-  shipping: ['On Develop', 'On Staging', 'On Prod'],
+  shipping: ['On Staging', 'On Prod'],
   planned: ['Todo', 'Selected For Development', 'Backlog'],
   triage: ['Triage'],
   done: ['Done'],
@@ -73,6 +75,12 @@ export const WRITABLE_STATES: readonly string[] = ALL_STATES.filter(
 
 /** State a freshly created issue lands in: queued, pre-start (a writable state). */
 export const DEFAULT_CREATE_STATE = 'Selected For Development';
+
+/**
+ * The "dropped" state. Cancelling is a human decision the app always allows — even out of
+ * an automation-owned state — so this is the one target reachable from any state.
+ */
+export const CANCELED_STATE = 'Canceled';
 
 /** States hidden by default in the toolbar state filter (noise for standup). */
 export const DEFAULT_HIDDEN_STATES: readonly string[] = ['Backlog', 'Triage', 'Canceled'];

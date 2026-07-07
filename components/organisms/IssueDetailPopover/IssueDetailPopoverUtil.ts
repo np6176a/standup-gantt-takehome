@@ -2,7 +2,7 @@
 // hint text for automation-locked status. All framework-free and unit-tested.
 
 import type { Issue, Person } from '@/lib/domain/types';
-import { ALL_STATES, isAutomationOwned } from '@/lib/domain/states';
+import { ALL_STATES, CANCELED_STATE, isAutomationOwned } from '@/lib/domain/states';
 import type { SelectOption } from '@/components/atoms/Select/SelectUtil';
 
 /** The hint shown beside a status that GitHub automation owns (and the app can't write). */
@@ -12,16 +12,23 @@ export const AUTOMATION_STATUS_HINT = 'Set by GitHub automation';
 export const UNASSIGNED_OPTION_VALUE = '';
 
 /**
- * The status dropdown's options: all 12 raw states in ladder order, with the 5
- * automation-owned ones disabled ("locked"). So the full ladder stays legible while only
- * the 7 writable states can be picked.
+ * The status dropdown's options for a given issue: all 12 raw states in ladder order,
+ * with each automation-owned state labelled "(Set by GitHub automation)". Selectability:
+ * - Automation states are never a writable *target* — always disabled.
+ * - Cancel is always allowed (a human decision), even out of an automation-owned state.
+ * - Every other writable state is enabled only while the issue is NOT in an automation
+ *   state; once automation owns it, Cancel is the sole reachable target.
  */
-export function statusOptions(): SelectOption[] {
-  return ALL_STATES.map((state) => ({
-    value: state,
-    label: isAutomationOwned(state) ? `${state} (automation)` : state,
-    disabled: isAutomationOwned(state),
-  }));
+export function statusOptions(issue: Issue): SelectOption[] {
+  return ALL_STATES.map((state) => {
+    const automation = isAutomationOwned(state);
+    const disabled = state === CANCELED_STATE ? false : automation || issue.automationOwned;
+    return {
+      value: state,
+      label: automation ? `${state} (${AUTOMATION_STATUS_HINT})` : state,
+      disabled,
+    };
+  });
 }
 
 /**

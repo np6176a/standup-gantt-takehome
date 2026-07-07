@@ -4,6 +4,7 @@ import React, { useEffect, useId } from 'react';
 
 import { CloseIcon } from '@/components/icons';
 import {
+  ModalSheetPlacement,
   ModalSheetWidth,
   getModalPanelClasses,
   MODAL_OVERLAY_CLASSES,
@@ -20,16 +21,18 @@ export interface ModalSheetProps {
   footer?: React.ReactNode;
   /** Panel max-width preset. */
   width?: ModalSheetWidth;
+  /** Where the panel sits: a centered dialog (default) or a full-height right drawer. */
+  placement?: ModalSheetPlacement;
   /** Optional className for styling overrides on the panel. */
   className?: string;
 }
 
 /**
  * A dismissible modal container shared by the issue detail popover and the create modal.
- * Centers on `sm+` and docks to the bottom as a sheet on small screens (the responsive
- * plan's breakpoint-switched container). Closes on ✕, a backdrop click, or Escape; the
- * panel stops propagation so clicks inside never dismiss. Labelled by its title for
- * screen readers.
+ * With `placement="center"` (default) it centers on `sm+` and docks to the bottom as a
+ * sheet on small screens; with `placement="right"` it renders as a full-height right-side
+ * drawer. Closes on ✕, a backdrop click, or Escape; the panel stops propagation so clicks
+ * inside never dismiss. Labelled by its title for screen readers.
  */
 export const ModalSheet = ({
   title,
@@ -37,6 +40,7 @@ export const ModalSheet = ({
   children,
   footer,
   width = 'md',
+  placement = 'center',
   className = '',
 }: ModalSheetProps) => {
   const titleId = useId();
@@ -50,13 +54,13 @@ export const ModalSheet = ({
   }, [onClose]);
 
   return (
-    <div className={MODAL_OVERLAY_CLASSES} onClick={onClose}>
+    <div className={MODAL_OVERLAY_CLASSES[placement]} onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
-        className={getModalPanelClasses(width, className)}
+        className={getModalPanelClasses(placement, width, className)}
       >
         <header className="flex items-center gap-2 border-b border-border px-4 py-3">
           <h2

@@ -56,3 +56,15 @@ export const Small: Story = {
     children: <p className="text-[0.8125rem] text-content-secondary">A narrower sheet.</p>,
   },
 };
+
+export const RightDrawer: Story = {
+  args: {
+    title: 'ORB-104',
+    placement: 'right',
+    children: (
+      <p className="text-[0.8125rem] text-content-secondary">
+        Issue detail renders as a full-height right-side drawer.
+      </p>
+    ),
+  },
+};

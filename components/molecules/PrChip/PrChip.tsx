@@ -55,7 +55,7 @@ export const PrChip = ({
         e.stopPropagation();
         onSelect?.(pr);
       }}
-      className={`inline-flex items-center gap-1 truncate leading-tight text-content-secondary hover:text-content ${stacked ? 'pl-2' : ''} ${className}`}
+      className={`inline-flex max-w-full items-center gap-1 self-start truncate leading-tight text-content-secondary hover:text-content ${stacked ? 'pl-2' : ''} ${className}`}
     >
       <PrIcon size={10} className="shrink-0 opacity-60" />
       <span className="truncate">{prChipLabel(pr)}</span>

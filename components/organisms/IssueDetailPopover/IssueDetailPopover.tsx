@@ -110,6 +110,7 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
       title={issue.identifier}
       onClose={() => ui.clearSelectedIssue()}
       width="md"
+      placement="right"
       className={className}
     >
       <div className="flex flex-col gap-3">
@@ -124,24 +125,15 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
         </Field>
 
         <Field label="Status">
-          {issue.automationOwned ? (
-            <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5">
-              <span className="text-[0.8125rem] text-content">{issue.stateName}</span>
-              <span className="ml-auto text-[0.6875rem] text-content-muted">
-                {AUTOMATION_STATUS_HINT}
-              </span>
-            </div>
-          ) : (
-            <Select
-              value={issue.stateName}
-              onChange={(stateId) => save({ stateId })}
-              options={statusOptions()}
-              disabled={saving}
-              aria-label="Status"
-            />
-          )}
+          <Select
+            value={issue.stateName}
+            onChange={(stateId) => save({ stateId })}
+            options={statusOptions(issue)}
+            disabled={saving}
+            aria-label="Status"
+          />
           <span className="text-[0.6875rem] text-content-muted">
-            {BUCKET_LABELS[issue.bucket]}
+            {issue.automationOwned ? `${BUCKET_LABELS[issue.bucket]} · ${AUTOMATION_STATUS_HINT}` : BUCKET_LABELS[issue.bucket]}
           </span>
         </Field>
 

@@ -94,12 +94,17 @@ export const IssueBar = ({
   return (
     <div
       title={ariaLabel}
-      aria-label={ariaLabel}
-      onClick={() => onSelect?.(issue.id)}
-      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
+      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${className}`}
       style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
     >
-      <div className={`flex items-center gap-1.5 px-1.5 ${hasChildren ? 'border-b border-white/20 py-0.5' : 'py-0'}`} style={{ minHeight: hasChildren ? undefined : '100%' }}>
+      {/* Only the title row opens the detail popover — the PR-chip band below stays its
+          own click target so a chip click never doubles as an issue click. */}
+      <div
+        aria-label={ariaLabel}
+        onClick={() => onSelect?.(issue.id)}
+        className={`flex items-center gap-1.5 px-1.5 ${onSelect ? 'cursor-pointer' : ''} ${hasChildren ? 'border-b border-white/20 py-0.5' : 'py-0'}`}
+        style={{ minHeight: hasChildren ? undefined : '100%' }}
+      >
         {attention.blockedDerived && (
           <span aria-hidden className="shrink-0 leading-none">
             <BlockedIcon size={14} />
