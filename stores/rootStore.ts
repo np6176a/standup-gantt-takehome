@@ -5,7 +5,7 @@ import { DataStore } from '@/stores/dataStore';
 import { PlanningStore, type PlanningSnapshot } from '@/stores/planningStore';
 import type { Issue } from '@/lib/domain/types';
 import { buildLanes, type Lane } from '@/lib/gantt/rows';
-import { dateFromDayIndex, localTodayIndex } from '@/lib/gantt/scale';
+import { dateFromDayIndex, isDateOnlyString, localTodayIndex } from '@/lib/gantt/scale';
 
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
@@ -52,11 +52,9 @@ export class RootStore {
 
   /** Count of still-pending review requests per reviewer person id (drives the lane 👁 badge). */
   get reviewsWaitingByPersonId(): Map<string, number> {
-    const counts = new Map<string, number>();
-    for (const [personId, pending] of this.data.pendingReviewsByPersonId) {
-      counts.set(personId, pending.length);
-    }
-    return counts;
+    return new Map(
+      [...this.data.pendingReviewsByPersonId].map(([personId, pending]) => [personId, pending.length]),
+    );
   }
 
   /**
@@ -152,12 +150,12 @@ export function persistPreferences(theme: ThemeMode, accent: AccentName): void {
   }
 }
 
-/** A plain string→string record (planned starts), tolerating a malformed persisted value. */
-function asStringRecord(value: unknown): Record<string, string> {
+/** The planned-starts map from a persisted snapshot, dropping any non-string or invalid date. */
+function asPlannedStarts(value: unknown): Record<string, string> {
   if (!value || typeof value !== 'object') return {};
   return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).filter(
-      ([, date]) => typeof date === 'string',
+    Object.entries(value as Record<string, unknown>).filter(([, date]) =>
+      isDateOnlyString(date),
     ),
   ) as Record<string, string>;
 }
@@ -194,7 +192,7 @@ export function readInitialPlanning(): Partial<PlanningSnapshot> {
   try {
     const parsed = JSON.parse(raw) as Partial<PlanningSnapshot>;
     return {
-      plannedStarts: asStringRecord(parsed.plannedStarts),
+      plannedStarts: asPlannedStarts(parsed.plannedStarts),
       blockedFlags: asBlockedFlags(parsed.blockedFlags),
     };
   } catch {

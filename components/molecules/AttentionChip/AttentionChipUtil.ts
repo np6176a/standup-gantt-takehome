@@ -17,6 +17,26 @@ function plural(count: number, word: string): string {
   return `${count} ${word}`;
 }
 
+/**
+ * The button's hover tooltip, describing what a click will do. State-aware: offer to focus
+ * when there's something to focus and the filter is off, offer to clear when it's on, and
+ * say there's nothing to focus when the board is clear.
+ */
+export function attentionChipTitle(hasAttention: boolean, active: boolean): string {
+  if (!hasAttention) return 'No blocked or overdue issues to focus';
+  return active ? 'Show all issues' : 'Focus on blocked and overdue issues';
+}
+
+/**
+ * Whether the chip's toggle is actionable. There must be something to focus (`hasAttention`)
+ * to turn the filter ON — otherwise clicking "All clear" would enable an empty focus that
+ * `passesFilters` collapses to a blank board. An already-ON filter stays actionable so the
+ * user can always clear it, even after the last attention item is resolved or hidden.
+ */
+export function canToggleAttention(hasAttention: boolean, active: boolean): boolean {
+  return hasAttention || active;
+}
+
 /** Build the attention chip's model from the board's blocked / overdue totals. */
 export function attentionChipModel(blocked: number, overdue: number): AttentionChipModel {
   const total = blocked + overdue;

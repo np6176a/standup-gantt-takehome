@@ -106,11 +106,10 @@ export class DataStore {
 
   /** Live issue count per raw state name — drives the state-filter popover's counts. */
   get issueCountByState(): Record<string, number> {
-    const counts: Record<string, number> = {};
-    for (const issue of this.issues) {
+    return this.issues.reduce<Record<string, number>>((counts, issue) => {
       counts[issue.stateName] = (counts[issue.stateName] ?? 0) + 1;
-    }
-    return counts;
+      return counts;
+    }, {});
   }
 
   /**

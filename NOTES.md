@@ -8,7 +8,7 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - App code never imports the fake source — `lib/domain/roster.ts` (the 6-person team) and `wire.ts` (API shapes) are app-owned; the fake source is only sample input in tests.
 - Dates are **UTC everywhere**, so the classic Gantt off-by-one can't happen.
 - Jest covers pure functions (no DOM); Storybook is the visual layer. Store-bound organisms skip stories — the sanctioned cut line.
-- Status: **307 tests pass**; typecheck, lint, and `next build` clean.
+- Status: **318 tests pass**; typecheck, lint, and `next build` clean.
 
 ## Step 0 — Theming & tokens
 
@@ -71,7 +71,7 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - **Sheets already breakpoint-switch.** The `ModalSheet` (built in step 5) centers on `sm+` and docks as a bottom sheet on mobile; the issue drawer is a full-height side drawer — so the popover and create modal came responsive for free.
 - **Loading gate gets a real spinner.** New `Spinner` atom (inherits `currentColor`, `role="status"` + sr-only label, tested util) replaces the bare loading text; error (with retry) and empty gates were already in place.
 - **Density degrades, attention never does.** Confirmed the zoom table still holds after the responsive pass: labels → PR chips → chip-dots drop out as you zoom toward Year, but bars and the red blocked/overdue treatments render at every zoom.
-- **Verification:** 307 unit tests pass (new: the mobile attention-dot selection + the spinner dimensions); typecheck, lint (only the pre-existing seed-test warning), and `next build` clean.
+- **Verification:** 318 unit tests pass (new: the mobile attention-dot selection + the spinner dimensions); typecheck, lint (only the pre-existing seed-test warning), and `next build` clean.
 
 ### Attention treatments, PR chips & review panel (build step 4)
 
@@ -169,4 +169,4 @@ both writing through fake-Linear's `issueUpdate` / `issueCreate`.
 - **Tool:** Claude Code (Opus 4.8) as the primary pair, driven step-by-step against the pre-written build plan (`.context/attachments/…`), one milestone per branch/PR.
 - **How I directed it:** each step was scoped from the plan's build-order table with explicit guardrails — the repo `CLAUDE.md` conventions (directory-per-component, `Util.ts` + tests, `@/` imports, CSS-variable tokens, required-boolean props), "pure logic in `lib/`, MobX only at the state boundary", and "never cut review-pairing correctness or blocked/overdue visibility". I had it write the pure functions and their tests *before* any UI (steps 0–1) so the hard parts (review pairing, UTC day math, attention derivation) were locked down and unit-tested first.
 - **Where I pushed back / changed by hand:** the review-pairing state machine (removed → re-requested with a pre-dating submission stays *pending*; changes-requested stays blocking until approve/dismiss) needed correcting against the seeded edge cases (#501–#507). I kept the store computeds to one-line delegations to tested `lib/` functions rather than letting logic leak into the stores, and moved constants/pure helpers out of components into `Util.ts` files where the first draft inlined them.
-- **How I verified:** `pnpm test` (307 pure-function tests over the seeded edge cases — orphans, stacked PRs, bot/outside reviewers, mooted requests, overdue/blocked derivation, UTC day indices, lane packing), `pnpm typecheck`, `pnpm lint`, `next build`, plus Storybook as the visual matrix for the bar/chip/lane states (every bucket, blocked, overdue, clipped) and manual `pnpm dev` against the specific seeded edge cases the plan calls out.
+- **How I verified:** `pnpm test` (318 pure-function tests over the seeded edge cases — orphans, stacked PRs, bot/outside reviewers, mooted requests, overdue/blocked derivation, UTC day indices, lane packing), `pnpm typecheck`, `pnpm lint`, `next build`, plus Storybook as the visual matrix for the bar/chip/lane states (every bucket, blocked, overdue, clipped) and manual `pnpm dev` against the specific seeded edge cases the plan calls out.

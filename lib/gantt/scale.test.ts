@@ -5,6 +5,7 @@ import {
   dayIndexFromDateString,
   dayIndexToPercent,
   defaultWindowStart,
+  isDateOnlyString,
   isWeekendIndex,
   monthTicks,
   shiftWindow,
@@ -12,6 +13,39 @@ import {
   weekTicks,
   windowDaysForZoom,
 } from '@/lib/gantt/scale';
+
+describe('isDateOnlyString', () => {
+  it('accepts a real YYYY-MM-DD calendar day', () => {
+    expect(isDateOnlyString('2026-07-09')).toBe(true);
+    expect(isDateOnlyString('2024-02-29')).toBe(true); // leap day
+  });
+
+  it('rejects non-strings', () => {
+    expect(isDateOnlyString(123)).toBe(false);
+    expect(isDateOnlyString(null)).toBe(false);
+    expect(isDateOnlyString(undefined)).toBe(false);
+    expect(isDateOnlyString({})).toBe(false);
+  });
+
+  it('rejects malformed or non-date strings', () => {
+    expect(isDateOnlyString('not-a-date')).toBe(false);
+    expect(isDateOnlyString('2026-7-9')).toBe(false); // unpadded
+    expect(isDateOnlyString('07/09/2026')).toBe(false); // wrong separator
+    expect(isDateOnlyString('2026-13-40')).toBe(false); // NaN date
+  });
+
+  it('rejects a full ISO timestamp (planned starts are date-only)', () => {
+    expect(isDateOnlyString('2026-07-09T12:00:00Z')).toBe(false);
+  });
+
+  it('rejects impossible-but-normalizable days JS would silently roll over', () => {
+    // new Date("2026-02-31") normalizes to Mar 3 rather than NaN — the round-trip
+    // check must catch this so a corrupt planned start can never shift geometry.
+    expect(isDateOnlyString('2026-02-31')).toBe(false);
+    expect(isDateOnlyString('2026-04-31')).toBe(false);
+    expect(isDateOnlyString('2025-02-29')).toBe(false); // not a leap year
+  });
+});
 
 describe('UTC day index', () => {
   it('collapses a date-only dueDate and a same-day full timestamp to one index (off-by-one tripwire)', () => {
