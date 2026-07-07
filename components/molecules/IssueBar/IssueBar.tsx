@@ -18,7 +18,6 @@ import {
   statusTagLabel,
 } from '@/components/molecules/IssueBar/IssueBarUtil';
 
-/** No-attention default so the bar renders plainly when callers don't pass flags (stories). */
 const NO_ATTENTION: DerivedAttention = {
   overdue: false,
   blockedDerived: false,
@@ -48,19 +47,12 @@ export interface IssueBarProps {
   todayIdx: number;
   /** Opens the issue detail popover. */
   onSelect?: (issueId: string) => void;
+  /** PR chip elements rendered as a second row inside the bar. */
+  children?: React.ReactNode;
   /** Optional className for styling overrides. */
   className?: string;
 }
 
-/**
- * One issue's bar on the timeline canvas, absolutely positioned by percentage within
- * its row. Carries the raw state label (never collapsed to the bucket), colored by the
- * status bucket. Blocked and overdue are loud overlays that layer on top and stay visible
- * at every zoom: blocked gets a red ring + thick red left edge + ⛔; overdue gets a red
- * hatch + a clock badge with days overdue. A due-only issue collapses to a diamond marker
- * (recolored red under attention). Clipped edges are squared off so a bar running past the
- * window edge reads as continuing.
- */
 export const IssueBar = ({
   issue,
   leftPct,
@@ -73,30 +65,24 @@ export const IssueBar = ({
   attention = NO_ATTENTION,
   todayIdx,
   onSelect,
+  children,
   className = '',
 }: IssueBarProps) => {
   const treatment = BUCKET_TREATMENT[issue.bucket];
   const overdueDays = daysOverdue(issue.dueDate, todayIdx);
   const ariaLabel = `${barAriaLabel(issue)}${attentionAriaSuffix(attention, overdueDays)}`;
   const ringClass = attentionRingClass(attention);
-
-  const interactive = Boolean(onSelect);
+  const hasChildren = Boolean(children);
 
   if (isMarker) {
-    const markerClass = `absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${markerAttentionFill(attention, treatment.markerClass)} ${ringClass} ${className}`;
-    const markerStyle = { left: `${leftPct}%` };
-
-    return interactive ? (
-      <button
-        type="button"
+    return (
+      <div
         title={ariaLabel}
         aria-label={ariaLabel}
-        onClick={() => onSelect!(issue.id)}
-        className={markerClass}
-        style={markerStyle}
+        onClick={() => onSelect?.(issue.id)}
+        className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${markerAttentionFill(attention, treatment.markerClass)} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
+        style={{ left: `${leftPct}%` }}
       />
-    ) : (
-      <div title={ariaLabel} aria-label={ariaLabel} className={markerClass} style={markerStyle} />
     );
   }
 
@@ -104,55 +90,45 @@ export const IssueBar = ({
   const cornerClass = `${clippedLeft ? 'rounded-l-none' : 'rounded-l-md'} ${
     clippedRight ? 'rounded-r-none' : 'rounded-r-md'
   }`;
-  const barClass = `absolute inset-y-1 flex items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${attention.overdue ? 'bg-hatch-overdue' : ''} ${ringClass} ${className}`;
-  const barStyle = { left: `${leftPct}%`, width: `${widthPct}%` };
-  // Attention overlays (blocked left edge + ⛔, overdue clock badge) always render — they
-  // never degrade with zoom — while the title + raw-state tag show only when the bar is
-  // wide enough for a label. Shared by the interactive and static variants below.
-  const barContent = (
-    <>
-      {attention.blockedDerived && (
-        <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-attention-blocked" />
-      )}
-      {attention.blockedDerived && (
-        <span aria-hidden className="shrink-0 leading-none">
-          <BlockedIcon size={14} />
-        </span>
-      )}
 
-      {showLabel && (
-        <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
-      )}
-
-      <span className="ml-auto flex shrink-0 items-center gap-1">
-        {attention.overdue && (
-          <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded bg-attention-overdue px-1 py-px text-[0.625rem] font-[var(--font-weight-semibold)] text-white">
-            <OverdueIcon size={10} /> {overdueBadgeText(overdueDays)}
-          </span>
-        )}
-        {showLabel && (
-          <span className={`whitespace-nowrap rounded px-1 py-px text-[0.625rem] ${statusTagClass(attention)}`}>
-            {statusTagLabel(issue, attention)}
-          </span>
-        )}
-      </span>
-    </>
-  );
-
-  return interactive ? (
-    <button
-      type="button"
+  return (
+    <div
       title={ariaLabel}
       aria-label={ariaLabel}
-      onClick={() => onSelect!(issue.id)}
-      className={barClass}
-      style={barStyle}
+      onClick={() => onSelect?.(issue.id)}
+      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
+      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
     >
-      {barContent}
-    </button>
-  ) : (
-    <div title={ariaLabel} aria-label={ariaLabel} className={barClass} style={barStyle}>
-      {barContent}
+      <div className={`flex items-center gap-1.5 px-1.5 ${hasChildren ? 'border-b border-white/20 py-0.5' : 'py-0'}`} style={{ minHeight: hasChildren ? undefined : '100%' }}>
+        {attention.blockedDerived && (
+          <span aria-hidden className="shrink-0 leading-none">
+            <BlockedIcon size={14} />
+          </span>
+        )}
+
+        {showLabel && (
+          <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
+        )}
+
+        <span className="ml-auto flex shrink-0 items-center gap-1">
+          {attention.overdue && overdueDays > 0 && (
+            <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded bg-attention-overdue px-1 py-px text-[0.625rem] font-[var(--font-weight-semibold)] text-white">
+              <OverdueIcon size={10} /> {overdueBadgeText(overdueDays)}
+            </span>
+          )}
+          {showLabel && (
+            <span className={`whitespace-nowrap rounded px-1 py-px text-[0.625rem] ${statusTagClass(attention)}`}>
+              {statusTagLabel(issue, attention)}
+            </span>
+          )}
+        </span>
+      </div>
+
+      {hasChildren && (
+        <div className="flex flex-col gap-px px-1.5 py-0.5 text-[0.625rem]">
+          {children}
+        </div>
+      )}
     </div>
   );
 };

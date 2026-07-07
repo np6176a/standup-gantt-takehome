@@ -31,8 +31,8 @@ export interface LaneBadge {
 export const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   blocked: 'bg-attention-blocked/15 text-attention-blocked',
   overdue: 'bg-attention-overdue/15 text-attention-overdue',
-  active: 'bg-status-active-muted text-content-secondary',
-  review: 'bg-status-review-muted text-content-secondary',
+  active: 'bg-status-active/15 text-status-active',
+  review: 'bg-status-review/15 text-status-review',
   reviews: 'bg-neutral-light text-content-secondary',
 };
 

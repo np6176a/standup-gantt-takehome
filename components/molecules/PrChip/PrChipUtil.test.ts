@@ -1,6 +1,9 @@
 import {
+  groupPrsByOwnership,
+  isExternalAuthor,
   prChipInterval,
   prChipLabel,
+  prChipTooltip,
   reviewDotState,
 } from '@/components/molecules/PrChip/PrChipUtil';
 import type { PullRequest } from '@/lib/normalize/pullRequests';
@@ -64,25 +67,25 @@ describe('reviewDotState', () => {
 });
 
 describe('prChipInterval', () => {
-  it('runs first-commit → merged when merged', () => {
+  it('runs first-commit → merged+1 (exclusive end) when merged', () => {
     const interval = prChipInterval(makePr({ number: 1, mergedAt: iso('2026-07-04') }), TODAY);
     expect(interval).toEqual({
       start: dayIndex(new Date(iso('2026-07-02'))),
-      end: dayIndex(new Date(iso('2026-07-04'))),
+      end: dayIndex(new Date(iso('2026-07-04'))) + 1,
     });
   });
 
-  it('runs an open PR to today', () => {
+  it('runs an open PR to today+1 (exclusive)', () => {
     const interval = prChipInterval(makePr({ number: 2 }), TODAY);
-    expect(interval).toEqual({ start: dayIndex(new Date(iso('2026-07-02'))), end: TODAY });
+    expect(interval).toEqual({ start: dayIndex(new Date(iso('2026-07-02'))), end: TODAY + 1 });
   });
 
-  it('clamps end ≥ start for a same-day PR', () => {
+  it('gives a same-day PR at least one day of width', () => {
     const interval = prChipInterval(
       makePr({ number: 3, firstCommitAt: iso('2026-07-06'), mergedAt: iso('2026-07-06') }),
       TODAY,
     );
-    expect(interval!.end).toBeGreaterThanOrEqual(interval!.start);
+    expect(interval!.end - interval!.start).toBeGreaterThanOrEqual(1);
   });
 
   it('falls back to createdAt when there is no first commit', () => {
@@ -97,5 +100,37 @@ describe('prChipInterval', () => {
 describe('prChipLabel', () => {
   it('is the PR number', () => {
     expect(prChipLabel(makePr({ number: 512 }))).toBe('#512');
+  });
+});
+
+describe('prChipTooltip', () => {
+  it('includes number, title, author, and review state', () => {
+    const tip = prChipTooltip(makePr({ number: 503, hasChangesRequested: true }));
+    expect(tip).toContain('#503');
+    expect(tip).toContain('changes requested');
+  });
+});
+
+describe('isExternalAuthor', () => {
+  it('returns true when PR author differs from the assignee', () => {
+    expect(isExternalAuthor(makePr({ number: 1, authorLogin: 'alice' }), 'bob')).toBe(true);
+    expect(isExternalAuthor(makePr({ number: 2, authorLogin: 'alice' }), 'alice')).toBe(false);
+  });
+
+  it('returns false when assignee is null', () => {
+    expect(isExternalAuthor(makePr({ number: 3, authorLogin: 'alice' }), null)).toBe(false);
+  });
+});
+
+describe('groupPrsByOwnership', () => {
+  it('separates owner PRs from external PRs', () => {
+    const prs = [
+      makePr({ number: 1, authorLogin: 'alice' }),
+      makePr({ number: 2, authorLogin: 'bob' }),
+      makePr({ number: 3, authorLogin: 'alice' }),
+    ];
+    const [owner, external] = groupPrsByOwnership(prs, 'alice');
+    expect(owner.map((pr) => pr.number)).toEqual([1, 3]);
+    expect(external.map((pr) => pr.number)).toEqual([2]);
   });
 });

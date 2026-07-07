@@ -11,6 +11,12 @@ import type { Zoom } from '@/lib/gantt/scale';
 /** Fixed width of the sticky left label rail (desktop), in pixels. */
 export const RAIL_WIDTH_PX = 220;
 
+/** Height of the issue bar portion of a packed row, in pixels. */
+export const BAR_HEIGHT_PX = 30;
+
+/** Height of a single PR chip line inside a row, in pixels. */
+export const PR_LINE_PX = 16;
+
 /** Height of a single packed bar row, in pixels. */
 export const ROW_HEIGHT_PX = 30;
 
@@ -83,6 +89,12 @@ export function shouldShowBarLabel(zoom: Zoom, barWidthPx: number): boolean {
 /** Convert a within-window width percentage to pixels for the current track. */
 export function pctToPx(percent: number, trackPx: number): number {
   return (percent / 100) * trackPx;
+}
+
+/** Total pixel height of a packed row: the bar plus one line per visible PR chip. */
+export function rowHeightPx(prCount: number, chipMode: PrChipMode): number {
+  const prLines = chipMode === 'hidden' ? 0 : prCount;
+  return BAR_HEIGHT_PX + prLines * PR_LINE_PX;
 }
 
 /** Total pixel height of a lane holding `rowCount` packed rows (min one row tall). */

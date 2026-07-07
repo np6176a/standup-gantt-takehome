@@ -44,23 +44,12 @@ function makePr(number: number, over: Partial<PullRequest> = {}): PullRequest {
 const meta = {
   title: 'Molecules/PrChip',
   component: PrChip,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'padded' },
   tags: ['autodocs'],
-  decorators: [
-    (Story) => (
-      <div style={{ position: 'relative', height: 20, width: 480, background: 'var(--color-surface)' }}>
-        <Story />
-      </div>
-    ),
-  ],
   args: {
     pr: makePr(512),
-    leftPct: 10,
-    widthPct: 40,
-    clippedLeft: false,
-    clippedRight: false,
-    mode: 'full',
     stacked: false,
+    showAuthor: false,
     onSelect: fn(),
   },
 } satisfies Meta<typeof PrChip>;
@@ -68,15 +57,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Pending review — a hollow dot. */
 export const Pending: Story = {};
 
-/** Changes requested — a red ✗ (the loud one). */
 export const ChangesRequested: Story = {
   args: { pr: makePr(503, { hasChangesRequested: true }) },
 };
 
-/** Approved and merged — a green ✓. */
 export const Approved: Story = {
   args: {
     pr: makePr(509, {
@@ -87,12 +73,6 @@ export const Approved: Story = {
   },
 };
 
-/** A stacked child PR renders indented with a dashed edge. */
 export const StackedChild: Story = {
-  args: { pr: makePr(508), stacked: true, leftPct: 20, widthPct: 30 },
-};
-
-/** Quarter zoom collapses the chip to just its review dot. */
-export const DotMode: Story = {
-  args: { mode: 'dot', pr: makePr(503, { hasChangesRequested: true }) },
+  args: { pr: makePr(508), stacked: true },
 };

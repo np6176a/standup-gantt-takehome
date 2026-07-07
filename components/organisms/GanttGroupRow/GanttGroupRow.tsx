@@ -6,18 +6,21 @@ import type { Zoom } from '@/lib/gantt/scale';
 import { dayColumns } from '@/lib/gantt/scale';
 import {
   LANE_PADDING_PX,
-  ROW_HEIGHT_PX,
+  BAR_HEIGHT_PX,
+  PR_LINE_PX,
   RAIL_WIDTH_PX,
   SHELF_HEIGHT_PX,
-  PR_STRIP_PX,
   prChipMode,
 } from '@/lib/gantt/density';
+import { PrIcon } from '@/components/icons';
 import { HEADER_LAYERS, weekendBands } from '@/components/molecules/GanttHeader/GanttHeaderUtil';
 import { IssueBar } from '@/components/molecules/IssueBar/IssueBar';
 import { PrChip } from '@/components/molecules/PrChip/PrChip';
 import { LaneHeader } from '@/components/molecules/LaneHeader/LaneHeader';
 import { UnscheduledShelf } from '@/components/molecules/UnscheduledShelf/UnscheduledShelf';
-import { placeChips, placeRow } from '@/components/organisms/GanttGroupRow/GanttGroupRowUtil';
+import { UNASSIGNED_KEY } from '@/lib/gantt/rows';
+import { placeChips, placeRow, type PlacedBar, type PlacedChip } from '@/components/organisms/GanttGroupRow/GanttGroupRowUtil';
+import { groupPrsByOwnership, isExternalAuthor } from '@/components/molecules/PrChip/PrChipUtil';
 
 export interface GanttGroupRowProps {
   /** The lane to render (header identity + summary + packed rows). */
@@ -42,22 +45,24 @@ export interface GanttGroupRowProps {
   className?: string;
 }
 
-/** One packed row's resolved geometry: its bars, its PR chips, and its vertical placement. */
-interface RowLayout {
-  key: string;
-  bars: ReturnType<typeof placeRow>;
-  chips: ReturnType<typeof placeChips>;
-  top: number;
-  hasChips: boolean;
+interface GroupedChips {
+  ownerChips: PlacedChip[];
+  externalChips: PlacedChip[];
+  assigneeLogin: string | null;
 }
 
-/**
- * One swimlane: a sticky left-rail {@link LaneHeader} (with its attention badge cluster)
- * beside the timeline canvas holding its packed rows of {@link IssueBar}s. Each row that
- * has PRs grows a thin strip of {@link PrChip}s beneath its bars, aligned on the same
- * scale. Weekend shading is drawn behind the bars (at the zooms that show it). No-date
- * issues render in an {@link UnscheduledShelf} strip below the rows; the lane grows to fit.
- */
+interface BarWithChips {
+  placed: PlacedBar;
+  grouped: GroupedChips;
+}
+
+interface RowLayout {
+  key: string;
+  bars: BarWithChips[];
+  top: number;
+  height: number;
+}
+
 export const GanttGroupRow = ({
   lane,
   zoom,
@@ -74,25 +79,44 @@ export const GanttGroupRow = ({
     lane.rows.reduce((total, row) => total + row.length, 0) + lane.unscheduled.length;
   const chipMode = prChipMode(zoom);
   const showShading = HEADER_LAYERS[zoom].showWeekendShading;
+  const showChips = chipMode !== 'hidden';
 
-  // Rows have variable height: a row with visible PR chips grows a chip strip beneath its
-  // bar band. Lay them out top-down with a running offset so each knows where it sits.
   let cursor = LANE_PADDING_PX;
   const rowLayouts: RowLayout[] = lane.rows.map((row, rowIndex) => {
-    const bars = placeRow(row, windowStartIdx, windowDays, trackWidthPx);
-    const chips =
-      chipMode === 'hidden'
-        ? []
-        : row.flatMap((member) => placeChips(member, windowStartIdx, windowDays, todayIdx));
-    const hasChips = chips.length > 0;
+    const placedBars = placeRow(row, windowStartIdx, windowDays, trackWidthPx);
+
+    const bars: BarWithChips[] = placedBars.map((placed) => {
+      const allChips = showChips
+        ? placeChips(placed.member, windowStartIdx, windowDays, todayIdx)
+        : [];
+
+      const assigneeLogin = placed.member.issue.assignee?.githubLogin ?? null;
+      const allPrs = allChips.map((c) => c.pr);
+      const [ownerPrs, externalPrs] = groupPrsByOwnership(allPrs, assigneeLogin);
+
+      const ownerChips = allChips.filter((c) => ownerPrs.includes(c.pr));
+      const externalChips = allChips.filter((c) => externalPrs.includes(c.pr));
+
+      return { placed, grouped: { ownerChips, externalChips, assigneeLogin } };
+    });
+
+    const maxPrLines = bars.reduce((max, bar) => {
+      const total = bar.grouped.ownerChips.length + bar.grouped.externalChips.length;
+      return Math.max(max, total);
+    }, 0);
+    const height = BAR_HEIGHT_PX + (showChips ? maxPrLines * PR_LINE_PX : 0);
     const top = cursor;
-    cursor += ROW_HEIGHT_PX + (hasChips ? PR_STRIP_PX : 0);
-    return { key: row[0]?.issue.id ?? `row-${rowIndex}`, bars, chips, top, hasChips };
+    cursor += height;
+
+    return { key: row[0]?.issue.id ?? `row-${rowIndex}`, bars, top, height };
   });
 
   const rowsBlockHeight = cursor + LANE_PADDING_PX;
   const hasUnscheduled = lane.unscheduled.length > 0;
-  const laneHeight = rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0);
+  const hasOrphans = lane.orphanPrs.length > 0;
+  const isUnassigned = lane.key === UNASSIGNED_KEY;
+  const orphanShelfHeight = hasOrphans ? Math.max(SHELF_HEIGHT_PX, lane.orphanPrs.length * PR_LINE_PX + 12) : 0;
+  const laneHeight = rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0) + orphanShelfHeight;
 
   return (
     <div className={`flex border-b border-border ${className}`} style={{ minHeight: laneHeight }}>
@@ -123,12 +147,13 @@ export const GanttGroupRow = ({
           )}
 
         {rowLayouts.map((layout) => (
-          <React.Fragment key={layout.key}>
-            <div
-              className="absolute inset-x-0"
-              style={{ top: layout.top, height: ROW_HEIGHT_PX }}
-            >
-              {layout.bars.map((placed) => (
+          <div
+            key={layout.key}
+            className="absolute inset-x-0"
+            style={{ top: layout.top, height: layout.height }}
+          >
+            <div className="relative" style={{ height: layout.height }}>
+              {layout.bars.map(({ placed, grouped }) => (
                 <IssueBar
                   key={placed.member.issue.id}
                   issue={placed.member.issue}
@@ -142,31 +167,32 @@ export const GanttGroupRow = ({
                   attention={placed.member.attention}
                   todayIdx={todayIdx}
                   onSelect={onSelectIssue}
-                />
+                >
+                  {grouped.ownerChips.map((chip) => (
+                    <PrChip
+                      key={`${chip.pr.repo.owner}/${chip.pr.repo.name}#${chip.pr.number}`}
+                      pr={chip.pr}
+                      stacked={chip.stacked}
+                      showAuthor={false}
+                      onSelect={onSelectPr}
+                    />
+                  ))}
+                  {grouped.ownerChips.length > 0 && grouped.externalChips.length > 0 && (
+                    <span aria-hidden className="h-px w-full bg-white/15" />
+                  )}
+                  {grouped.externalChips.map((chip) => (
+                    <PrChip
+                      key={`${chip.pr.repo.owner}/${chip.pr.repo.name}#${chip.pr.number}`}
+                      pr={chip.pr}
+                      stacked={chip.stacked}
+                      showAuthor={isExternalAuthor(chip.pr, grouped.assigneeLogin)}
+                      onSelect={onSelectPr}
+                    />
+                  ))}
+                </IssueBar>
               ))}
             </div>
-
-            {layout.hasChips && (
-              <div
-                className="absolute inset-x-0"
-                style={{ top: layout.top + ROW_HEIGHT_PX, height: PR_STRIP_PX }}
-              >
-                {layout.chips.map((chip) => (
-                  <PrChip
-                    key={`${chip.pr.repo.owner}/${chip.pr.repo.name}#${chip.pr.number}`}
-                    pr={chip.pr}
-                    leftPct={chip.leftPct}
-                    widthPct={chip.widthPct}
-                    clippedLeft={chip.clippedLeft}
-                    clippedRight={chip.clippedRight}
-                    mode={chipMode}
-                    stacked={chip.stacked}
-                    onSelect={onSelectPr}
-                  />
-                ))}
-              </div>
-            )}
-          </React.Fragment>
+          </div>
         ))}
 
         {hasUnscheduled && (
@@ -179,6 +205,32 @@ export const GanttGroupRow = ({
               onSelectIssue={onSelectIssue}
               stickyLeftPx={RAIL_WIDTH_PX}
             />
+          </div>
+        )}
+
+        {hasOrphans && (
+          <div
+            className="absolute inset-x-0 border-t border-dashed border-border"
+            style={{ top: rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0), height: orphanShelfHeight }}
+          >
+            <div
+              className="sticky flex flex-col gap-px px-3 py-1.5 text-[0.625rem]"
+              style={{ left: RAIL_WIDTH_PX }}
+            >
+              <span className="mb-0.5 flex items-center gap-1 text-[0.6875rem] text-content-muted">
+                <PrIcon size={12} className="shrink-0 opacity-60" />
+                <span className="font-[var(--font-weight-semibold)]">Orphan PRs</span>
+              </span>
+              {lane.orphanPrs.map((pr) => (
+                <PrChip
+                  key={`${pr.repo.owner}/${pr.repo.name}#${pr.number}`}
+                  pr={pr}
+                  stacked={false}
+                  showAuthor={isUnassigned}
+                  onSelect={onSelectPr}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

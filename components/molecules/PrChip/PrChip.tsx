@@ -1,13 +1,12 @@
 import React from 'react';
 
 import type { PullRequest } from '@/lib/normalize/pullRequests';
-import type { PrChipMode } from '@/lib/gantt/density';
 import type { ReviewDotState } from '@/components/molecules/PrChip/PrChipUtil';
-import { XmarkIcon, ClockIcon, CheckIcon, MinusIcon } from '@/components/icons';
+import { PrIcon, XmarkIcon, ClockIcon, CheckIcon, MinusIcon } from '@/components/icons';
 import {
   REVIEW_DOT,
-  prChipAriaLabel,
   prChipLabel,
+  prChipTooltip,
   reviewDotState,
 } from '@/components/molecules/PrChip/PrChipUtil';
 
@@ -18,80 +17,64 @@ const REVIEW_ICON: Record<ReviewDotState, React.ReactNode> = {
   none: <MinusIcon size={10} />,
 };
 
+const REVIEW_LABEL: Record<ReviewDotState, string> = {
+  changes: 'changes requested',
+  pending: 'review pending',
+  approved: 'approved',
+  none: '',
+};
+
 export interface PrChipProps {
   /** The PR this chip represents. */
   pr: PullRequest;
-  /** Left edge within the window, as a percentage. */
-  leftPct: number;
-  /** Chip width as a percentage (ignored in `dot` mode). */
-  widthPct: number;
-  /** Span starts before the window — square off the left edge. */
-  clippedLeft: boolean;
-  /** Span ends after the window — square off the right edge. */
-  clippedRight: boolean;
-  /** Render mode: a full thin bar, a collapsed dot, or hidden (handled by the caller). */
-  mode: PrChipMode;
   /** Whether the chip is a stacked child (rendered with an indent connector affordance). */
   stacked: boolean;
+  /** Whether to show the author name (true when the author differs from the issue assignee). */
+  showAuthor: boolean;
   /** Opens the PR (deep-links out to GitHub). */
   onSelect?: (pr: PullRequest) => void;
   /** Optional className for styling overrides. */
   className?: string;
 }
 
-/**
- * A thin PR chip nested under its resolved issue on the same timeline scale, spanning
- * first-commit → merged/closed/now. It carries a review-state dot (○ pending, ✗ changes
- * requested, ✓ approved) that stays legible even when the bar is too narrow for the "#123"
- * label. At quarter zoom the chip collapses to just the dot; at year it isn't rendered.
- */
 export const PrChip = ({
   pr,
-  leftPct,
-  widthPct,
-  clippedLeft,
-  clippedRight,
-  mode,
   stacked,
+  showAuthor,
   onSelect,
   className = '',
 }: PrChipProps) => {
   const state = reviewDotState(pr);
   const dot = REVIEW_DOT[state];
-  const ariaLabel = prChipAriaLabel(pr);
-
-  if (mode === 'dot') {
-    return (
-      <button
-        type="button"
-        title={ariaLabel}
-        aria-label={ariaLabel}
-        onClick={() => onSelect?.(pr)}
-        className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 leading-none ${dot.className} ${className}`}
-        style={{ left: `${leftPct}%` }}
-      >
-        <span aria-hidden className="flex items-center">{REVIEW_ICON[state]}</span>
-      </button>
-    );
-  }
-
-  const cornerClass = `${clippedLeft ? 'rounded-l-none' : 'rounded-l'} ${
-    clippedRight ? 'rounded-r-none' : 'rounded-r'
-  }`;
+  const tooltip = prChipTooltip(pr);
+  const reviewLabel = REVIEW_LABEL[state];
 
   return (
     <button
       type="button"
-      title={ariaLabel}
-      aria-label={ariaLabel}
-      onClick={() => onSelect?.(pr)}
-      className={`absolute top-1/2 flex h-3 min-w-[0.75rem] -translate-y-1/2 items-center gap-0.5 overflow-hidden border border-border bg-surface-raised px-1 text-[0.625rem] leading-none text-content-secondary ${cornerClass} ${stacked ? 'ml-2 border-dashed' : ''} ${className}`}
-      style={{ left: `${leftPct}%`, width: `max(0.75rem, ${widthPct}%)` }}
+      title={tooltip}
+      aria-label={tooltip}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect?.(pr);
+      }}
+      className={`inline-flex items-center gap-1 truncate leading-tight text-content-secondary hover:text-content ${stacked ? 'pl-2' : ''} ${className}`}
     >
+      <PrIcon size={10} className="shrink-0 opacity-60" />
+      <span className="truncate">{prChipLabel(pr)}</span>
+      {showAuthor && pr.authorLogin && (
+        <span className="truncate text-[0.5625rem] text-content-muted">
+          {pr.authorLogin}
+        </span>
+      )}
       <span aria-hidden className={`flex shrink-0 items-center ${dot.className}`}>
         {REVIEW_ICON[state]}
       </span>
-      <span className="truncate">{prChipLabel(pr)}</span>
+      {reviewLabel.length > 0 && (
+        <span className={`truncate text-[0.5625rem] font-[var(--font-weight-semibold)] ${dot.className}`}>
+          {reviewLabel}
+        </span>
+      )}
     </button>
   );
 };

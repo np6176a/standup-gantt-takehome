@@ -7,9 +7,10 @@ import { Avatar } from '@/components/atoms/Avatar/Avatar';
 import {
   BlockedIcon,
   OverdueIcon,
-  ActiveIcon,
-  EyeIcon,
+  ClockIcon,
+  PrIcon,
 } from '@/components/icons';
+import { WaveformLines } from '@tailgrids/icons';
 import {
   BADGE_TONE_CLASS,
   laneBadges,
@@ -19,9 +20,9 @@ import {
 const BADGE_ICON: Record<BadgeTone, React.ReactNode> = {
   blocked: <BlockedIcon size={12} />,
   overdue: <OverdueIcon size={12} />,
-  active: <ActiveIcon size={12} />,
-  review: <EyeIcon size={12} />,
-  reviews: <EyeIcon size={12} />,
+  active: <WaveformLines size={12} />,
+  review: <PrIcon size={12} />,
+  reviews: <ClockIcon size={12} />,
 };
 
 export interface LaneHeaderProps extends React.HTMLAttributes<HTMLDivElement> {

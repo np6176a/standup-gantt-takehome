@@ -48,8 +48,8 @@ export function prChipInterval(pr: PullRequest, todayIdx: number): Interval | nu
   if (!startIso) return null;
   const start = dayIndexFromDateString(startIso);
   const endIso = pr.mergedAt ?? pr.closedAt;
-  const end = endIso ? dayIndexFromDateString(endIso) : todayIdx;
-  return { start, end: Math.max(end, start) };
+  const endDay = endIso ? dayIndexFromDateString(endIso) : todayIdx;
+  return { start, end: Math.max(endDay + 1, start + 1) };
 }
 
 /** The chip's short label — the PR number. */
@@ -59,5 +59,32 @@ export function prChipLabel(pr: PullRequest): string {
 
 /** Accessible label naming the PR, its state, and its review status. */
 export function prChipAriaLabel(pr: PullRequest): string {
-  return `PR #${pr.number} ${pr.title} — ${pr.state.toLowerCase()}, ${REVIEW_DOT[reviewDotState(pr)].label}`;
+  return `PR #${pr.number} ${pr.title} | ${pr.state.toLowerCase()}, ${REVIEW_DOT[reviewDotState(pr)].label}`;
+}
+
+/** Compact tooltip for a PR inside an issue bar (no issue title, just essentials). */
+export function prChipTooltip(pr: PullRequest): string {
+  const state = REVIEW_DOT[reviewDotState(pr)].label;
+  const author = pr.authorLogin ? ` by ${pr.authorLogin}` : '';
+  return `#${pr.number} ${pr.title}${author} | ${state}`;
+}
+
+/** Whether this PR's author differs from the issue's assignee. */
+export function isExternalAuthor(pr: PullRequest, assigneeLogin: string | null): boolean {
+  if (!assigneeLogin || !pr.authorLogin) return false;
+  return pr.authorLogin !== assigneeLogin;
+}
+
+/** Group PRs: owner's PRs first, then external authors'. Returns [ownerPrs, externalPrs]. */
+export function groupPrsByOwnership(
+  prs: readonly PullRequest[],
+  assigneeLogin: string | null,
+): [PullRequest[], PullRequest[]] {
+  const owner: PullRequest[] = [];
+  const external: PullRequest[] = [];
+  for (const pr of prs) {
+    if (isExternalAuthor(pr, assigneeLogin)) external.push(pr);
+    else owner.push(pr);
+  }
+  return [owner, external];
 }

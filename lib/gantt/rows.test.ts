@@ -2,6 +2,7 @@ import {
   NO_PROJECT_KEY,
   UNASSIGNED_KEY,
   buildLanes,
+  earliestPrDate,
   type Lane,
 } from '@/lib/gantt/rows';
 import type { Bucket } from '@/lib/domain/states';
@@ -249,5 +250,35 @@ describe('buildLanes — attention enrichment', () => {
       reviewsWaitingByPersonId: new Map([['p_a', 5]]),
     });
     expect(lanes[0].summary.reviewsWaiting).toBe(0);
+  });
+});
+
+describe('earliestPrDate', () => {
+  it('returns the earliest createdAt across PRs', () => {
+    expect(earliestPrDate([
+      makePr({ number: 1, createdAt: iso('2026-07-05') }),
+      makePr({ number: 2, createdAt: iso('2026-07-02') }),
+      makePr({ number: 3, createdAt: iso('2026-07-04') }),
+    ])).toBe(iso('2026-07-02'));
+  });
+
+  it('returns null when no PRs have a createdAt', () => {
+    expect(earliestPrDate([makePr({ number: 1, createdAt: null as unknown as string })])).toBe(null);
+    expect(earliestPrDate([])).toBe(null);
+  });
+});
+
+describe('PR start date fallback', () => {
+  it('uses earliest PR createdAt as start when issue has no startedAt', () => {
+    const lanes = buildLanes({
+      issues: [makeIssue({ id: '1', startedAt: null, dueDate: '2026-07-10' })],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      prsByIssueId: new Map([['1', [makePr({ number: 501, createdAt: iso('2026-07-03') })]]]),
+    });
+    const scheduled = lanes.flatMap((lane) => lane.rows.flat());
+    expect(scheduled.length).toBe(1);
+    expect(scheduled[0].span.actualStartIdx).toBe(dayIndex(new Date(iso('2026-07-03'))));
   });
 });

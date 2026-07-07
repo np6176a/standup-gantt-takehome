@@ -24,3 +24,5 @@ export {
   Minus as MinusIcon,
   Plus as PlusIcon,
 } from '@tailgrids/icons';
+
+export { PrIcon } from '@/components/icons/PrIcon';
