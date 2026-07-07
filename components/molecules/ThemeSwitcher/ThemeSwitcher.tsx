@@ -72,7 +72,7 @@ export const ThemeSwitcher = observer(
               size="icon"
               onClick={() => ui.toggleTheme()}
               aria-label={themeToggleAriaLabel(ui.theme)}
-              className="h-5 w-5"
+              className="h-4 w-4"
             >
               <ThemeIcon size={11} aria-hidden />
             </Button>
