@@ -11,7 +11,8 @@
     "test": "jest --passWithNoTests",
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "vercel-build": "storybook build -o public/storybook && next build"
   },
   "dependencies": {
     "@tailgrids/icons": "^2.0.0",

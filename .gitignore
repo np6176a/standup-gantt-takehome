@@ -6,6 +6,10 @@
 /out
 next-env.d.ts
 
+# storybook (generated static build served at /storybook)
+/public/storybook
+/storybook-static
+
 # production
 /build
 
