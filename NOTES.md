@@ -1,167 +1,61 @@
 # Notes
 
-A short writeup to submit with your repo. Keep it brief: a page or two is plenty.
+A Gantt-style standup board over fake Linear issues + GitHub PRs, built in ordered steps (newest last).
 
-## Decisions
+**Throughout:**
 
-- What you chose to build, what you deliberately left out, and why.
-- How you modeled issues, pull requests, reviews, statuses, and timeline spans.
-- Where you put app-owned state, such as lane placement or planned starts, and how you
-  reasoned about it.
+- All real logic lives in framework-free, unit-tested `lib/` functions; MobX stores just hold raw state and expose one-line computeds that delegate to them.
+- App code never imports the fake source — `lib/domain/roster.ts` (the 6-person team) and `wire.ts` (API shapes) are app-owned; the fake source is only sample input in tests.
+- Dates are **UTC everywhere**, so the classic Gantt off-by-one can't happen.
+- Jest covers pure functions (no DOM); Storybook is the visual layer. Store-bound organisms skip stories — the sanctioned cut line.
+- Status: **290 tests pass**; typecheck, lint, and `next build` clean.
 
-### Theming & design tokens (build step 0)
+## Step 0 — Theming & tokens
 
-- **One source of truth for colors.** Colors are CSS variables in `app/globals.css`, and
-  `tailwind.config.ts` points classes like `bg-primary` at those variables. Change a
-  color once and it updates everywhere.
-- **Three independent switches on `<html>`:** light/dark theme (`.dark` class), a
-  swappable accent color (`[data-accent]` — indigo by default, plus five others), and the
-  accent feeds the primary color.
-- **Contrast is checked.** Every theme + accent combo meets WCAG AA (4.5:1) for text on
-  buttons. Warm accents (amber/emerald/sky) use dark text instead of white so they stay
-  readable. Status colors are fills for bars/badges/dots, not for small text.
-- **Theme is remembered.** `uiStore` holds the theme + accent, saves them to localStorage,
-  and a tiny inline script re-applies the saved theme before the first paint so there's no
-  flash of the wrong theme on load. The visible switcher UI comes in a later step.
-- **Tests.** Jest runs any `*.test.ts` / `*.test.tsx` under `lib/` and `components/`.
-  Everything tested so far is pure functions, so no browser is needed — Storybook covers
-  the visual side.
+- **One color source:** CSS variables in `globals.css`; Tailwind classes (`bg-primary`) point at them. `<html>` carries three switches — light/dark (`.dark`), accent hue (`[data-accent]`, 6 options), and accent→primary.
+- **Contrast checked:** every theme × accent meets WCAG AA; warm accents use dark text. Status colors are fills only, never small text.
+- **Theme persists** via `uiStore` + localStorage; an inline script re-applies it before first paint (no flash).
 
-### Domain, normalization & gantt logic (build step 1)
+## Step 1 — Domain, normalization & gantt logic (pure, built & tested first)
 
-This is the pure logic that turns messy API data into something the board can draw — no
-React or MobX, just functions that take data and return data, all unit-tested. Building
-it first (before any UI) is where the tricky date and edge-case bugs get caught.
+- **Statuses → buckets:** 12 raw states → 6 color buckets; an unknown state falls back to "planned". Tracks automation-owned (locked) vs writable states.
+- **Reviews (hardest part):** per reviewer → `pending` / `completed` / `mooted`. Replay the request/remove history (latest wins), drop bots + outsiders, keep "changes requested" blocking until approve/dismiss (a later comment or re-request doesn't clear it). Compare real timestamps, not text.
+- **PR → issue:** match `ORB-###` in the branch, then the title; a keyless stacked PR inherits its parent's issue; an unknown key → visible "orphan", never dropped.
+- **Blocked & overdue (Linear has neither):** overdue = past due and not done/canceled; blocked = an open PR with changes requested, or a review waiting > 2 days. Keyed off the PR, not the automation-owned "In Review" state (which lags reality).
+- **Spans:** start (planned ?? actual) → end (due ?? today-if-started); neither → the "unscheduled" shelf. Half-open `[start, end)` day ranges with an exclusive end, so same-day and in-progress bars still cover their day. Due-only issues render as a diamond marker.
+- **Packing:** `packLanes` fits bars into the fewest non-overlapping rows, preserving priority order (blocked/overdue on top).
+- **Edge cases, each with a test:** keyless-chain inheritance; a bar never ends before it starts; a first-day marker stays visible; changes-requested stays blocking; timestamps compared as instants; a PR with its *own* bad key stays orphan; exclusive ends + same-day markers pack separately.
 
-- **We keep our own roster and data shapes.** The fake Linear/GitHub source stands in for
-  real external services, so app code never imports from it. `lib/domain/roster.ts` has
-  our own copy of the 6-person team (email ↔ GitHub login), and `lib/domain/wire.ts`
-  describes the API shapes we read. Tests use the fake data only as sample input.
-- **Statuses → colors.** `lib/domain/states.ts` groups Linear's 12 raw states into 6
-  buckets (the colors on the board). An unknown state falls back to "planned" instead of
-  crashing. It also tracks which states automation controls (locked in the editor) and
-  which we're allowed to write.
-- **Reviews (the hardest part).** For each PR we work out where each reviewer stands:
-  still waiting (`pending`), done (`completed`), or no longer relevant because the PR
-  closed (`mooted`). We replay the request/remove history (latest wins), ignore bots and
-  outside contributors, and treat "changes requested" as still blocking until the
-  reviewer approves or dismisses — even if they later just leave a comment, or are
-  re-requested for a fresh review (a pending re-review doesn't clear the standing
-  verdict). Times are compared as real dates, not text, so timestamp formatting can't
-  trip it up.
-- **Matching PRs to issues.** We read the issue ID (like `ORB-104`) from the branch name
-  first, then the title. A stacked PR (built on another PR's branch) inherits its parent's
-  issue when it has none of its own. An unknown ID becomes a visible "orphan" rather than
-  being silently dropped.
-- **Blocked & overdue.** Linear has no "blocked" or "overdue" flag, so we compute them:
-  overdue = past its due date and not done/canceled; blocked = an open PR with changes
-  requested, or a review left waiting more than 2 days (on any unfinished issue — we key
-  off the PR, not Linear's automation-owned "In Review" state, which can lag the real PR
-  status). A manual "mark blocked" toggle gets merged in later at the store level.
-- **Timeline spans.** A bar runs from its start (planned start if set, otherwise the real
-  start) to its end (due date, or today if it's in progress). No start and no due date → it
-  goes on the "unscheduled" shelf. Both the planned and actual start are kept so the gap
-  between them can show plan-vs-reality. Spans are half-open day ranges `[start, end)`, and
-  the end is made exclusive so a bar covers whole calendar days — a task started and due the
-  same day is one day wide, and in-progress work covers today's column. An issue with only a
-  due date shows as a point marker (but still claims its day so two same-day markers don't
-  overlap).
-- **Dates use UTC everywhere.** A date-only due date and a full timestamp on the same day
-  map to the same "day number," so the classic Gantt off-by-one bug can't happen.
-- **Stacking bars into rows.** `packLanes` fits a lane's bars into as few rows as possible
-  without overlaps, keeping the caller's priority order (blocked/overdue on top).
+## Step 2 — API layer & data store
 
-- **Edge cases found in review (each fixed with a test):**
-  1. A keyless stacked PR whose parent is *also* keyless now finds its issue by following
-     the chain up to the first PR that has one.
-  2. A bar can never end before it starts — e.g. an issue started after it was already
-     overdue. Overdue is still flagged separately.
-  3. A single-day marker (an issue with only a due date) shows up even when it sits on the
-     very first day of the view.
-  4. A "changes requested" review stays blocking until the reviewer approves/dismisses —
-     a later comment, or a re-request for fresh review, doesn't clear it.
-  5. Review *and* commit times are compared as real instants (not text), so mixed
-     timezone offsets / precisions can't mis-order a pairing or pick the wrong first commit.
-  6. A stacked PR with its *own* stale/typo issue key stays an orphan instead of borrowing
-     its parent's issue; only truly keyless PRs inherit.
-  7. Bar ends are exclusive so same-day and in-progress bars cover their last day, and
-     same-day due-only markers pack into separate rows instead of drawing on top of each other.
+- **One transport:** `postGraphql` throws on the fake endpoints' HTTP-200-with-`errors` envelope, so callers assume success and saves catch cleanly.
+- **PRs = 6 requests** (2 repos × 3 states) via `Promise.all`; a `NOT_FOUND` repo is logged and skipped, any other error rethrown (never a silently-empty board).
+- **`dataStore` holds raw issues/PRs only;** every view is a one-line computed over a `lib/` function. Writes enter via `loadAll()` / `applyIssueNode()`.
+- **Memoized normalization:** an edit re-normalizes only the changed issue; unchanged rows keep object identity so the UI can skip them.
 
-### API layer & data store (build step 2)
+## Step 3 — Gantt skeleton
 
-How the app fetches data, and the store that holds it and hands out ready-to-use views.
+- **Rows are pure** (`buildLanes`): group by person/project, sort by bucket, pack. Person mode shows the whole team (empty lanes included); project mode shows only non-empty projects. No-date issues sit in a per-lane "Unscheduled" shelf.
+- **One scale, five densities:** zoom (Week / 2 Weeks / Month / Quarter / Year) sets window span + px/day + track width (tight windows scroll, not crush). Bars are positioned as a % of the track. Labels degrade before bars; the header coarsens day cells → week ticks → month bands.
+- **Raw state stays on the bar** (bucket = color, tag = granular state). Due-only → diamond; a bar running past the window edge squares that corner.
+- **Controlled molecules, store-connected organisms.** Today's day index is captured once at store creation — no computed calls `new Date()`.
 
-- **One place to talk to the server.** Every request goes through `postGraphql` in
-  `lib/api/graphql.ts`. Both fake endpoints report failure with HTTP 200 plus an `errors`
-  field in the body, so `postGraphql` checks for that and throws — the rest of the app can
-  assume success once a call returns, and a failed save is easy to catch. `linear.ts`
-  reads issues; `github.ts` reads pull requests.
-- **Reading PRs takes 6 requests.** Fake-GitHub answers one repo and one state at a time,
-  so we ask for every combination (2 repos × 3 states) at once with `Promise.all`, tagging
-  each PR with the repo it came from.
-- **The repo list belongs to the app,** not the fake source — the same choice as the roster.
-- **One missing repo doesn't fail the load — but real errors do.** A not-found repo still
-  returns HTTP 200 with a `NOT_FOUND` error; we log it and skip just that slice, so the
-  board loads with the rest. Any other failure (transport, schema, outage) is rethrown
-  rather than swallowed — otherwise the load would look `ready` with missing PRs and the
-  board would seem empty of review work.
-- **The store holds raw data and derives the rest.** `dataStore` keeps only the raw issues
-  and PRs plus a status flag; every view (issues, pull requests, PRs grouped by issue,
-  pending reviews per person, counts per state) is a one-line getter over a pure `lib/`
-  function. Data comes in through `loadAll()` and `applyIssueNode()` (drop an updated issue
-  back in by id after a save).
-- **Throwaway `/debug` page** runs `loadAll` and prints the joined data so it can be
-  eyeballed before any real UI exists. Checked live: 32 issues (all 30 assigned match a
-  teammate) and 40 PRs (30 link to an issue, the rest shown as orphans, not dropped).
-  Delete it once the board shows the same thing.
-- **Tests** fake the network to check two things: a call throws when the body has errors,
-  and the PR read fires 6 requests and skips a missing repo. The store is just glue,
-  already covered by the `lib/` tests.
-- **Faster issue re-normalizing.** `normalizeIssuesMemoized` caches the result for each raw
-  issue, so after an edit only the changed issue is recomputed and unchanged rows keep the
-  same result (the UI can skip redrawing them). This is safe because a save replaces the
-  whole issue object, so "same object" means "unchanged." *Still to do:* the later steps
-  (PRs, sorting, packing, grouping) are still redone from scratch — fine at this size,
-  worth revisiting if the data grows. PRs need a smarter cache, because a PR's issue link
-  depends on the other PRs and the current set of issue ids, not just that one PR.
+## Step 4 — Attention, PR chips & review panel
 
-### Gantt skeleton (build step 3)
+- **Attention is derived once** in the pure layer and flows through `ganttRows`. Blocked/overdue **never degrade** at any zoom: blocked = red ring + edge + ⛔; overdue = red hatch + days-overdue badge. Rows sort blocked → overdue → bucket.
+- **Lane headers read like a standup line:** a badge cluster `⛔ · ⚠ · ● · ◐ · 👁`; the 👁 badge opens the review panel filtered to that person.
+- **PR chips** on the same scale under each bar (first-commit → merged/now) with a review dot (○ pending / ✗ changes / ✓ approved); collapse to a dot at quarter zoom, gone at year.
+- **"Needs review" panel:** same pending-review data as the badges, grouped by reviewer, longest-waiting first, stale (> 2d) in red. Bot/outside/mooted requests filtered upstream.
+- **Legend** maps each bucket color to its raw states.
 
-The first real UI: the timeline canvas with grouped swimlanes, bars, a date header, a
-today line, and the grouping + zoom controls. Attention treatments, PR chips, the state
-filter, the detail popover, and mutations are deliberately still to come (steps 4–6).
+## Step 5 — Issue drawer, create modal & mutations
 
-- **Rows are pure, the store just delegates.** `lib/gantt/rows.ts` (`buildLanes`) turns
-  normalized issues into swimlanes: group by person or project, sort each lane by status
-  bucket, then pack into non-overlapping rows with the existing `packLanes`. No-date issues
-  can't sit on the timeline, so they render in a compact per-lane "Unscheduled" shelf below
-  the bars (visible and selectable — scheduling happens in the detail popover) rather than
-  vanishing while still counted in the lane header. The store exposes this as one computed
-  (`ganttRows`) that just calls the function — all the logic stays unit-tested.
-- **Person mode shows the whole team; project mode only shows active projects.** For
-  standup, every teammate gets a lane even with zero issues (so nobody is invisible), with
-  an "Unassigned" lane appended only when needed. Projects are derived from the issues, so
-  empty ones don't clutter; "No project" sorts last.
-- **One scale, drawn at five densities.** The zoom (Week/2 Weeks/Month/Quarter/Year) picks
-  the window span and a pixels-per-day (`lib/gantt/density.ts`), which sets the timeline track
-  width so tight windows scroll horizontally instead of crushing. Bars are positioned as
-  percentages of that track, so the same components render at every zoom. Labels degrade
-  before bars do — a rule encoded as a pure `shouldShowBarLabel` threshold; the header
-  swaps day cells → week ticks → month bands as it coarsens.
-- **Raw state stays on the bar.** Buckets drive the color, but each bar still shows its
-  granular Linear state (e.g. "On Staging") as a tag — the hybrid the plan calls for. A
-  due-only issue collapses to a diamond marker; bars that run past the window edge square
-  off that corner so they read as continuing.
-- **Controlled molecules, store-connected organisms.** The toggle, zoom controls, bars,
-  and header take plain props (so Storybook can drive them and they stay testable); only
-  the organisms (`Toolbar`, `GanttBoard`, `GanttApp`) read the store via context and wire
-  callbacks to actions. Today's day index is captured once at store creation, so no
-  computed ever calls `new Date()`.
-- **Verification.** Typecheck, lint, and `next build` are clean; 195 unit tests pass
-  (grouping/packing, density thresholds, header geometry, bar placement + clipping).
-  Storybook covers the visual matrix (every bucket, marker, clipped bar, each zoom's
-  header). Stories for the store-connected organisms are the sanctioned cut line and are
-  deferred. Full DOM render tests remain out of scope (no jsdom), per the step-0 decision.
+- **Apply-the-response, not optimistic:** `updateIssue` / `createIssue` select the full node; `dataStore` splices it in by id and computeds re-derive. Rejected writes (unknown assignee, forbidden start-date key) surface as inline errors.
+- **Edit in place, field by field** (status / assignee / due / title save on change). Status is a dropdown of the full 12-state ladder; the 5 automation states are labeled "(Set by GitHub automation)" and locked as targets — but **Cancel is allowed from any state**. Assignee can't clear to null, so "Unassigned" is a disabled placeholder.
+- **App-owned planning state** (`planningStore`: `plannedStarts`, `blockedFlags`), not Linear. Manual "mark blocked" merges with the derived signal via pure `mergeManualBlocked`; planned start feeds the ghost segment. In-memory this step (localStorage persistence is step 6; a `snapshot` getter is ready).
+- **Issue detail is a right-side drawer**, the create modal a centered / bottom sheet — both on the shared `ModalSheet` (✕ / backdrop / Escape).
+- **Scoped interactions:** only a bar's title row opens the drawer (the PR-chip band stays its own target); each PR chip's hit area is content-width. In "Needs review", the PR id opens GitHub and the issue id opens the drawer.
+- **New atoms:** `Select` + `DateInput`, each with a tested util.
 
 ### Attention treatments, PR chips & review panel (build step 4)
 
