@@ -22,6 +22,7 @@ export {
   ClockThree as ClockIcon,
   Check as CheckIcon,
   Minus as MinusIcon,
+  Plus as PlusIcon,
 } from '@tailgrids/icons';
 
 export { PrIcon } from '@/components/icons/PrIcon';

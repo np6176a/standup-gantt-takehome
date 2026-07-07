@@ -27,7 +27,7 @@ const REVIEW_ICON: Record<ReviewDotState, React.ReactNode> = {
 };
 
 export interface ReviewAttentionPanelProps {
-  /** Opens a PR from a review row (wired in a later milestone). */
+  /** Opens a PR from a review row (deep-links out to GitHub). */
   onSelectPr?: (pr: PullRequest) => void;
   /** Optional className for styling overrides. */
   className?: string;
@@ -37,7 +37,9 @@ export interface ReviewAttentionPanelProps {
  * The collapsible "Needs review" side panel: still-pending review requests grouped by
  * reviewer and sorted by staleness (the reviews that have waited longest lead). A lane's
  * 👁 badge opens it filtered to that person; the toolbar opens the full list. The same
- * pending-review data drives the lane badges, so the two surfaces never disagree.
+ * pending-review data drives the lane badges, so the two surfaces never disagree. Each row
+ * carries two deep links: the PR id opens the PR on GitHub, and the resolved issue id (when
+ * the PR is connected to an issue) opens that issue's detail drawer.
  */
 export const ReviewAttentionPanel = observer(
   ({ onSelectPr, className = '' }: ReviewAttentionPanelProps) => {
@@ -48,6 +50,9 @@ export const ReviewAttentionPanel = observer(
     const now = new Date();
     const filterPersonId = ui.reviewPanel.personId;
     const groups = buildReviewGroups(data.pendingReviewsByPersonId, filterPersonId, now);
+    // Resolve each PR's issue identifier back to its issue so a review row can deep-link
+    // into the detail drawer (which selects by issue id, not by identifier).
+    const issueByKey = new Map(data.issues.map((issue) => [issue.identifier, issue]));
     const filterName = filterPersonId
       ? (groups[0]?.person.displayName ?? data.people.find((person) => person.id === filterPersonId)?.displayName)
       : null;
@@ -110,30 +115,46 @@ export const ReviewAttentionPanel = observer(
                     const { pr } = row.review;
                     const state = reviewDotState(pr);
                     const dot = REVIEW_DOT[state];
+                    // The PR resolves to a Linear issue by its identifier (e.g. "ORB-105");
+                    // orphan PRs resolve to none, so the issue-id link is conditional.
+                    const issue = pr.issueKey ? issueByKey.get(pr.issueKey) ?? null : null;
                     return (
-                      <li key={`${pr.repo.owner}/${pr.repo.name}#${pr.number}`}>
+                      <li
+                        key={`${pr.repo.owner}/${pr.repo.name}#${pr.number}`}
+                        className="flex items-center gap-2 px-3 py-1 hover:bg-neutral-light"
+                      >
+                        <span aria-hidden className={`flex shrink-0 items-center leading-none ${dot.className}`}>
+                          {REVIEW_ICON[state]}
+                        </span>
                         <button
                           type="button"
                           onClick={() => onSelectPr?.(pr)}
-                          aria-label={`${prChipAriaLabel(pr)}, requested ${row.ageLabel} ago`}
-                          className="flex w-full items-center gap-2 px-3 py-1 text-left transition-colors hover:bg-neutral-light"
+                          title={`${prChipAriaLabel(pr)} — open on GitHub`}
+                          aria-label={`Open PR ${prChipLabel(pr)} on GitHub`}
+                          className="shrink-0 rounded text-[0.75rem] font-[var(--font-weight-semibold)] text-content-secondary underline-offset-2 transition-colors hover:text-content hover:underline"
                         >
-                          <span aria-hidden className={`flex shrink-0 items-center leading-none ${dot.className}`}>
-                            {REVIEW_ICON[state]}
-                          </span>
-                          <span className="shrink-0 text-[0.75rem] font-[var(--font-weight-semibold)] text-content-secondary">
-                            {prChipLabel(pr)}
-                          </span>
-                          <span className="min-w-0 grow truncate text-[0.75rem] text-content-secondary">
-                            {pr.title}
-                          </span>
-                          <span
-                            className={`shrink-0 text-[0.6875rem] ${row.stale ? 'font-[var(--font-weight-semibold)] text-attention-overdue' : 'text-content-muted'}`}
-                            title={`requested ${row.ageLabel} ago`}
-                          >
-                            {row.ageLabel}
-                          </span>
+                          {prChipLabel(pr)}
                         </button>
+                        {issue && (
+                          <button
+                            type="button"
+                            onClick={() => ui.selectIssue(issue.id)}
+                            title={`Open issue ${issue.identifier}`}
+                            aria-label={`Open issue ${issue.identifier}`}
+                            className="shrink-0 rounded bg-neutral-light px-1 py-px text-[0.6875rem] font-[var(--font-weight-semibold)] text-content-secondary transition-colors hover:bg-primary-muted hover:text-content"
+                          >
+                            {issue.identifier}
+                          </button>
+                        )}
+                        <span className="min-w-0 grow truncate text-[0.75rem] text-content-secondary">
+                          {pr.title}
+                        </span>
+                        <span
+                          className={`shrink-0 text-[0.6875rem] ${row.stale ? 'font-[var(--font-weight-semibold)] text-attention-overdue' : 'text-content-muted'}`}
+                          title={`requested ${row.ageLabel} ago`}
+                        >
+                          {row.ageLabel}
+                        </span>
                       </li>
                     );
                   })}

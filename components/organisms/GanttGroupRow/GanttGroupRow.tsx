@@ -35,9 +35,9 @@ export interface GanttGroupRowProps {
   trackWidthPx: number;
   /** Today's day index — feeds overdue badges and open-PR chip end edges. */
   todayIdx: number;
-  /** Opens an issue's detail (wired in a later milestone). */
+  /** Opens an issue's detail popover. */
   onSelectIssue?: (issueId: string) => void;
-  /** Opens a PR (wired in a later milestone). */
+  /** Opens a PR (deep-links out to GitHub). */
   onSelectPr?: (pr: PullRequest) => void;
   /** Opens the "Needs review" panel for this lane's person (the 👁 badge). */
   onReviewsClick?: () => void;

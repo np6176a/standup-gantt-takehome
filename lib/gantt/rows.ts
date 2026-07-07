@@ -11,7 +11,12 @@
 import type { Issue, Person } from '@/lib/domain/types';
 import { bucketRank } from '@/lib/domain/states';
 import { computeSpan, spanInterval, type IssueSpan } from '@/lib/normalize/issues';
-import { deriveAttention, type DerivedAttention } from '@/lib/normalize/attention';
+import {
+  deriveAttention,
+  mergeManualBlocked,
+  type DerivedAttention,
+  type ManualBlockedFlag,
+} from '@/lib/normalize/attention';
 import type { PullRequest } from '@/lib/normalize/pullRequests';
 import { dateFromDayIndex } from '@/lib/gantt/scale';
 import { packLanes } from '@/lib/gantt/layout';
@@ -26,8 +31,8 @@ export const NO_PROJECT_KEY = '__no_project__';
 
 /**
  * An issue paired with its derived timeline span, attention signals, and resolved PRs —
- * the unit a lane row holds. `attention` here is the DERIVED result only; the manual
- * "mark blocked" flag is merged in at the store level in a later milestone.
+ * the unit a lane row holds. `attention` is the merged result: derived overdue/blocked
+ * unioned with the app-owned manual "mark blocked" flag.
  */
 export interface PositionedIssue {
   issue: Issue;
@@ -68,14 +73,16 @@ export interface Lane {
   orphanPrs: readonly PullRequest[];
 }
 
-/** Inputs to {@link buildLanes}. `plannedStarts` (app-owned) arrives in a later milestone. */
+/** Inputs to {@link buildLanes}. `plannedStarts` and `blockedFlags` are app-owned. */
 export interface BuildLanesInput {
   issues: readonly Issue[];
   grouping: Grouping;
   people: readonly Person[];
   todayIdx: number;
-  /** App-owned planned starts by issue id ("YYYY-MM-DD"); empty until planningStore exists. */
+  /** App-owned planned starts by issue id ("YYYY-MM-DD"); empty when none are set. */
   plannedStarts?: Record<string, string | null>;
+  /** App-owned manual "mark blocked" flags by issue id, merged into derived attention. */
+  blockedFlags?: Record<string, ManualBlockedFlag>;
   /** Normalized PRs grouped by resolved issue id (drives chips + blocked derivation). */
   prsByIssueId?: ReadonlyMap<string, readonly PullRequest[]>;
   /** Wall-clock "now" for review-staleness; defaults to UTC midnight of `todayIdx`. */
@@ -111,11 +118,12 @@ export function earliestPrDate(prs: readonly PullRequest[]): string | null {
   return dates.length > 0 ? dates.reduce((a, b) => (a < b ? a : b)) : null;
 }
 
-/** Pair an issue with its span, derived attention, and resolved PRs. */
+/** Pair an issue with its span, attention (derived ∪ manual blocked), and resolved PRs. */
 function positionIssue(
   issue: Issue,
   todayIdx: number,
   plannedStarts: Record<string, string | null>,
+  blockedFlags: Record<string, ManualBlockedFlag>,
   prsByIssueId: ReadonlyMap<string, readonly PullRequest[]>,
   now: Date,
 ): PositionedIssue {
@@ -127,7 +135,8 @@ function positionIssue(
     dueDate: issue.dueDate,
     todayIdx,
   });
-  return { issue, span, attention: deriveAttention(issue, prs, now), prs };
+  const attention = mergeManualBlocked(deriveAttention(issue, prs, now), blockedFlags[issue.id]);
+  return { issue, span, attention, prs };
 }
 
 /**
@@ -195,13 +204,14 @@ export function buildLanes({
   people,
   todayIdx,
   plannedStarts = {},
+  blockedFlags = {},
   prsByIssueId = new Map(),
   now = dateFromDayIndex(todayIdx),
   reviewsWaitingByPersonId = new Map(),
   orphanPrs = [],
 }: BuildLanesInput): Lane[] {
   const positioned = issues.map((issue) =>
-    positionIssue(issue, todayIdx, plannedStarts, prsByIssueId, now),
+    positionIssue(issue, todayIdx, plannedStarts, blockedFlags, prsByIssueId, now),
   );
 
   const identityByKey = new Map<string, LaneIdentity>();
