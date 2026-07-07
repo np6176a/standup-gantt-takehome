@@ -4,8 +4,9 @@
 // `barMetrics`; this module only turns a normalized PullRequest into scale/display inputs.
 
 import type { PullRequest } from '@/lib/normalize/pullRequests';
+import type { ReviewOutcome } from '@/lib/normalize/reviews';
 import type { Interval } from '@/lib/gantt/layout';
-import { dayIndexFromDateString } from '@/lib/gantt/scale';
+import { DAY_MS, dayIndexFromDateString } from '@/lib/gantt/scale';
 
 /** A PR's review-state signal, in escalation order for the dot. */
 export type ReviewDotState = 'changes' | 'pending' | 'approved' | 'none';
@@ -35,6 +36,56 @@ export function reviewDotState(pr: PullRequest): ReviewDotState {
     (outcome) => outcome.status === 'completed' && outcome.reviewState === 'APPROVED',
   );
   return approved ? 'approved' : 'none';
+}
+
+/** Whole days since an ISO timestamp. */
+function daysSince(iso: string, now: Date): number {
+  return Math.floor((now.getTime() - new Date(iso).getTime()) / DAY_MS);
+}
+
+/** The longest-waiting pending review outcome, or null if none. */
+function longestPending(outcomes: readonly ReviewOutcome[]): ReviewOutcome | null {
+  const pending = outcomes.filter((o) => o.status === 'pending' && o.requestedAt != null);
+  if (pending.length === 0) return null;
+  return pending.reduce((oldest, o) =>
+    new Date(o.requestedAt!).getTime() < new Date(oldest.requestedAt!).getTime() ? o : oldest,
+  );
+}
+
+/**
+ * The review detail label for the PrChip. Rules:
+ * - approved → "approved"
+ * - changes requested → "changes requested" + days if > 0
+ * - pending → "review pending" + days if > 0, and if exactly one pending reviewer
+ *   (and no changes requested) show their display name
+ * - none → ""
+ */
+export function reviewDetailLabel(pr: PullRequest, now: Date): string {
+  const state = reviewDotState(pr);
+  if (state === 'approved' || state === 'none') return state === 'approved' ? 'approved' : '';
+
+  if (state === 'changes') {
+    const changesOutcome = pr.reviewOutcomes.find(
+      (o) => o.status === 'completed' && o.reviewState === 'CHANGES_REQUESTED' && o.respondedAt,
+    );
+    if (changesOutcome?.respondedAt) {
+      const days = daysSince(changesOutcome.respondedAt, now);
+      return days > 0 ? `changes requested ${days}d` : 'changes requested';
+    }
+    return 'changes requested';
+  }
+
+  const oldest = longestPending(pr.reviewOutcomes);
+  if (!oldest?.requestedAt) return 'review pending';
+
+  const days = daysSince(oldest.requestedAt, now);
+  const pendingCount = pr.reviewOutcomes.filter((o) => o.status === 'pending').length;
+  const daysLabel = days > 0 ? ` ${days}d` : '';
+
+  if (pendingCount === 1 && !pr.hasChangesRequested) {
+    return `${oldest.reviewer.displayName}${daysLabel}`;
+  }
+  return `review pending${daysLabel}`;
 }
 
 /**
