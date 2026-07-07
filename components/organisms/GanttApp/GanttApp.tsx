@@ -69,11 +69,13 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
 
       {data.status === 'ready' && data.issues.length > 0 && (
         <>
-          <Legend
-            open={ui.legendOpen}
-            onToggle={() => ui.toggleLegend()}
-            className="border-b border-border bg-surface px-4 py-1.5"
-          />
+          <div className="hidden sm:block">
+            <Legend
+              open={ui.legendOpen}
+              onToggle={() => ui.toggleLegend()}
+              className="border-b border-border bg-surface px-4 py-1.5"
+            />
+          </div>
           <div className="flex min-h-0 grow">
             <GanttBoard className="m-4 min-h-0 min-w-0 grow" />
             {ui.reviewPanel.open && (

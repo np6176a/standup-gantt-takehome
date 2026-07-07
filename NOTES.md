@@ -68,6 +68,7 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 
 - **One variable drives the rail width.** `--rail-width` (220 px desktop → 160 px tablet → 56 px mobile) feeds the sticky rail, the today-line offset, and the shelves' sticky-left in lockstep, so they never drift as the layout narrows — a pure-CSS responsive story with no JS breakpoint state.
 - **The rail collapses to an avatar strip on mobile.** Below `sm` the lane header hides its title and full badge cluster and shows the loud signals (blocked / overdue / reviews-waiting) as stacked dots under the avatar, so you can still read who needs attention on a 375 px screen. The full cluster returns at `sm+`.
+- **The toolbar condenses into stacked rows on mobile.** Below `sm` the single wrapping row breaks into four full-width rows — Standup + grouping, the zoom/Today window, States + attention, Needs-review + New-issue — with the controls stretching to fill each row; the theme/color switcher and the legend hide. Each row wrapper is `sm:contents`, so on desktop it dissolves and the children flow back into the original single wrapping row unchanged (no duplicated markup, no JS).
 - **Sheets already breakpoint-switch.** The `ModalSheet` (built in step 5) centers on `sm+` and docks as a bottom sheet on mobile; the issue drawer is a full-height side drawer — so the popover and create modal came responsive for free.
 - **Loading gate gets a real spinner.** New `Spinner` atom (inherits `currentColor`, `role="status"` + sr-only label, tested util) replaces the bare loading text; error (with retry) and empty gates were already in place.
 - **Density degrades, attention never does.** Confirmed the zoom table still holds after the responsive pass: labels → PR chips → chip-dots drop out as you zoom toward Year, but bars and the red blocked/overdue treatments render at every zoom.
@@ -158,7 +159,7 @@ both writing through fake-Linear's `issueUpdate` / `issueCreate`.
 
 **Known rough edges / what I'd do next**
 
-- **Toolbar on mobile wraps rather than condensing.** It stays usable at 375 px (flex-wrap) but the plan's fuller mobile treatment — grouping/zoom as compact selects and state-filter + attention behind one filter icon opening a bottom sheet — is not built. Next pass.
+- **Mobile toolbar condenses but doesn't yet use a bottom-sheet filter.** The controls now stack into four full-width rows (and the theme switcher + legend hide), which is very usable at 375 px, but the plan's furthest treatment — collapsing State-filter + attention behind a single filter icon that opens a bottom sheet — is still deferred.
 - **Mobile avatar rail is display-only.** It shows the loud attention signals as dots but doesn't yet tap-to-expand the full badge cluster inline; the review panel is only reachable from the toolbar at that width.
 - **No DOM render tests.** Per the 10 h scope, Jest covers the pure `lib/` + `*Util.ts` logic and Storybook is the visual layer; store-bound organisms have no standalone stories (a sanctioned cut). Adding jsdom + Testing Library for the interactive flows (mutation forms, filter toggles) is the next test investment.
 - **Focus mode** (spotlight one lane, `j`/`k` to advance) was scoped as a stretch and left out.

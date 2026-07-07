@@ -37,7 +37,7 @@ export const GroupingToggle = ({
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(option.value)}
-            className={`rounded-md px-3 py-1 text-[0.875rem] font-[var(--font-weight-semibold)] transition-colors ${
+            className={`grow rounded-md px-3 py-1 text-[0.875rem] font-[var(--font-weight-semibold)] transition-colors sm:grow-0 ${
               selected
                 ? 'bg-primary text-primary-foreground'
                 : 'text-content-secondary hover:bg-neutral-light'
