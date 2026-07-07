@@ -19,10 +19,10 @@ export interface ReviewDot {
 
 /** Review-state dot presentation keyed by state. */
 export const REVIEW_DOT: Record<ReviewDotState, ReviewDot> = {
-  changes: { className: 'text-attention-blocked', label: 'changes requested' },
-  pending: { className: 'text-content-muted', label: 'review pending' },
-  approved: { className: 'text-status-done', label: 'approved' },
-  none: { className: 'text-content-muted', label: 'no review' },
+  changes: { className: 'text-attention-blocked', label: 'Changes requested' },
+  pending: { className: 'text-content-muted', label: 'Review pending' },
+  approved: { className: 'text-status-done', label: 'Approved' },
+  none: { className: 'text-content-muted', label: 'No review' },
 };
 
 /**
@@ -61,8 +61,9 @@ function longestPending(outcomes: readonly ReviewOutcome[]): ReviewOutcome | nul
  * - none → ""
  */
 export function reviewDetailLabel(pr: PullRequest, now: Date): string {
+  if (pr.state === 'MERGED') return 'Merged';
   const state = reviewDotState(pr);
-  if (state === 'approved' || state === 'none') return state === 'approved' ? 'approved' : '';
+  if (state === 'approved' || state === 'none') return state === 'approved' ? 'Approved' : '';
 
   if (state === 'changes') {
     const changesOutcome = pr.reviewOutcomes.find(
@@ -70,9 +71,9 @@ export function reviewDetailLabel(pr: PullRequest, now: Date): string {
     );
     if (changesOutcome?.respondedAt) {
       const days = daysSince(changesOutcome.respondedAt, now);
-      return days > 0 ? `changes requested ${days}d` : 'changes requested';
+      return days > 0 ? `Changes requested, ${days}d` : 'Changes requested';
     }
-    return 'changes requested';
+    return 'Changes requested';
   }
 
   const oldest = longestPending(pr.reviewOutcomes);
@@ -80,12 +81,12 @@ export function reviewDetailLabel(pr: PullRequest, now: Date): string {
 
   const days = daysSince(oldest.requestedAt, now);
   const pendingCount = pr.reviewOutcomes.filter((o) => o.status === 'pending').length;
-  const daysLabel = days > 0 ? ` ${days}d` : '';
+  const daysLabel = days > 0 ? `, ${days}d` : '';
 
   if (pendingCount === 1 && !pr.hasChangesRequested) {
-    return `${oldest.reviewer.displayName}${daysLabel}`;
+    return `Review pending ${oldest.reviewer.displayName}${daysLabel}`;
   }
-  return `review pending${daysLabel}`;
+  return `Review pending${daysLabel}`;
 }
 
 /**

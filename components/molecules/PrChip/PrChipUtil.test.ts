@@ -139,7 +139,7 @@ describe('groupPrsByOwnership', () => {
 describe('reviewDetailLabel', () => {
   const now = new Date('2026-07-06T12:00:00.000Z');
 
-  it('returns "approved" for an approved PR', () => {
+  it('returns "Approved" for an approved open PR', () => {
     expect(
       reviewDetailLabel(
         makePr({
@@ -148,7 +148,21 @@ describe('reviewDetailLabel', () => {
         }),
         now,
       ),
-    ).toBe('approved');
+    ).toBe('Approved');
+  });
+
+  it('returns "Merged" for a merged PR instead of approved', () => {
+    expect(
+      reviewDetailLabel(
+        makePr({
+          number: 10,
+          state: 'MERGED',
+          mergedAt: iso('2026-07-05'),
+          reviewOutcomes: [outcome({ status: 'completed', reviewState: 'APPROVED', respondedAt: iso('2026-07-04') })],
+        }),
+        now,
+      ),
+    ).toBe('Merged');
   });
 
   it('returns "changes requested" with days for a changes-requested PR', () => {
