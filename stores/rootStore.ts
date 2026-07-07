@@ -180,6 +180,12 @@ function asBlockedFlags(value: unknown): PlanningSnapshot['blockedFlags'] {
   return flags;
 }
 
+/** The created-issue-id list from a persisted snapshot, keeping only string entries. */
+function asCreatedIssueIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((id): id is string => typeof id === 'string');
+}
+
 /**
  * Read the persisted planning state from localStorage, returning empty maps when it's
  * absent, unavailable, or malformed (a corrupt payload must never crash boot). Safe during
@@ -194,6 +200,7 @@ export function readInitialPlanning(): Partial<PlanningSnapshot> {
     return {
       plannedStarts: asPlannedStarts(parsed.plannedStarts),
       blockedFlags: asBlockedFlags(parsed.blockedFlags),
+      createdIssueIds: asCreatedIssueIds(parsed.createdIssueIds),
     };
   } catch {
     return {};

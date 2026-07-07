@@ -59,6 +59,15 @@ export const ISSUE_CREATE_MUTATION = `
   }
 `;
 
+/** The `issueDelete` mutation — removes an issue by id (fake-Linear returns only `success`). */
+export const ISSUE_DELETE_MUTATION = `
+  mutation IssueDelete($id: String!) {
+    issueDelete(id: $id) {
+      success
+    }
+  }
+`;
+
 /**
  * The writable fields of an issue update. `stateId` carries a state *name* (fake-Linear
  * mints no separate state ids); `assigneeId` takes a Linear user id or email; a `null`
@@ -92,6 +101,11 @@ interface IssuesQueryData {
 interface IssueMutationData {
   issueUpdate?: { success: boolean; issue: WireIssueNode };
   issueCreate?: { success: boolean; issue: WireIssueNode };
+}
+
+/** The `data` shape an `issueDelete` mutation resolves to. */
+interface IssueDeleteData {
+  issueDelete?: { success: boolean };
 }
 
 /**
@@ -129,4 +143,12 @@ export async function createIssue(input: IssueCreateInput): Promise<WireIssueNod
     input,
   });
   return data.issueCreate!.issue;
+}
+
+/**
+ * Delete an issue by id. Rejects (via {@link postGraphql}) when fake-Linear rejects the
+ * write — e.g. no such issue — so a caller's `try/catch` shows the faithful error.
+ */
+export async function deleteIssue(id: string): Promise<void> {
+  await postGraphql<IssueDeleteData>(LINEAR_ENDPOINT, ISSUE_DELETE_MUTATION, { id });
 }

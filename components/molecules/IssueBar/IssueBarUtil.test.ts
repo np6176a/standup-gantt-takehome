@@ -7,7 +7,7 @@ import {
   daysOverdue,
   hasAttention,
   labelVisible,
-  markerAttentionFill,
+  markerCardColorClass,
   overdueBadgeText,
   statusTagClass,
   statusTagLabel,
@@ -82,10 +82,11 @@ describe('attention overlays', () => {
     expect(hasAttention(BLOCKED)).toBe(true);
   });
 
-  it('recolors the marker red under attention, else keeps the bucket fill', () => {
-    expect(markerAttentionFill(BLOCKED, 'bg-status-active')).toBe('bg-attention-blocked');
-    expect(markerAttentionFill(OVERDUE, 'bg-status-active')).toBe('bg-attention-overdue');
-    expect(markerAttentionFill(NONE, 'bg-status-active')).toBe('bg-status-active');
+  it('recolors the page-card marker red under attention, else keeps the bucket hue', () => {
+    const bucketCard = 'border-status-active text-status-active';
+    expect(markerCardColorClass(BLOCKED, bucketCard)).toBe('border-attention-blocked text-attention-blocked');
+    expect(markerCardColorClass(OVERDUE, bucketCard)).toBe('border-attention-overdue text-attention-overdue');
+    expect(markerCardColorClass(NONE, bucketCard)).toBe(bucketCard);
   });
 
   it('counts whole UTC days overdue, clamped at zero', () => {

@@ -74,6 +74,12 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - **Density degrades, attention never does.** Confirmed the zoom table still holds after the responsive pass: labels → PR chips → chip-dots drop out as you zoom toward Year, but bars and the red blocked/overdue treatments render at every zoom.
 - **Verification:** 318 unit tests pass (new: the mobile attention-dot selection + the spinner dimensions); typecheck, lint (only the pre-existing seed-test warning), and `next build` clean.
 
+## Step 8 — Delete, blocked-icon placement & the due-only page card
+
+- **Delete an app-created issue.** The detail popover offers a delete (with an inline confirm) only for issues *created through this app* that carry *no PR* — a real seeded issue, or one a PR now resolves to, is never removable. Which ids the app created is app-owned state, tracked in `planningStore.createdIssueIds` (persisted alongside planned starts / blocked flags), so the affordance survives a reload. Delete goes through fake-Linear's `issueDelete` (apply-the-response: the raw node is dropped only after the server confirms), then forgets the issue's planned-start / blocked / created-id so nothing dangles.
+- **Blocked icon moved to the state.** The ⛔ `ErrorOctagon` now sits beside the bar's "Blocked" state tag (right cluster) instead of prefixing the title — it still renders at every zoom (with the ring), so blocked never degrades.
+- **Due-only issues render as a page card, not a diamond.** An issue with a due date but no start (nothing to span) now shows a small bordered card with a `Page` icon in place of the old diamond marker, colored by bucket (red under blocked/overdue). `BucketTreatment.markerCardClass` + `markerCardColorClass` replace the old fill helper (tests updated).
+
 ### Attention treatments, PR chips & review panel (build step 4)
 
 The standup signals become loud and visible: blocked/overdue treatments on the bars, an

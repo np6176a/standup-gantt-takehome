@@ -15,6 +15,7 @@ import {
   fetchIssues,
   createIssue,
   updateIssue,
+  deleteIssue,
   type IssueCreateInput,
   type IssueUpdateInput,
 } from '@/lib/api/linear';
@@ -166,5 +167,17 @@ export class DataStore {
     const node = await createIssue(input);
     runInAction(() => this.applyIssueNode(node));
     return node;
+  }
+
+  /**
+   * Delete an issue and drop its raw node so the board's computeds re-derive without it.
+   * Rejects on a failed write (e.g. no such issue) so the caller's form can surface it;
+   * the raw node is only removed after fake-Linear confirms the delete.
+   */
+  async deleteIssue(id: string): Promise<void> {
+    await deleteIssue(id);
+    runInAction(() => {
+      this.rawIssues = this.rawIssues.filter((issue) => issue.id !== id);
+    });
   }
 }
