@@ -6,11 +6,12 @@ import type { Zoom } from '@/lib/gantt/scale';
 import { dayColumns } from '@/lib/gantt/scale';
 import {
   LANE_PADDING_PX,
-  ROW_HEIGHT_PX,
+  BAR_HEIGHT_PX,
+  PR_LINE_PX,
   RAIL_WIDTH_PX,
   SHELF_HEIGHT_PX,
-  PR_STRIP_PX,
   prChipMode,
+  rowHeightPx,
 } from '@/lib/gantt/density';
 import { HEADER_LAYERS, weekendBands } from '@/components/molecules/GanttHeader/GanttHeaderUtil';
 import { IssueBar } from '@/components/molecules/IssueBar/IssueBar';
@@ -48,7 +49,7 @@ interface RowLayout {
   bars: ReturnType<typeof placeRow>;
   chips: ReturnType<typeof placeChips>;
   top: number;
-  hasChips: boolean;
+  height: number;
 }
 
 /**
@@ -75,8 +76,6 @@ export const GanttGroupRow = ({
   const chipMode = prChipMode(zoom);
   const showShading = HEADER_LAYERS[zoom].showWeekendShading;
 
-  // Rows have variable height: a row with visible PR chips grows a chip strip beneath its
-  // bar band. Lay them out top-down with a running offset so each knows where it sits.
   let cursor = LANE_PADDING_PX;
   const rowLayouts: RowLayout[] = lane.rows.map((row, rowIndex) => {
     const bars = placeRow(row, windowStartIdx, windowDays, trackWidthPx);
@@ -84,10 +83,10 @@ export const GanttGroupRow = ({
       chipMode === 'hidden'
         ? []
         : row.flatMap((member) => placeChips(member, windowStartIdx, windowDays, todayIdx));
-    const hasChips = chips.length > 0;
     const top = cursor;
-    cursor += ROW_HEIGHT_PX + (hasChips ? PR_STRIP_PX : 0);
-    return { key: row[0]?.issue.id ?? `row-${rowIndex}`, bars, chips, top, hasChips };
+    const height = rowHeightPx(chips.length, chipMode);
+    cursor += height;
+    return { key: row[0]?.issue.id ?? `row-${rowIndex}`, bars, chips, top, height };
   });
 
   const rowsBlockHeight = cursor + LANE_PADDING_PX;
@@ -123,11 +122,12 @@ export const GanttGroupRow = ({
           )}
 
         {rowLayouts.map((layout) => (
-          <React.Fragment key={layout.key}>
-            <div
-              className="absolute inset-x-0"
-              style={{ top: layout.top, height: ROW_HEIGHT_PX }}
-            >
+          <div
+            key={layout.key}
+            className="absolute inset-x-0"
+            style={{ top: layout.top, height: layout.height }}
+          >
+            <div className="relative" style={{ height: BAR_HEIGHT_PX }}>
               {layout.bars.map((placed) => (
                 <IssueBar
                   key={placed.member.issue.id}
@@ -146,27 +146,25 @@ export const GanttGroupRow = ({
               ))}
             </div>
 
-            {layout.hasChips && (
+            {layout.chips.map((chip) => (
               <div
-                className="absolute inset-x-0"
-                style={{ top: layout.top + ROW_HEIGHT_PX, height: PR_STRIP_PX }}
+                key={`${chip.pr.repo.owner}/${chip.pr.repo.name}#${chip.pr.number}`}
+                className="relative"
+                style={{ height: PR_LINE_PX }}
               >
-                {layout.chips.map((chip) => (
-                  <PrChip
-                    key={`${chip.pr.repo.owner}/${chip.pr.repo.name}#${chip.pr.number}`}
-                    pr={chip.pr}
-                    leftPct={chip.leftPct}
-                    widthPct={chip.widthPct}
-                    clippedLeft={chip.clippedLeft}
-                    clippedRight={chip.clippedRight}
-                    mode={chipMode}
-                    stacked={chip.stacked}
-                    onSelect={onSelectPr}
-                  />
-                ))}
+                <PrChip
+                  pr={chip.pr}
+                  leftPct={chip.leftPct}
+                  widthPct={chip.widthPct}
+                  clippedLeft={chip.clippedLeft}
+                  clippedRight={chip.clippedRight}
+                  mode={chipMode}
+                  stacked={chip.stacked}
+                  onSelect={onSelectPr}
+                />
               </div>
-            )}
-          </React.Fragment>
+            ))}
+          </div>
         ))}
 
         {hasUnscheduled && (
