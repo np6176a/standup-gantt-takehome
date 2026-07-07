@@ -5,14 +5,13 @@
   "description": "Standup Gantt takehome: build a per-person Gantt of Linear issues and GitHub pull requests over a local, credential-free Fake source.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "storybook build -o public/storybook && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "vercel-build": "storybook build -o public/storybook && next build"
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@tailgrids/icons": "^2.0.0",
