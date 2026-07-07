@@ -99,10 +99,6 @@ export const IssueBar = ({
       className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
       style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
     >
-      {attention.blockedDerived && (
-        <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-attention-blocked" />
-      )}
-
       <div className={`flex items-center gap-1.5 px-1.5 ${hasChildren ? 'border-b border-white/20 py-0.5' : 'py-0'}`} style={{ minHeight: hasChildren ? undefined : '100%' }}>
         {attention.blockedDerived && (
           <span aria-hidden className="shrink-0 leading-none">
@@ -115,7 +111,7 @@ export const IssueBar = ({
         )}
 
         <span className="ml-auto flex shrink-0 items-center gap-1">
-          {attention.overdue && (
+          {attention.overdue && overdueDays > 0 && (
             <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded bg-attention-overdue px-1 py-px text-[0.625rem] font-[var(--font-weight-semibold)] text-white">
               <OverdueIcon size={10} /> {overdueBadgeText(overdueDays)}
             </span>

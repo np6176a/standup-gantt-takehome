@@ -99,8 +99,8 @@ describe('attention overlays', () => {
   it('describes attention in the accessible suffix (both signals, correct pluralization)', () => {
     expect(attentionAriaSuffix(NONE, 0)).toBe('');
     expect(attentionAriaSuffix(OVERDUE, 1)).toBe(' (overdue by 1 day)');
-    expect(attentionAriaSuffix(BLOCKED, 0)).toBe(' (blocked — changes requested on #503)');
-    expect(attentionAriaSuffix(BOTH, 3)).toBe(' (blocked — stuck; overdue by 3 days)');
+    expect(attentionAriaSuffix(BLOCKED, 0)).toBe(' (blocked | changes requested on #503)');
+    expect(attentionAriaSuffix(BOTH, 3)).toBe(' (blocked | stuck; overdue by 3 days)');
   });
 
   it('shows "Blocked" in the status tag when blocked, else the raw state', () => {

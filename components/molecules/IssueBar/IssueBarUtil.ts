@@ -72,7 +72,7 @@ export function barLabelText(issue: Issue): string {
 
 /** Accessible label naming the issue, its title, and its raw (never-collapsed) state. */
 export function barAriaLabel(issue: Issue): string {
-  return `${issue.identifier}: ${issue.title} — ${issue.stateName}`;
+  return `${issue.identifier}: ${issue.title} | ${issue.stateName}`;
 }
 
 /** Whether a bar of this pixel width shows its inline label at this zoom (delegates density). */
@@ -135,7 +135,7 @@ export function overdueBadgeText(days: number): string {
 export function attentionAriaSuffix(attention: DerivedAttention, days: number): string {
   const parts: string[] = [];
   if (attention.blockedDerived) {
-    parts.push(attention.blockedReason ? `blocked — ${attention.blockedReason}` : 'blocked');
+    parts.push(attention.blockedReason ? `blocked | ${attention.blockedReason}` : 'blocked');
   }
   if (attention.overdue) parts.push(`overdue by ${days} day${days === 1 ? '' : 's'}`);
   return parts.length > 0 ? ` (${parts.join('; ')})` : '';

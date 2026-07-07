@@ -18,6 +18,7 @@ import { IssueBar } from '@/components/molecules/IssueBar/IssueBar';
 import { PrChip } from '@/components/molecules/PrChip/PrChip';
 import { LaneHeader } from '@/components/molecules/LaneHeader/LaneHeader';
 import { UnscheduledShelf } from '@/components/molecules/UnscheduledShelf/UnscheduledShelf';
+import { UNASSIGNED_KEY } from '@/lib/gantt/rows';
 import { placeChips, placeRow, type PlacedBar, type PlacedChip } from '@/components/organisms/GanttGroupRow/GanttGroupRowUtil';
 import { groupPrsByOwnership, isExternalAuthor } from '@/components/molecules/PrChip/PrChipUtil';
 
@@ -113,7 +114,8 @@ export const GanttGroupRow = ({
   const rowsBlockHeight = cursor + LANE_PADDING_PX;
   const hasUnscheduled = lane.unscheduled.length > 0;
   const hasOrphans = lane.orphanPrs.length > 0;
-  const orphanShelfHeight = hasOrphans ? SHELF_HEIGHT_PX : 0;
+  const isUnassigned = lane.key === UNASSIGNED_KEY;
+  const orphanShelfHeight = hasOrphans ? Math.max(SHELF_HEIGHT_PX, lane.orphanPrs.length * PR_LINE_PX + 12) : 0;
   const laneHeight = rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0) + orphanShelfHeight;
 
   return (
@@ -212,21 +214,21 @@ export const GanttGroupRow = ({
             style={{ top: rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0), height: orphanShelfHeight }}
           >
             <div
-              className="sticky flex h-full items-center gap-2 overflow-x-auto px-3 text-[0.6875rem] text-content-muted"
+              className="sticky flex flex-col gap-px px-3 py-1.5 text-[0.625rem]"
               style={{ left: RAIL_WIDTH_PX }}
             >
-              <PrIcon size={12} className="shrink-0 opacity-60" />
-              <span className="shrink-0 font-[var(--font-weight-semibold)]">Orphan PRs</span>
+              <span className="mb-0.5 flex items-center gap-1 text-[0.6875rem] text-content-muted">
+                <PrIcon size={12} className="shrink-0 opacity-60" />
+                <span className="font-[var(--font-weight-semibold)]">Orphan PRs</span>
+              </span>
               {lane.orphanPrs.map((pr) => (
-                <button
+                <PrChip
                   key={`${pr.repo.owner}/${pr.repo.name}#${pr.number}`}
-                  type="button"
-                  title={`#${pr.number} ${pr.title}`}
-                  onClick={() => onSelectPr?.(pr)}
-                  className="shrink-0 rounded bg-surface-raised px-1.5 py-0.5 text-content-secondary transition-colors hover:bg-neutral-light hover:text-content"
-                >
-                  #{pr.number}
-                </button>
+                  pr={pr}
+                  stacked={false}
+                  showAuthor={isUnassigned}
+                  onSelect={onSelectPr}
+                />
               ))}
             </div>
           </div>

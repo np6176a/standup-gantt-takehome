@@ -59,14 +59,14 @@ export function prChipLabel(pr: PullRequest): string {
 
 /** Accessible label naming the PR, its state, and its review status. */
 export function prChipAriaLabel(pr: PullRequest): string {
-  return `PR #${pr.number} ${pr.title} — ${pr.state.toLowerCase()}, ${REVIEW_DOT[reviewDotState(pr)].label}`;
+  return `PR #${pr.number} ${pr.title} | ${pr.state.toLowerCase()}, ${REVIEW_DOT[reviewDotState(pr)].label}`;
 }
 
 /** Compact tooltip for a PR inside an issue bar (no issue title, just essentials). */
 export function prChipTooltip(pr: PullRequest): string {
   const state = REVIEW_DOT[reviewDotState(pr)].label;
   const author = pr.authorLogin ? ` by ${pr.authorLogin}` : '';
-  return `#${pr.number} ${pr.title}${author} — ${state}`;
+  return `#${pr.number} ${pr.title}${author} | ${state}`;
 }
 
 /** Whether this PR's author differs from the issue's assignee. */
