@@ -67,7 +67,7 @@ export const PrChip = ({
       <span className="truncate">{prChipLabel(pr)}</span>
       {!compact && showAuthor && pr.authorLogin && (
         <span className="truncate text-[0.5625rem] text-content-muted">
-          {pr.authorLogin}
+          by {pr.authorLogin}
         </span>
       )}
       <span aria-hidden className={`flex shrink-0 items-center ${dot.className}`}>

@@ -117,7 +117,8 @@ export const GanttGroupRow = ({
   const hasOrphans = lane.orphanPrs.length > 0;
   const isUnassigned = lane.key === UNASSIGNED_KEY;
   const orphanShelfHeight = hasOrphans ? Math.max(SHELF_HEIGHT_PX, lane.orphanPrs.length * PR_LINE_PX + 12) : 0;
-  const laneHeight = rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0) + orphanShelfHeight;
+  const MIN_LANE_PX = 64;
+  const laneHeight = Math.max(MIN_LANE_PX, rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0) + orphanShelfHeight);
 
   return (
     <div className={`flex border-b border-border ${className}`} style={{ minHeight: laneHeight }}>
