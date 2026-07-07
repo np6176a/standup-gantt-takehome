@@ -34,9 +34,10 @@ export interface IssueCreateModalProps {
 /**
  * The "New issue" modal: title (required), assignee, writable state (default "Selected For
  * Development"), due date, and an optional local planned start. On submit it creates the
- * issue through fake-Linear (apply-the-response — the returned node joins the board) and,
- * when a planned start was given, records it in the app-owned planning store keyed by the
- * new issue id. On success it selects the new issue (opening its detail panel) so the user
+ * issue through fake-Linear (apply-the-response — the returned node joins the board),
+ * records it as app-created in the planning store (so its detail panel can later offer to
+ * delete it), and, when a planned start was given, records that too keyed by the new issue
+ * id. On success it selects the new issue (opening its detail panel) so the user
  * gets immediate confirmation even when the issue packs somewhere easy to miss — a due-only
  * marker, the unscheduled shelf, or the Unassigned lane. Rendered only while open, so its
  * form state is fresh on each open.
@@ -62,6 +63,7 @@ export const IssueCreateModal = observer(function IssueCreateModal({
     setError(null);
     try {
       const node = await data.createNewIssue(buildCreateInput(form));
+      planning.markCreated(node.id);
       if (form.plannedStart) planning.setPlannedStart(node.id, form.plannedStart);
       ui.closeCreateModal();
       ui.selectIssue(node.id);

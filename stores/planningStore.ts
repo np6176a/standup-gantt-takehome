@@ -9,6 +9,8 @@ import type { ManualBlockedFlag } from '@/lib/normalize/attention';
 export interface PlanningSnapshot {
   plannedStarts: Record<string, string>;
   blockedFlags: Record<string, ManualBlockedFlag>;
+  /** Ids of issues created through this app — the ones the user is allowed to delete. */
+  createdIssueIds: string[];
 }
 
 /**
@@ -17,9 +19,10 @@ export interface PlanningSnapshot {
  * render as the ghost segment before an issue's actual start (Linear has no writable
  * start). `blockedFlags` are the manual "mark blocked" flags standup sets when someone
  * says "I'm blocked" (Linear has no Blocked state); they merge with the derived blocked
- * signal at the row level.
+ * signal at the row level. `createdIssueIds` records which issues were created through
+ * this app — the only ones the detail popover offers to delete.
  *
- * Holds only raw scalar maps as observables; the merge with derived attention and the
+ * Holds only raw scalar maps/sets as observables; the merge with derived attention and the
  * span derivation stay in pure `lib/` functions. {@link snapshot} is the JSON-serializable
  * payload the {@link StoreProvider} reaction persists to (and restores from) localStorage.
  */
@@ -28,10 +31,13 @@ export class PlanningStore {
   plannedStarts: Record<string, string> = {};
   /** Manual "mark blocked" flag per issue id. Only blocked entries are kept. */
   blockedFlags: Record<string, ManualBlockedFlag> = {};
+  /** Ids of issues created through this app (deletable while they carry no PR). */
+  createdIssueIds: Set<string> = new Set();
 
   constructor(init: Partial<PlanningSnapshot> = {}) {
     this.plannedStarts = { ...init.plannedStarts };
     this.blockedFlags = { ...init.blockedFlags };
+    this.createdIssueIds = new Set(init.createdIssueIds ?? []);
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
@@ -91,8 +97,30 @@ export class PlanningStore {
     }
   }
 
+  /** Whether an issue was created through this app (and so may be deleted from it). */
+  isAppCreated(issueId: string): boolean {
+    return this.createdIssueIds.has(issueId);
+  }
+
+  /** Record that an issue was created through this app (called after a successful create). */
+  markCreated(issueId: string): void {
+    this.createdIssueIds.add(issueId);
+  }
+
+  /** Drop all app-owned state for an issue — its planned start, blocked flag, and
+   * created-id — after it's deleted, so nothing dangles by a now-dead id. */
+  forgetIssue(issueId: string): void {
+    this.setPlannedStart(issueId, null);
+    this.clearBlocked(issueId);
+    this.createdIssueIds.delete(issueId);
+  }
+
   /** A plain, JSON-serializable snapshot for persistence (the localStorage payload). */
   get snapshot(): PlanningSnapshot {
-    return { plannedStarts: { ...this.plannedStarts }, blockedFlags: { ...this.blockedFlags } };
+    return {
+      plannedStarts: { ...this.plannedStarts },
+      blockedFlags: { ...this.blockedFlags },
+      createdIssueIds: [...this.createdIssueIds],
+    };
   }
 }

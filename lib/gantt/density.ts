@@ -8,8 +8,16 @@
 
 import type { Zoom } from '@/lib/gantt/scale';
 
-/** Fixed width of the sticky left label rail (desktop), in pixels. */
+/** Base width of the sticky left label rail on desktop, in pixels. */
 export const RAIL_WIDTH_PX = 220;
+
+/**
+ * CSS value for the lane-rail width, resolved from the `--rail-width` variable so the
+ * rail, the today-line offset, and the sticky shelves all narrow together at the tablet
+ * and mobile breakpoints (see `globals.css`). Use this in inline styles; the numeric
+ * {@link RAIL_WIDTH_PX} is the desktop base the variable defaults to.
+ */
+export const RAIL_WIDTH = 'var(--rail-width)';
 
 /** Height of the issue bar portion of a packed row, in pixels. */
 export const BAR_HEIGHT_PX = 30;

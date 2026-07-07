@@ -1,12 +1,12 @@
 import React from 'react';
 
-import { AVATAR_SIZE_PX, avatarColors, initials } from '@/components/atoms/Avatar/AvatarUtil';
+import { AVATAR_SIZE_PX, AvatarSize, avatarColors, initials } from '@/components/atoms/Avatar/AvatarUtil';
 
 export interface AvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   /** Full display name; drives the initials and the stable per-name color. */
   name: string;
   /** Circle diameter. */
-  size?: 'sm' | 'md' | 'lg';
+  size?: AvatarSize;
   /** Optional className for styling overrides. */
   className?: string;
 }
@@ -24,7 +24,7 @@ export const Avatar = ({ name, size = 'md', className = '', ...props }: AvatarPr
     <span
       title={name}
       style={{ width: diameter, height: diameter, background, color }}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-[var(--font-weight-semibold)] text-[0.75rem] leading-none ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-[var(--font-weight-semibold)] leading-none ${size === 'xs' ? 'text-[0.625rem]' : 'text-[0.75rem]'} ${className}`}
       {...props}
     >
       <span aria-hidden>{initials(name)}</span>

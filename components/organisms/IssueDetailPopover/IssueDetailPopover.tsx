@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useContext, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import type { Issue } from '@/lib/domain/types';
@@ -16,6 +16,7 @@ import {
   reviewDotState,
 } from '@/components/molecules/PrChip/PrChipUtil';
 import { BlockedIcon, XmarkIcon, ClockIcon, CheckIcon, MinusIcon } from '@/components/icons';
+import { Button } from '@/components/atoms/Button/Button';
 import { Select } from '@/components/atoms/Select/Select';
 import { DateInput } from '@/components/atoms/DateInput/DateInput';
 import { ModalSheet } from '@/components/molecules/ModalSheet/ModalSheet';
@@ -53,8 +54,10 @@ export interface IssueDetailPopoverProps {
  * states only; automation-owned ones locked with a hint), due date, assignee, and title
  * write through to fake-Linear via the data store (apply-the-response — the returned node
  * re-derives the board). Planned start and the manual "mark blocked" flag are app-owned
- * and write to the planning store. Linked PRs deep-link out to GitHub. Reads the selected
- * issue straight off the store; render it keyed by issue id so its drafts reset per issue.
+ * and write to the planning store. Linked PRs deep-link out to GitHub. An issue that was
+ * created through this app and carries no PR can be deleted from the footer (with a confirm
+ * step). Reads the selected issue straight off the store; render it keyed by issue id so its
+ * drafts (including the delete-confirm state) reset per issue.
  */
 export const IssueDetailPopover = observer(function IssueDetailPopover({
   className = '',
@@ -66,27 +69,41 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  // Every in-flight field save (blur-triggered writes can overlap — e.g. edit the due date,
+  // then the title). Delete awaits them all so no late `applyIssueNode` from a save response
+  // can re-append the node we just deleted.
+  const pendingSavesRef = useRef<Set<Promise<void>>>(new Set());
 
   if (!store || !store.selectedIssue) return null;
 
   const { data, planning, ui } = store;
   const issue: Issue = store.selectedIssue;
   const prs = data.prsByIssueId.get(issue.id) ?? [];
+  // Delete is offered only for issues this app created that carry no PR — a real Linear
+  // issue or one a PR now resolves to is never removable from here.
+  const canDelete = planning.isAppCreated(issue.id) && prs.length === 0;
   const now = dateFromDayIndex(ui.todayIdx);
   const derived = deriveAttention(issue, prs, now);
   const manuallyBlocked = planning.isBlocked(issue.id);
 
-  /** Run a write, surfacing a saving indicator and any rejection inline. */
+  /** Run a write, surfacing a saving indicator and any rejection inline. Each write is added
+   * to the pending-saves set so a concurrent delete can await all of them first; `saving`
+   * stays true until the last one settles. */
   const save = async (input: Parameters<typeof data.saveIssue>[1]) => {
     setSaving(true);
     setError(null);
-    try {
-      await data.saveIssue(issue.id, input);
-    } catch (err) {
+    const pending = pendingSavesRef.current;
+    const run = data.saveIssue(issue.id, input).catch((err) => {
       setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    });
+    pending.add(run);
+    void run.finally(() => {
+      pending.delete(run);
+      if (pending.size === 0) setSaving(false);
+    });
+    await run;
   };
 
   const commitTitle = () => {
@@ -105,6 +122,53 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
     if (manuallyBlocked) planning.setBlocked(issue.id, value);
   };
 
+  /** Delete the issue through fake-Linear, then forget its app-owned state and close. Awaits
+   * every in-flight field save first (a blur fired by clicking Delete lands before the click),
+   * so no save's apply-the-response can re-add the node after it's removed. */
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      if (pendingSavesRef.current.size > 0) {
+        await Promise.all([...pendingSavesRef.current]);
+      }
+      await data.deleteIssue(issue.id);
+      planning.forgetIssue(issue.id);
+      ui.clearSelectedIssue();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
+
+  const deleteFooter = !canDelete ? undefined : confirmingDelete ? (
+    <div className="flex w-full items-center gap-2">
+      <span className="mr-auto text-[0.75rem] text-content-secondary">
+        Delete {issue.identifier}? This can’t be undone.
+      </span>
+      <Button variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+        Cancel
+      </Button>
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={deleting || saving}
+        className="rounded-md bg-attention-overdue px-3 py-1 text-[0.875rem] font-[var(--font-weight-semibold)] text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+      >
+        {deleting ? 'Deleting…' : 'Delete'}
+      </button>
+    </div>
+  ) : (
+    <button
+      type="button"
+      onClick={() => setConfirmingDelete(true)}
+      className="mr-auto inline-flex items-center gap-1.5 rounded-md border border-attention-overdue/40 px-2.5 py-1.5 text-[0.8125rem] font-[var(--font-weight-semibold)] text-attention-overdue transition-colors hover:bg-attention-overdue/10"
+    >
+      Delete issue
+    </button>
+  );
+
   return (
     <ModalSheet
       title={issue.identifier}
@@ -112,6 +176,7 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
       width="md"
       placement="right"
       className={className}
+      footer={deleteFooter}
     >
       <div className="flex flex-col gap-3">
         <Field label="Title">

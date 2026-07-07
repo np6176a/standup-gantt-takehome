@@ -1,7 +1,7 @@
 // Pure helpers for the IssueBar: bucket → color treatment, label text/visibility,
 // and the accessible label. Bars use MUTED hue-tint fills (Linear-style) with a thin
 // saturated left edge as the hue cue; text is the theme's normal content color. The
-// saturated status token survives only in that edge and in the due-only diamond marker.
+// saturated status token survives only in that edge and in the due-only page-card marker.
 // "Ghost" buckets (planned/dropped) stay as neutral outlines.
 
 import type { Bucket } from '@/lib/domain/states';
@@ -15,8 +15,8 @@ import { shouldShowBarLabel } from '@/lib/gantt/density';
 export interface BucketTreatment {
   /** Bar container classes: muted tint fill + thin saturated left edge + text color. */
   barClass: string;
-  /** Fill class for the due-only diamond marker (saturated — a small accent reads fine). */
-  markerClass: string;
+  /** Border + text color for the due-only page-card marker (the saturated bucket hue). */
+  markerCardClass: string;
   /** True for outline "ghost" buckets (planned/dropped) — no tint fill. */
   ghost: boolean;
 }
@@ -30,37 +30,37 @@ export interface BucketTreatment {
 export const BUCKET_TREATMENT: Record<Bucket, BucketTreatment> = {
   active: {
     barClass: 'bg-status-active-muted text-content border-l-2 border-status-active',
-    markerClass: 'bg-status-active',
+    markerCardClass: 'border-status-active text-status-active',
     ghost: false,
   },
   review: {
     barClass: 'bg-status-review-muted text-content border-l-2 border-status-review',
-    markerClass: 'bg-status-review',
+    markerCardClass: 'border-status-review text-status-review',
     ghost: false,
   },
   shipping: {
     barClass: 'bg-status-shipping-muted text-content border-l-2 border-status-shipping',
-    markerClass: 'bg-status-shipping',
+    markerCardClass: 'border-status-shipping text-status-shipping',
     ghost: false,
   },
   done: {
     barClass: 'bg-status-done-muted text-content-secondary border-l-2 border-status-done',
-    markerClass: 'bg-status-done',
+    markerCardClass: 'border-status-done text-status-done',
     ghost: false,
   },
   planned: {
     barClass: 'border border-status-planned bg-surface-raised text-content-secondary',
-    markerClass: 'bg-status-planned',
+    markerCardClass: 'border-status-planned text-status-planned',
     ghost: true,
   },
   triage: {
     barClass: 'bg-status-triage-muted text-content border-l-2 border-status-triage',
-    markerClass: 'bg-status-triage',
+    markerCardClass: 'border-status-triage text-status-triage',
     ghost: false,
   },
   dropped: {
     barClass: 'border border-dashed border-status-dropped bg-surface-raised text-content-muted line-through',
-    markerClass: 'bg-status-dropped',
+    markerCardClass: 'border-status-dropped text-status-dropped',
     ghost: true,
   },
 };
@@ -98,11 +98,14 @@ export function hasAttention(attention: DerivedAttention): boolean {
   return attention.blockedDerived || attention.overdue;
 }
 
-/** Fill class for the due-only diamond marker under attention (blocked/overdue → red). */
-export function markerAttentionFill(attention: DerivedAttention, bucketFill: string): string {
-  if (attention.blockedDerived) return 'bg-attention-blocked';
-  if (attention.overdue) return 'bg-attention-overdue';
-  return bucketFill;
+/**
+ * Border + text color for the due-only page-card marker: red under attention
+ * (blocked outranks overdue), otherwise the bucket's saturated hue.
+ */
+export function markerCardColorClass(attention: DerivedAttention, bucketCardClass: string): string {
+  if (attention.blockedDerived) return 'border-attention-blocked text-attention-blocked';
+  if (attention.overdue) return 'border-attention-overdue text-attention-overdue';
+  return bucketCardClass;
 }
 
 /**

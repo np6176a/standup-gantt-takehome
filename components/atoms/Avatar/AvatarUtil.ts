@@ -1,7 +1,11 @@
 // Pure helpers for the Avatar atom: initials + a stable per-name color.
 
-/** Pixel diameter for each avatar size. */
-export const AVATAR_SIZE_PX: Record<'sm' | 'md' | 'lg', number> = {
+/** The sizes an avatar can take. */
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg';
+
+/** Pixel diameter for each avatar size (`xs` is the compact on-bar size). */
+export const AVATAR_SIZE_PX: Record<AvatarSize, number> = {
+  xs: 20,
   sm: 24,
   md: 32,
   lg: 40,

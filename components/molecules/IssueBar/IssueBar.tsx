@@ -3,7 +3,8 @@ import React from 'react';
 import type { Issue } from '@/lib/domain/types';
 import type { DerivedAttention } from '@/lib/normalize/attention';
 import type { Zoom } from '@/lib/gantt/scale';
-import { BlockedIcon, OverdueIcon } from '@/components/icons';
+import { Avatar } from '@/components/atoms/Avatar/Avatar';
+import { BlockedIcon, OverdueIcon, PageIcon } from '@/components/icons';
 import {
   BUCKET_TREATMENT,
   attentionAriaSuffix,
@@ -12,7 +13,7 @@ import {
   barLabelText,
   daysOverdue,
   labelVisible,
-  markerAttentionFill,
+  markerCardColorClass,
   overdueBadgeText,
   statusTagClass,
   statusTagLabel,
@@ -45,6 +46,12 @@ export interface IssueBarProps {
   attention: DerivedAttention;
   /** Today's day index, for the overdue-days badge. */
   todayIdx: number;
+  /**
+   * Show the assignee's avatar leading the bar. On in project grouping (where the lane is a
+   * project, not a person) this is how "who owns this" stays visible; off in person mode,
+   * where the lane header already identifies the person.
+   */
+  showAssignee: boolean;
   /** Opens the issue detail popover. */
   onSelect?: (issueId: string) => void;
   /** PR chip elements rendered as a second row inside the bar. */
@@ -64,6 +71,7 @@ export const IssueBar = ({
   zoom,
   attention = NO_ATTENTION,
   todayIdx,
+  showAssignee = false,
   onSelect,
   children,
   className = '',
@@ -80,9 +88,11 @@ export const IssueBar = ({
         title={ariaLabel}
         aria-label={ariaLabel}
         onClick={() => onSelect?.(issue.id)}
-        className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${markerAttentionFill(attention, treatment.markerClass)} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
+        className={`absolute top-1/2 flex h-[1.125rem] w-3.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[3px] border bg-surface-raised ${markerCardColorClass(attention, treatment.markerCardClass)} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
         style={{ left: `${leftPct}%` }}
-      />
+      >
+        <PageIcon size={11} aria-hidden />
+      </div>
     );
   }
 
@@ -105,10 +115,8 @@ export const IssueBar = ({
         className={`flex items-center gap-1.5 px-1.5 ${onSelect ? 'cursor-pointer' : ''} ${hasChildren ? 'border-b border-white/20 py-0.5' : 'py-0'}`}
         style={{ minHeight: hasChildren ? undefined : '100%' }}
       >
-        {attention.blockedDerived && (
-          <span aria-hidden className="shrink-0 leading-none">
-            <BlockedIcon size={14} />
-          </span>
+        {showAssignee && issue.assignee && (
+          <Avatar name={issue.assignee.name} size="xs" className="ring-1 ring-white/40" />
         )}
 
         {showLabel && (
@@ -119,6 +127,11 @@ export const IssueBar = ({
           {attention.overdue && overdueDays > 0 && (
             <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded bg-attention-overdue px-1 py-px text-[0.625rem] font-[var(--font-weight-semibold)] text-white">
               <OverdueIcon size={10} /> {overdueBadgeText(overdueDays)}
+            </span>
+          )}
+          {attention.blockedDerived && (
+            <span aria-hidden className="flex shrink-0 items-center leading-none text-attention-blocked">
+              <BlockedIcon size={14} />
             </span>
           )}
           {showLabel && (

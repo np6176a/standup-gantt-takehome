@@ -4,7 +4,14 @@ import React, { createContext, useEffect, useState } from 'react';
 import { reaction } from 'mobx';
 import { enableStaticRendering } from 'mobx-react-lite';
 
-import { RootStore, createRootStore, persistPreferences, persistPlanning } from '@/stores/rootStore';
+import {
+  RootStore,
+  createRootStore,
+  persistPreferences,
+  persistPlanning,
+  persistStateFilter,
+  readInitialStateFilter,
+} from '@/stores/rootStore';
 
 // On the server, `observer` components must not create subscriptions — otherwise
 // per-request reactions/stores can be retained. This runs at module load (before
@@ -29,12 +36,18 @@ export interface StoreProviderProps {
  * Also mirrors the observable theme/accent onto <html> (the `.dark` class and
  * `data-accent` attribute) and persists them to localStorage, so the CSS design
  * tokens follow the store, and persists the app-owned planning state (planned starts
- * + manual blocked flags) so it survives a reload.
+ * + manual blocked flags) and the toolbar state-filter selections so they survive a reload.
  */
 export const StoreProvider = ({ children }: StoreProviderProps) => {
   const [store] = useState(() => createRootStore());
 
   useEffect(() => {
+    // Restore the persisted state filter AFTER mount (never seeded at construction): the
+    // server render and the client's first hydration render both start from the defaults,
+    // so the "N hidden" badge can't disagree; the saved selection is layered on only now.
+    const savedFilter = readInitialStateFilter();
+    if (savedFilter) store.ui.restoreVisibleStates(savedFilter);
+
     const applyTheme = reaction(
       () => ({ theme: store.ui.theme, accent: store.ui.accent }),
       ({ theme, accent }) => {
@@ -55,9 +68,19 @@ export const StoreProvider = ({ children }: StoreProviderProps) => {
       (snapshot) => persistPlanning(snapshot),
     );
 
+    // The toolbar state filter is a UI preference, so it persists like theme/accent. Its
+    // actions replace the map wholesale, so the reaction re-fires on any toggle. No
+    // `fireImmediately`, and it's created after the restore above, so the just-restored
+    // value is its baseline — persisting on mount would be a redundant write.
+    const persistFilter = reaction(
+      () => store.ui.visibleStates,
+      (visibleStates) => persistStateFilter(visibleStates),
+    );
+
     return () => {
       applyTheme();
       persistPlan();
+      persistFilter();
     };
   }, [store]);
 

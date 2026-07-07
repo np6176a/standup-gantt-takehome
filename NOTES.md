@@ -8,7 +8,7 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - App code never imports the fake source — `lib/domain/roster.ts` (the 6-person team) and `wire.ts` (API shapes) are app-owned; the fake source is only sample input in tests.
 - Dates are **UTC everywhere**, so the classic Gantt off-by-one can't happen.
 - Jest covers pure functions (no DOM); Storybook is the visual layer. Store-bound organisms skip stories — the sanctioned cut line.
-- Status: **290 tests pass**; typecheck, lint, and `next build` clean.
+- Status: **318 tests pass**; typecheck, lint, and `next build` clean.
 
 ## Step 0 — Theming & tokens
 
@@ -56,6 +56,38 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - **Issue detail is a right-side drawer**, the create modal a centered / bottom sheet — both on the shared `ModalSheet` (✕ / backdrop / Escape).
 - **Scoped interactions:** only a bar's title row opens the drawer (the PR-chip band stays its own target); each PR chip's hit area is content-width. In "Needs review", the PR id opens GitHub and the issue id opens the drawer.
 - **New atoms:** `Select` + `DateInput`, each with a tested util.
+
+## Step 6 — State filter, attention chip & planning persistence
+
+- **State filter with live counts:** the toolbar "States" popover lists all 12 raw states grouped by bucket, each a checkbox with a live issue count (a MobX computed, so it re-tallies after every mutation). Per-bucket and per-state toggles, show-all / reset, and a badge on the button showing how many states are hidden. Defaults hide Backlog / Triage / Canceled.
+- **Attention chip:** a board-wide blocked/overdue rollup in the toolbar; clicking it toggles an "attention-only" filter that narrows the board to just the flagged issues.
+- **Both filters apply upstream** in `buildLanes` (state visibility + attention-only) before grouping/packing, so the counts, the lanes, and the badges can't disagree.
+- **Planning persists:** `planningStore` restores its snapshot (planned starts + manual blocked flags) from localStorage on boot and a single `reaction` writes changes back — so "I'm blocked" and a hand-set planned start survive a reload. A follow-up hardened the restore path to normalize a non-string blocked reason.
+
+## Step 7 — Polish: responsive, loading & density
+
+- **One variable drives the rail width.** `--rail-width` (220 px desktop → 160 px tablet → 56 px mobile) feeds the sticky rail, the today-line offset, and the shelves' sticky-left in lockstep, so they never drift as the layout narrows — a pure-CSS responsive story with no JS breakpoint state.
+- **The rail collapses to an avatar strip on mobile.** Below `sm` the lane header hides its title and full badge cluster and shows the loud signals (blocked / overdue / reviews-waiting) as stacked dots under the avatar, so you can still read who needs attention on a 375 px screen. The full cluster returns at `sm+`.
+- **The toolbar condenses into stacked rows on mobile.** Below `sm` the single wrapping row breaks into four full-width rows — Standup + grouping, the zoom/Today window, States + attention, Needs-review + New-issue — with the controls stretching to fill each row; the theme/color switcher and the legend hide. Each row wrapper is `sm:contents`, so on desktop it dissolves and the children flow back into the original single wrapping row unchanged (no duplicated markup, no JS).
+- **Sheets already breakpoint-switch.** The `ModalSheet` (built in step 5) centers on `sm+` and docks as a bottom sheet on mobile; the issue drawer is a full-height side drawer — so the popover and create modal came responsive for free.
+- **Loading gate gets a real spinner.** New `Spinner` atom (inherits `currentColor`, `role="status"` + sr-only label, tested util) replaces the bare loading text; error (with retry) and empty gates were already in place.
+- **Density degrades, attention never does.** Confirmed the zoom table still holds after the responsive pass: labels → PR chips → chip-dots drop out as you zoom toward Year, but bars and the red blocked/overdue treatments render at every zoom.
+- **Verification:** 318 unit tests pass (new: the mobile attention-dot selection + the spinner dimensions); typecheck, lint (only the pre-existing seed-test warning), and `next build` clean.
+
+## Step 8 — Delete, blocked-icon placement & the due-only page card
+
+- **Delete an app-created issue.** The detail popover offers a delete (with an inline confirm) only for issues *created through this app* that carry *no PR* — a real seeded issue, or one a PR now resolves to, is never removable. Which ids the app created is app-owned state, tracked in `planningStore.createdIssueIds` (persisted alongside planned starts / blocked flags), so the affordance survives a reload. Delete goes through fake-Linear's `issueDelete` (apply-the-response: the raw node is dropped only after the server confirms), then forgets the issue's planned-start / blocked / created-id so nothing dangles.
+- **Blocked icon moved to the state.** The ⛔ `ErrorOctagon` now sits beside the bar's "Blocked" state tag (right cluster) instead of prefixing the title — it still renders at every zoom (with the ring), so blocked never degrades.
+- **Due-only issues render as a page card, not a diamond.** An issue with a due date but no start (nothing to span) now shows a small bordered card with a `Page` icon in place of the old diamond marker, colored by bucket (red under blocked/overdue). `BucketTreatment.markerCardClass` + `markerCardColorClass` replace the old fill helper (tests updated).
+- **State filter persists.** The toolbar's "States" selections are a UI preference now, saved to localStorage (`standup-gantt.stateFilter`) and layered over the defaults, so a state a stored map doesn't mention keeps its default. Persisted by the same reaction pattern as theme/planning. It's restored **after mount** (`restoreVisibleStates`), never seeded at store construction — the "N hidden" badge is server-rendered, so seeding it from localStorage would make the server render (defaults) and the client hydration render (persisted) disagree and throw a hydration error.
+- **Mobile lane labels stay distinguishable (PR review).** On the collapsed avatar rail, non-person lanes (projects, "No project", "Unassigned") used to share one `#` glyph. They now show the title's initials (`laneGlyph`, mirroring person avatars) and every lane carries an always-present sr-only title, so project swimlanes are distinct visually and to screen readers on mobile.
+
+## Step 9 — Search, collapsible mobile header & compact theme control
+
+- **Search the board by issue id or PR number.** A toolbar `SearchBar` filters the board to issues whose id/title matches, or that own a PR whose number matches (`#528` or `528`) — a pure `matchesSearch` in `lib/gantt/rows.ts`, wired through `uiStore.searchQuery` → `buildLanes`. While a query is active, lanes the filter emptied are dropped (so person mode doesn't leave a wall of empty roster lanes around the few hits). Orphan PRs (which resolve to no issue, so they sit outside the issue pipeline) are searched too, via the shared `prNumberMatches`: a PR-number query can surface a lane holding only that matching orphan, and matched lanes hide their non-matching orphans.
+- **Collapsible mobile header.** A chevron toggle (mobile only) collapses the toolbar's secondary controls — the state filter, attention chip, "Needs review", and "New issue" — behind `ui.headerExpanded`; the brand/grouping, zoom/Today, and search stay. Uses the same `sm:contents` trick, so desktop always shows everything regardless of the toggle.
+- **Compact theme control on its own row.** The theme/accent switcher is a small icon-only control (no "Dark"/"Light" text) on its own thin row at the top of the toolbar — it's the least-important control, so it's kept small and out of the main control flow.
+- **Assignee avatars on bars in project view.** In project grouping the lane is a project, not a person, so each issue bar now leads with the assignee's avatar (new compact `xs` Avatar size) to keep "who owns this" visible — Linear-screenshot mode. Off in person mode (the lane header already names the person) and absent for unassigned issues; driven by a `showAssignee` prop threaded GanttBoard → GanttGroupRow → IssueBar off `ui.grouping === 'project'`.
 
 ### Attention treatments, PR chips & review panel (build step 4)
 
@@ -133,12 +165,24 @@ both writing through fake-Linear's `issueUpdate` / `issueCreate`.
 
 ## Tradeoffs / what you'd do next
 
-- Known rough edges or incomplete areas.
-- What you would improve with more time.
-- Any assumptions you made about the product or data.
+**Assumptions about the data / product**
+
+- **Blocked is app-owned.** Fake-Linear has no "Blocked" state, so blocked is derived (open PR with changes-requested, or a pending review > 2 days on an In-Review issue) unioned with a manual flag stored client-side. The derived signal is keyed off the *PR*, not the automation-owned "In Review" state, which lags reality.
+- **Planned start is local-only.** Linear only exposes actual `startedAt` (automation-stamped, read-only) and a writable `dueDate`; there's no planned-start field and start-date writes are rejected. So planned start lives in `planningStore` (localStorage), and the ghost-vs-solid gap on a bar *is* the plan-vs-reality answer.
+- **App code never imports the fake source.** The fake source impersonates an external system, so the 6-person roster (`lib/domain/roster.ts`) and the API wire shapes are transcribed into app-owned modules; the fake source is only sample input in tests.
+- **Dates are UTC everywhere** — date-only `dueDate` vs full-ISO timestamps is the classic Gantt off-by-one, so day boundaries are computed in UTC throughout.
+
+**Known rough edges / what I'd do next**
+
+- **Mobile toolbar condenses but doesn't yet use a bottom-sheet filter.** The controls now stack into four full-width rows (and the theme switcher + legend hide), which is very usable at 375 px, but the plan's furthest treatment — collapsing State-filter + attention behind a single filter icon that opens a bottom sheet — is still deferred.
+- **Mobile avatar rail is display-only.** It shows the loud attention signals as dots but doesn't yet tap-to-expand the full badge cluster inline; the review panel is only reachable from the toolbar at that width.
+- **No DOM render tests.** Per the 10 h scope, Jest covers the pure `lib/` + `*Util.ts` logic and Storybook is the visual layer; store-bound organisms have no standalone stories (a sanctioned cut). Adding jsdom + Testing Library for the interactive flows (mutation forms, filter toggles) is the next test investment.
+- **Focus mode** (spotlight one lane, `j`/`k` to advance) was scoped as a stretch and left out.
+- **No virtualization.** Unneeded at the seed's scale (32 issues / 40 PRs); a real workspace with thousands of issues would want row virtualization on the board.
 
 ## AI tool usage
 
-- Which tools you used.
-- How you directed them, where you pushed back, and what you changed by hand.
-- How you verified the generated code or designs.
+- **Tool:** Claude Code (Opus 4.8) as the primary pair, driven step-by-step against the pre-written build plan (`.context/attachments/…`), one milestone per branch/PR.
+- **How I directed it:** each step was scoped from the plan's build-order table with explicit guardrails — the repo `CLAUDE.md` conventions (directory-per-component, `Util.ts` + tests, `@/` imports, CSS-variable tokens, required-boolean props), "pure logic in `lib/`, MobX only at the state boundary", and "never cut review-pairing correctness or blocked/overdue visibility". I had it write the pure functions and their tests *before* any UI (steps 0–1) so the hard parts (review pairing, UTC day math, attention derivation) were locked down and unit-tested first.
+- **Where I pushed back / changed by hand:** the review-pairing state machine (removed → re-requested with a pre-dating submission stays *pending*; changes-requested stays blocking until approve/dismiss) needed correcting against the seeded edge cases (#501–#507). I kept the store computeds to one-line delegations to tested `lib/` functions rather than letting logic leak into the stores, and moved constants/pure helpers out of components into `Util.ts` files where the first draft inlined them.
+- **How I verified:** `pnpm test` (318 pure-function tests over the seeded edge cases — orphans, stacked PRs, bot/outside reviewers, mooted requests, overdue/blocked derivation, UTC day indices, lane packing), `pnpm typecheck`, `pnpm lint`, `next build`, plus Storybook as the visual matrix for the bar/chip/lane states (every bucket, blocked, overdue, clipped) and manual `pnpm dev` against the specific seeded edge cases the plan calls out.

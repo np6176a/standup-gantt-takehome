@@ -8,7 +8,7 @@ import {
   LANE_PADDING_PX,
   BAR_HEIGHT_PX,
   PR_LINE_PX,
-  RAIL_WIDTH_PX,
+  RAIL_WIDTH,
   SHELF_HEIGHT_PX,
   prChipMode,
 } from '@/lib/gantt/density';
@@ -35,6 +35,8 @@ export interface GanttGroupRowProps {
   trackWidthPx: number;
   /** Today's day index — feeds overdue badges and open-PR chip end edges. */
   todayIdx: number;
+  /** Show each bar's assignee avatar (on in project grouping, where lanes aren't people). */
+  showAssignee: boolean;
   /** Opens an issue's detail popover. */
   onSelectIssue?: (issueId: string) => void;
   /** Opens a PR (deep-links out to GitHub). */
@@ -70,6 +72,7 @@ export const GanttGroupRow = ({
   windowDays,
   trackWidthPx,
   todayIdx,
+  showAssignee = false,
   onSelectIssue,
   onSelectPr,
   onReviewsClick,
@@ -126,7 +129,7 @@ export const GanttGroupRow = ({
     <div className={`flex border-b border-border ${className}`} style={{ minHeight: laneHeight }}>
       <div
         className="sticky left-0 z-10 shrink-0 border-r border-border bg-surface"
-        style={{ width: RAIL_WIDTH_PX }}
+        style={{ width: RAIL_WIDTH }}
       >
         <LaneHeader
           title={lane.title}
@@ -170,6 +173,7 @@ export const GanttGroupRow = ({
                   zoom={zoom}
                   attention={placed.member.attention}
                   todayIdx={todayIdx}
+                  showAssignee={showAssignee}
                   onSelect={onSelectIssue}
                 >
                   {grouped.ownerChips.map((chip) => (
@@ -209,7 +213,7 @@ export const GanttGroupRow = ({
             <UnscheduledShelf
               issues={lane.unscheduled.map((member) => member.issue)}
               onSelectIssue={onSelectIssue}
-              stickyLeftPx={RAIL_WIDTH_PX}
+              stickyLeftPx={RAIL_WIDTH}
             />
           </div>
         )}
@@ -221,7 +225,7 @@ export const GanttGroupRow = ({
           >
             <div
               className="sticky flex flex-col gap-px px-3 py-1.5 text-[0.625rem]"
-              style={{ left: RAIL_WIDTH_PX }}
+              style={{ left: RAIL_WIDTH }}
             >
               <span className="mb-0.5 flex items-center gap-1 text-[0.6875rem] text-content-muted">
                 <PrIcon size={12} className="shrink-0 opacity-60" />

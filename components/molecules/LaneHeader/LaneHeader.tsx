@@ -13,8 +13,11 @@ import {
 import { WaveformLines } from '@tailgrids/icons';
 import {
   BADGE_TONE_CLASS,
+  BADGE_DOT_CLASS,
+  attentionDots,
   laneBadges,
   laneCountLabel,
+  laneGlyph,
 } from '@/components/molecules/LaneHeader/LaneHeaderUtil';
 
 const BADGE_ICON: Record<BadgeTone, React.ReactNode> = {
@@ -45,6 +48,13 @@ export interface LaneHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
  * title, an issue-count summary, and the attention badge cluster. The badges lead with
  * blocked/overdue so standup can be run from the rail alone; the reviews badge is a button
  * that opens the "Needs review" panel filtered to this person.
+ *
+ * Responsive: on `sm+` the rail is wide enough for the avatar + title + full badge
+ * cluster. Below `sm` the rail collapses to an avatar-only strip, so the title/cluster
+ * hide and the loud attention signals (blocked/overdue/reviews) render as stacked dots
+ * beneath the avatar instead. Non-person lanes (projects, "No project", "Unassigned") show
+ * their title's initials in the rail chip so they stay distinguishable once collapsed, and
+ * an always-present sr-only title keeps every lane named for screen readers on mobile.
  */
 export const LaneHeader = ({
   title,
@@ -56,20 +66,59 @@ export const LaneHeader = ({
   ...props
 }: LaneHeaderProps) => {
   const badges = laneBadges(summary);
+  const dots = attentionDots(summary);
 
   return (
-    <div className={`flex h-full items-center gap-2.5 px-3 py-2 ${className}`} {...props}>
+    <div
+      className={`flex h-full flex-col items-center justify-center gap-1 px-1 py-2 sm:flex-row sm:justify-start sm:gap-2.5 sm:px-3 ${className}`}
+      {...props}
+    >
+      {/* The visible title hides on the collapsed mobile rail; this keeps every lane named
+          for screen readers there (it drops out on `sm+`, where the title is visible). */}
+      <span className="sr-only sm:hidden">{title}</span>
+
       {person ? (
         <Avatar name={person.name} size="md" />
       ) : (
         <span
           aria-hidden
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-light text-content-muted"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-light text-[0.75rem] font-[var(--font-weight-semibold)] uppercase leading-none text-content-muted"
         >
-          #
+          {laneGlyph(title)}
         </span>
       )}
-      <span className="min-w-0 grow">
+
+      {dots.length > 0 && (
+        <span className="flex items-center gap-1 sm:hidden">
+          {dots.map((dot) =>
+            dot.interactive && onReviewsClick ? (
+              // The reviews dot stays interactive on mobile (the full badge cluster is
+              // hidden here), so tapping it still opens the panel filtered to this person —
+              // `p-1 -m-1` widens the tap target without shifting the dot.
+              <button
+                key={dot.key}
+                type="button"
+                onClick={onReviewsClick}
+                title={`${dot.label} — open review panel`}
+                aria-label={`${dot.label}, open review panel`}
+                className="-m-1 flex items-center rounded-full p-1 transition-opacity hover:opacity-70"
+              >
+                <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${BADGE_DOT_CLASS[dot.tone]}`} />
+              </button>
+            ) : (
+              <span
+                key={dot.key}
+                role="img"
+                title={dot.label}
+                aria-label={dot.label}
+                className={`h-1.5 w-1.5 rounded-full ${BADGE_DOT_CLASS[dot.tone]}`}
+              />
+            ),
+          )}
+        </span>
+      )}
+
+      <span className="hidden min-w-0 grow sm:block">
         <span className="block truncate text-[0.9375rem] font-[var(--font-weight-semibold)] capitalize text-content">
           {title}
         </span>

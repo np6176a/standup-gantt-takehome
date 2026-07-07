@@ -5,6 +5,7 @@ import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
 import { Button } from '@/components/atoms/Button/Button';
+import { Spinner } from '@/components/atoms/Spinner/Spinner';
 import { Legend } from '@/components/molecules/Legend/Legend';
 import { Toolbar } from '@/components/organisms/Toolbar/Toolbar';
 import { GanttBoard } from '@/components/organisms/GanttBoard/GanttBoard';
@@ -45,7 +46,12 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
       <Toolbar />
 
       {(data.status === 'idle' || data.status === 'loading') && (
-        <StatusPanel>Loading issues and pull requests…</StatusPanel>
+        <StatusPanel>
+          <span className="flex items-center justify-center gap-2.5 text-primary">
+            <Spinner size="md" label="Loading the board" />
+            <span className="text-content-secondary">Loading issues and pull requests…</span>
+          </span>
+        </StatusPanel>
       )}
 
       {data.status === 'error' && (
@@ -63,11 +69,13 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
 
       {data.status === 'ready' && data.issues.length > 0 && (
         <>
-          <Legend
-            open={ui.legendOpen}
-            onToggle={() => ui.toggleLegend()}
-            className="border-b border-border bg-surface px-4 py-1.5"
-          />
+          <div className="hidden sm:block">
+            <Legend
+              open={ui.legendOpen}
+              onToggle={() => ui.toggleLegend()}
+              className="border-b border-border bg-surface px-4 py-1.5"
+            />
+          </div>
           <div className="flex min-h-0 grow">
             <GanttBoard className="m-4 min-h-0 min-w-0 grow" />
             {ui.reviewPanel.open && (

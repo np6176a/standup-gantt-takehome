@@ -134,7 +134,7 @@ export const StateFilterPopover = ({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[0.8125rem] font-[var(--font-weight-semibold)] transition-colors ${
+        className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[0.8125rem] font-[var(--font-weight-semibold)] transition-colors sm:w-auto sm:justify-start ${
           hiddenCount > 0
             ? 'border-primary bg-primary-muted text-content'
             : 'border-border bg-surface-raised text-content-secondary hover:bg-neutral-light'

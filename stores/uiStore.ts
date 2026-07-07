@@ -67,6 +67,16 @@ export class UiStore {
   legendOpen: boolean = true;
 
   /**
+   * Whether the toolbar's secondary controls (state filter, attention chip, needs-review,
+   * new-issue) are expanded. Only affects the mobile stacked toolbar — on `sm+` everything
+   * always shows. Starts expanded so nothing is hidden until the user collapses it.
+   */
+  headerExpanded: boolean = true;
+
+  /** Toolbar search query — filters the board to issues matching an id / title / PR number. */
+  searchQuery: string = '';
+
+  /**
    * Toolbar state filter: raw state name → whether its issues are shown. Defaults hide the
    * standup-noise states (Backlog, Triage, Canceled). Feeds the row computed's state filter
    * and the "States" popover checkboxes.
@@ -177,6 +187,16 @@ export class UiStore {
     this.visibleStates = defaultVisibleStates();
   }
 
+  /**
+   * Apply a persisted state-filter map over the defaults. Called once after mount from
+   * localStorage — NOT seeded at store construction, so the server render and the client's
+   * first (hydration) render both start from the defaults and can't disagree; the persisted
+   * selection is layered on only after hydration.
+   */
+  restoreVisibleStates(states: Record<string, boolean>) {
+    this.visibleStates = { ...defaultVisibleStates(), ...states };
+  }
+
   /** Toggle the attention-only board filter (the toolbar attention chip). */
   toggleAttentionOnly() {
     this.attentionOnly = !this.attentionOnly;
@@ -209,6 +229,16 @@ export class UiStore {
   /** Toggle the legend strip visibility. */
   toggleLegend() {
     this.legendOpen = !this.legendOpen;
+  }
+
+  /** Expand or collapse the mobile toolbar's secondary controls. */
+  toggleHeaderExpanded() {
+    this.headerExpanded = !this.headerExpanded;
+  }
+
+  /** Set the board search query (issue id / title / PR number). */
+  setSearchQuery(query: string) {
+    this.searchQuery = query;
   }
 
   /** Open the "Needs review" panel, optionally filtered to one reviewer (a lane 👁 badge). */

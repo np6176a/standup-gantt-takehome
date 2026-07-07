@@ -12,6 +12,8 @@ export const THEME_STORAGE_KEY = 'standup-gantt.theme';
 export const ACCENT_STORAGE_KEY = 'standup-gantt.accent';
 /** localStorage key for the app-owned planning state (planned starts + manual blocked flags). */
 export const PLANNING_STORAGE_KEY = 'standup-gantt.planning';
+/** localStorage key for the toolbar state-filter selections (raw state name → visible). */
+export const STATE_FILTER_STORAGE_KEY = 'standup-gantt.stateFilter';
 
 /** Construction options for {@link RootStore}. */
 export interface RootStoreInit {
@@ -78,6 +80,7 @@ export class RootStore {
       orphanPrs: this.data.orphanPullRequests,
       visibleStates: this.ui.visibleStates,
       attentionOnly: this.ui.attentionOnly,
+      searchQuery: this.ui.searchQuery,
     });
   }
 
@@ -180,6 +183,12 @@ function asBlockedFlags(value: unknown): PlanningSnapshot['blockedFlags'] {
   return flags;
 }
 
+/** The created-issue-id list from a persisted snapshot, keeping only string entries. */
+function asCreatedIssueIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((id): id is string => typeof id === 'string');
+}
+
 /**
  * Read the persisted planning state from localStorage, returning empty maps when it's
  * absent, unavailable, or malformed (a corrupt payload must never crash boot). Safe during
@@ -194,6 +203,7 @@ export function readInitialPlanning(): Partial<PlanningSnapshot> {
     return {
       plannedStarts: asPlannedStarts(parsed.plannedStarts),
       blockedFlags: asBlockedFlags(parsed.blockedFlags),
+      createdIssueIds: asCreatedIssueIds(parsed.createdIssueIds),
     };
   } catch {
     return {};
@@ -209,6 +219,44 @@ export function persistPlanning(snapshot: PlanningSnapshot): void {
     window.localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
     // Storage denied — planning state won't survive reload, but the app keeps working.
+  }
+}
+
+/** A state-filter map from a persisted value, keeping only its boolean entries. */
+function asVisibleStates(value: unknown): Record<string, boolean> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([, visible]) => typeof visible === 'boolean',
+  );
+  return entries.length > 0 ? (Object.fromEntries(entries) as Record<string, boolean>) : undefined;
+}
+
+/**
+ * Read the persisted toolbar state-filter selections, or undefined when absent/unavailable/
+ * malformed (so the store keeps its defaults). Safe during SSR and when storage is denied.
+ * Applied after mount via {@link UiStore.restoreVisibleStates} — never seeded at store
+ * construction — to keep the server and hydration renders identical (no hydration mismatch).
+ */
+export function readInitialStateFilter(): Record<string, boolean> | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const raw = safeReadStorage(STATE_FILTER_STORAGE_KEY);
+  if (!raw) return undefined;
+  try {
+    return asVisibleStates(JSON.parse(raw));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Persist the toolbar state-filter selections to localStorage. Best-effort: silently ignores
+ * failures when storage is unavailable, matching {@link persistPreferences}.
+ */
+export function persistStateFilter(visibleStates: Record<string, boolean>): void {
+  try {
+    window.localStorage.setItem(STATE_FILTER_STORAGE_KEY, JSON.stringify(visibleStates));
+  } catch {
+    // Storage denied — the state filter won't survive reload, but the app keeps working.
   }
 }
 

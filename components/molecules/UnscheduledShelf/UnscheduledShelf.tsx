@@ -9,11 +9,12 @@ export interface UnscheduledShelfProps extends React.HTMLAttributes<HTMLDivEleme
   /** Opens an issue's detail (where its dates can be set). */
   onSelectIssue?: (issueId: string) => void;
   /**
-   * Where the sticky chips pin as the timeline scrolls, in pixels from the scroll
-   * container's left edge. Defaults to 0; pass the lane-rail width so the chips park
-   * at the rail's right edge instead of sliding underneath the sticky rail.
+   * Where the sticky chips pin as the timeline scrolls, as a CSS length (a pixel number
+   * or a value like `var(--rail-width)`) from the scroll container's left edge. Defaults
+   * to 0; pass the lane-rail width so the chips park at the rail's right edge instead of
+   * sliding underneath the sticky rail.
    */
-  stickyLeftPx?: number;
+  stickyLeftPx?: number | string;
   /** Optional className for styling overrides. */
   className?: string;
 }

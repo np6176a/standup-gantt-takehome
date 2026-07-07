@@ -98,6 +98,37 @@ export interface BuildLanesInput {
   visibleStates?: Record<string, boolean>;
   /** Attention chip: when true, keep only overdue / blocked issues (the standup focus). */
   attentionOnly?: boolean;
+  /**
+   * Toolbar search query: keep only issues matching it (by id/title or a resolved PR
+   * number). Empty (the default) matches everything; when set, empty lanes are dropped.
+   */
+  searchQuery?: string;
+}
+
+/**
+ * Whether a PR's number matches a (possibly `#`-prefixed) numeric search query. A blank or
+ * non-numeric query never matches a PR number. Shared by the issue search (a resolved PR)
+ * and the orphan-PR search (a PR that resolved to no issue), so both behave the same.
+ */
+export function prNumberMatches(pr: PullRequest, query: string): boolean {
+  const numberQuery = query.trim().toLowerCase().replace(/^#/, '');
+  if (!numberQuery || !/^\d+$/.test(numberQuery)) return false;
+  return String(pr.number).includes(numberQuery);
+}
+
+/**
+ * Whether an issue (or one of its resolved PRs) matches the toolbar search query. Matches
+ * the issue identifier or title (case-insensitive substring), or a resolved PR number
+ * (with or without a leading `#`). An empty/whitespace query matches everything.
+ */
+export function matchesSearch(member: PositionedIssue, query: string): boolean {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return true;
+
+  const { issue, prs } = member;
+  if (issue.identifier.toLowerCase().includes(trimmed)) return true;
+  if (issue.title.toLowerCase().includes(trimmed)) return true;
+  return prs.some((pr) => prNumberMatches(pr, query));
 }
 
 /**
@@ -110,9 +141,11 @@ function passesFilters(
   member: PositionedIssue,
   visibleStates: Record<string, boolean>,
   attentionOnly: boolean,
+  searchQuery: string,
 ): boolean {
   if (visibleStates[member.issue.stateName] === false) return false;
   if (attentionOnly && !member.attention.overdue && !member.attention.blockedDerived) return false;
+  if (!matchesSearch(member, searchQuery)) return false;
   return true;
 }
 
@@ -236,12 +269,14 @@ export function buildLanes({
   orphanPrs = [],
   visibleStates = {},
   attentionOnly = false,
+  searchQuery = '',
 }: BuildLanesInput): Lane[] {
+  const searchActive = searchQuery.trim().length > 0;
   const positioned = issues
     .map((issue) =>
       positionIssue(issue, todayIdx, plannedStarts, blockedFlags, prsByIssueId, now),
     )
-    .filter((member) => passesFilters(member, visibleStates, attentionOnly));
+    .filter((member) => passesFilters(member, visibleStates, attentionOnly, searchQuery));
 
   const identityByKey = new Map<string, LaneIdentity>();
   const membersByKey = new Map<string, PositionedIssue[]>();
@@ -268,12 +303,26 @@ export function buildLanes({
       ? personLaneOrder(people, membersByKey, orphansByPersonId)
       : projectLaneOrder(identityByKey);
 
-  return orderedKeys.map((key) => {
+  // While searching, a lane shows its orphan PRs filtered to the query too — so a PR-number
+  // search can surface (or narrow to) an orphan PR, not just an issue-attached one.
+  const laneOrphansFor = (key: string): readonly PullRequest[] => {
+    const all = orphansByPersonId.get(key) ?? [];
+    return searchActive ? all.filter((pr) => prNumberMatches(pr, searchQuery)) : all;
+  };
+
+  // The "always show every roster lane" rule would leave a wall of empty lanes around the
+  // few matches, so while searching drop lanes with no matching issue and no matching orphan.
+  const visibleKeys = searchActive
+    ? orderedKeys.filter(
+        (key) => (membersByKey.get(key)?.length ?? 0) > 0 || laneOrphansFor(key).length > 0,
+      )
+    : orderedKeys;
+
+  return visibleKeys.map((key) => {
     const identity = identityByKey.get(key) ?? syntheticIdentity(key, people);
     const reviewsWaiting =
       grouping === 'person' ? (reviewsWaitingByPersonId.get(key) ?? 0) : 0;
-    const laneOrphans = orphansByPersonId.get(key) ?? [];
-    return assembleLane(identity, membersByKey.get(key) ?? [], reviewsWaiting, laneOrphans);
+    return assembleLane(identity, membersByKey.get(key) ?? [], reviewsWaiting, laneOrphansFor(key));
   });
 }
 

@@ -4,7 +4,7 @@ import React, { useContext } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
-import { RAIL_WIDTH_PX, trackWidthPx } from '@/lib/gantt/density';
+import { RAIL_WIDTH, trackWidthPx } from '@/lib/gantt/density';
 import { dayIndexToPercent } from '@/lib/gantt/scale';
 import { GanttHeader } from '@/components/molecules/GanttHeader/GanttHeader';
 import { TodayLine } from '@/components/molecules/TodayLine/TodayLine';
@@ -40,7 +40,7 @@ export const GanttBoard = observer(function GanttBoard({ className = '' }: Gantt
         <div className="sticky top-0 z-30 flex bg-surface">
           <div
             className="sticky left-0 z-10 shrink-0 border-b border-r border-border bg-surface"
-            style={{ width: RAIL_WIDTH_PX }}
+            style={{ width: RAIL_WIDTH }}
           />
           <div className="grow" style={{ minWidth: track }}>
             <GanttHeader zoom={zoom} windowStartIdx={windowStartIdx} windowDays={windowDays} />
@@ -57,6 +57,7 @@ export const GanttBoard = observer(function GanttBoard({ className = '' }: Gantt
               windowDays={windowDays}
               trackWidthPx={track}
               todayIdx={ui.todayIdx}
+              showAssignee={ui.grouping === 'project'}
               onSelectIssue={(issueId) => ui.selectIssue(issueId)}
               onSelectPr={(pr) => window.open(pr.url, '_blank', 'noopener,noreferrer')}
               onReviewsClick={() => ui.openReviewPanel(lane.key)}
@@ -66,7 +67,7 @@ export const GanttBoard = observer(function GanttBoard({ className = '' }: Gantt
           <div
             aria-hidden
             className="pointer-events-none absolute inset-y-0 right-0"
-            style={{ left: RAIL_WIDTH_PX }}
+            style={{ left: RAIL_WIDTH }}
           >
             <div className="relative h-full">
               <TodayLine
