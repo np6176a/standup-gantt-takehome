@@ -27,7 +27,7 @@ export const TodayLine = ({ leftPct, visible, label, className = '', ...props }:
       style={{ left: `${leftPct}%` }}
       {...props}
     >
-      <span className="absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-b-md bg-primary px-1.5 py-0.5 text-[0.625rem] font-[var(--font-weight-semibold)] tracking-[0.03em] text-primary-foreground">
+      <span className="absolute top-0 whitespace-nowrap rounded-br-md bg-primary px-1 py-px text-[0.5625rem] font-[var(--font-weight-semibold)] leading-tight tracking-[0.03em] text-primary-foreground">
         {label}
       </span>
     </div>

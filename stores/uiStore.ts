@@ -51,7 +51,7 @@ export class UiStore {
   /** Which swimlane grouping the board renders. */
   grouping: Grouping = 'person';
   /** Current timeline zoom; drives the window span and header tick density. */
-  zoom: Zoom = 'month';
+  zoom: Zoom = 'fortnight';
   /** Left edge of the visible window, as a day index. Shifted by the ◀/▶/Today controls. */
   windowStartIdx: number;
   /** Today's day index, captured once at construction — computeds read this, never `new Date()`. */
