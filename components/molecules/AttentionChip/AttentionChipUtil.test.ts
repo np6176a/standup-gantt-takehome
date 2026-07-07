@@ -1,6 +1,7 @@
 import {
   attentionChipModel,
   attentionChipTitle,
+  canToggleAttention,
 } from '@/components/molecules/AttentionChip/AttentionChipUtil';
 
 describe('attentionChipModel', () => {
@@ -32,5 +33,20 @@ describe('attentionChipTitle', () => {
 
   it('says there is nothing to focus when the board is clear', () => {
     expect(attentionChipTitle(false, false)).toBe('No blocked or overdue issues to focus');
+  });
+});
+
+describe('canToggleAttention', () => {
+  it('is actionable when there is something to focus', () => {
+    expect(canToggleAttention(true, false)).toBe(true);
+    expect(canToggleAttention(true, true)).toBe(true);
+  });
+
+  it('blocks turning the filter on when the board is clear (no empty focus)', () => {
+    expect(canToggleAttention(false, false)).toBe(false);
+  });
+
+  it('stays actionable while active so an already-on filter can always be cleared', () => {
+    expect(canToggleAttention(false, true)).toBe(true);
   });
 });

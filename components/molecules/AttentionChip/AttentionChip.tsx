@@ -4,6 +4,7 @@ import { BlockedIcon, OverdueIcon } from '@/components/icons';
 import {
   attentionChipModel,
   attentionChipTitle,
+  canToggleAttention,
 } from '@/components/molecules/AttentionChip/AttentionChipUtil';
 
 export interface AttentionChipProps
@@ -35,11 +36,13 @@ export const AttentionChip = ({
   ...props
 }: AttentionChipProps) => {
   const model = attentionChipModel(blocked, overdue);
+  const interactive = canToggleAttention(model.hasAttention, active);
 
   return (
     <button
       type="button"
       onClick={onToggle}
+      disabled={!interactive}
       title={attentionChipTitle(model.hasAttention, active)}
       aria-pressed={active}
       aria-label={`${model.label}${active ? ' (filtering board)' : ''}`}
@@ -47,7 +50,7 @@ export const AttentionChip = ({
         active
           ? 'border-primary bg-primary-muted text-content'
           : 'border-border bg-surface-raised text-content-secondary hover:bg-neutral-light'
-      } ${className}`}
+      } ${interactive ? '' : 'cursor-not-allowed opacity-60 hover:bg-surface-raised'} ${className}`}
       {...props}
     >
       {model.hasAttention ? (

@@ -27,6 +27,16 @@ export function attentionChipTitle(hasAttention: boolean, active: boolean): stri
   return active ? 'Show all issues' : 'Focus on blocked and overdue issues';
 }
 
+/**
+ * Whether the chip's toggle is actionable. There must be something to focus (`hasAttention`)
+ * to turn the filter ON — otherwise clicking "All clear" would enable an empty focus that
+ * `passesFilters` collapses to a blank board. An already-ON filter stays actionable so the
+ * user can always clear it, even after the last attention item is resolved or hidden.
+ */
+export function canToggleAttention(hasAttention: boolean, active: boolean): boolean {
+  return hasAttention || active;
+}
+
 /** Build the attention chip's model from the board's blocked / overdue totals. */
 export function attentionChipModel(blocked: number, overdue: number): AttentionChipModel {
   const total = blocked + overdue;
