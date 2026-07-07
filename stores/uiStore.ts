@@ -42,6 +42,8 @@ export type Grouping = 'person' | 'project';
 export interface UiStoreInit {
   theme?: ThemeMode;
   accent?: AccentName;
+  /** Persisted state-filter map (raw state name → visible), restored from localStorage. */
+  visibleStates?: Record<string, boolean>;
   /**
    * Today's day index, captured once by the composition root so computeds never
    * call `new Date()`. Falls back to the current UTC day when omitted (stories/tests).
@@ -103,6 +105,11 @@ export class UiStore {
     this.todayIdx = init.todayIdx ?? localTodayIndex();
     if (init.theme) this.theme = init.theme;
     if (init.accent) this.accent = init.accent;
+    // Layer any persisted selections over the defaults, so a state the stored map doesn't
+    // mention (e.g. one added since it was saved) keeps its default visibility.
+    if (init.visibleStates) {
+      this.visibleStates = { ...defaultVisibleStates(), ...init.visibleStates };
+    }
     this.windowStartIdx = defaultWindowStart(this.todayIdx, this.zoom);
     makeAutoObservable(this, {}, { autoBind: true });
   }

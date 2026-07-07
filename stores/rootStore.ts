@@ -12,11 +12,15 @@ export const THEME_STORAGE_KEY = 'standup-gantt.theme';
 export const ACCENT_STORAGE_KEY = 'standup-gantt.accent';
 /** localStorage key for the app-owned planning state (planned starts + manual blocked flags). */
 export const PLANNING_STORAGE_KEY = 'standup-gantt.planning';
+/** localStorage key for the toolbar state-filter selections (raw state name → visible). */
+export const STATE_FILTER_STORAGE_KEY = 'standup-gantt.stateFilter';
 
 /** Construction options for {@link RootStore}. */
 export interface RootStoreInit {
   theme?: ThemeMode;
   accent?: AccentName;
+  /** Persisted toolbar state-filter selections restored from localStorage. */
+  visibleStates?: Record<string, boolean>;
   /** Today's day index, captured once by {@link createRootStore}. */
   todayIdx?: number;
   /** Persisted planning state restored from localStorage (planned starts + blocked flags). */
@@ -219,11 +223,49 @@ export function persistPlanning(snapshot: PlanningSnapshot): void {
   }
 }
 
+/** A state-filter map from a persisted value, keeping only its boolean entries. */
+function asVisibleStates(value: unknown): Record<string, boolean> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([, visible]) => typeof visible === 'boolean',
+  );
+  return entries.length > 0 ? (Object.fromEntries(entries) as Record<string, boolean>) : undefined;
+}
+
+/**
+ * Read the persisted toolbar state-filter selections, or undefined when absent/unavailable/
+ * malformed (so the store falls back to its defaults). Safe during SSR and when storage is
+ * denied. `UiStore` layers this over the defaults, so a partial/older map still boots cleanly.
+ */
+export function readInitialStateFilter(): Record<string, boolean> | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const raw = safeReadStorage(STATE_FILTER_STORAGE_KEY);
+  if (!raw) return undefined;
+  try {
+    return asVisibleStates(JSON.parse(raw));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Persist the toolbar state-filter selections to localStorage. Best-effort: silently ignores
+ * failures when storage is unavailable, matching {@link persistPreferences}.
+ */
+export function persistStateFilter(visibleStates: Record<string, boolean>): void {
+  try {
+    window.localStorage.setItem(STATE_FILTER_STORAGE_KEY, JSON.stringify(visibleStates));
+  } catch {
+    // Storage denied — the state filter won't survive reload, but the app keeps working.
+  }
+}
+
 /** Create the root store, seeding UI preferences from localStorage / OS and capturing
  * today's day index once (so no computed ever calls `new Date()`). */
 export function createRootStore(): RootStore {
   return new RootStore({
     ...readInitialPreferences(),
+    visibleStates: readInitialStateFilter(),
     planning: readInitialPlanning(),
     todayIdx: localTodayIndex(),
   });

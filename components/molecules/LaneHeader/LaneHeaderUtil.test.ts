@@ -2,6 +2,7 @@ import {
   attentionDots,
   laneBadges,
   laneCountLabel,
+  laneGlyph,
 } from '@/components/molecules/LaneHeader/LaneHeaderUtil';
 import type { LaneSummary } from '@/lib/gantt/rows';
 
@@ -12,6 +13,14 @@ describe('laneCountLabel', () => {
     expect(laneCountLabel(0)).toBe('No issues');
     expect(laneCountLabel(1)).toBe('1 issue');
     expect(laneCountLabel(4)).toBe('4 issues');
+  });
+});
+
+describe('laneGlyph', () => {
+  it('abbreviates a lane title to distinguishable initials', () => {
+    expect(laneGlyph('Atlas Export')).toBe('AE');
+    expect(laneGlyph('No project')).toBe('NP');
+    expect(laneGlyph('Unassigned')).toBe('U');
   });
 });
 

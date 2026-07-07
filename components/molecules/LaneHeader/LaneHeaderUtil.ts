@@ -4,11 +4,22 @@
 // counts, then reviews-waiting (which is clickable: it opens the "Needs review" panel).
 
 import type { LaneSummary } from '@/lib/gantt/rows';
+import { initials } from '@/components/atoms/Avatar/AvatarUtil';
 
 /** Pluralized issue-count summary for a lane, e.g. "1 issue", "3 issues", "No issues". */
 export function laneCountLabel(count: number): string {
   if (count === 0) return 'No issues';
   return `${count} ${count === 1 ? 'issue' : 'issues'}`;
+}
+
+/**
+ * The short glyph shown in a non-person lane's rail chip (projects, "No project",
+ * "Unassigned") — the lane title's initials, mirroring how a person lane's avatar shows
+ * initials. This keeps project swimlanes distinguishable when the rail collapses to an
+ * avatar-only strip on mobile, where the full title is hidden.
+ */
+export function laneGlyph(title: string): string {
+  return initials(title);
 }
 
 /** A badge's semantic tone — drives its color and whether it reads as an attention signal. */
