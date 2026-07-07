@@ -77,7 +77,8 @@ export const IssueBar = ({
   if (isMarker) {
     return (
       <div
-        title={ariaLabel}
+        data-tooltip-id="gantt-tip"
+        data-tooltip-content={ariaLabel}
         aria-label={ariaLabel}
         onClick={() => onSelect?.(issue.id)}
         className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${markerAttentionFill(attention, treatment.markerClass)} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
@@ -93,7 +94,8 @@ export const IssueBar = ({
 
   return (
     <div
-      title={ariaLabel}
+      data-tooltip-id="gantt-tip"
+      data-tooltip-content={ariaLabel}
       aria-label={ariaLabel}
       onClick={() => onSelect?.(issue.id)}
       className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}

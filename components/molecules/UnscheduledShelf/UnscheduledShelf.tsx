@@ -60,7 +60,8 @@ export const UnscheduledShelf = ({
             <button
               key={issue.id}
               type="button"
-              title={chipLabel}
+              data-tooltip-id="gantt-tip"
+              data-tooltip-content={chipLabel}
               aria-label={chipLabel}
               onClick={() => onSelectIssue(issue.id)}
               className={chipClass}
@@ -68,7 +69,7 @@ export const UnscheduledShelf = ({
               {chipContent}
             </button>
           ) : (
-            <div key={issue.id} title={chipLabel} aria-label={chipLabel} className={chipClass}>
+            <div key={issue.id} data-tooltip-id="gantt-tip" data-tooltip-content={chipLabel} aria-label={chipLabel} className={chipClass}>
               {chipContent}
             </div>
           );

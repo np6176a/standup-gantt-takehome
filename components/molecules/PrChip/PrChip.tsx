@@ -49,7 +49,8 @@ export const PrChip = ({
   return (
     <button
       type="button"
-      title={tooltip}
+      data-tooltip-id="gantt-tip"
+      data-tooltip-content={tooltip}
       aria-label={tooltip}
       onClick={(e) => {
         e.stopPropagation();
