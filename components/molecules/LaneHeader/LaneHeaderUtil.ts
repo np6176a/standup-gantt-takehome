@@ -29,10 +29,10 @@ export interface LaneBadge {
 
 /** Tailwind classes per badge tone. Attention tones are red; activity tones are muted. */
 export const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
-  blocked: 'bg-attention-blocked/15 text-attention-blocked',
-  overdue: 'bg-attention-overdue/15 text-attention-overdue',
-  active: 'bg-status-active/15 text-status-active',
-  review: 'bg-status-review/15 text-status-review',
+  blocked: 'bg-status-triage-muted text-attention-blocked',
+  overdue: 'bg-status-triage-muted text-attention-overdue',
+  active: 'bg-status-active-muted text-status-active',
+  review: 'bg-status-review-muted text-status-review',
   reviews: 'bg-neutral-light text-content-secondary',
 };
 
