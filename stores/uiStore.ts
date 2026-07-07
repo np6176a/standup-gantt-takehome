@@ -159,9 +159,10 @@ export class UiStore {
 
   /** Show or hide a set of raw states at once (a bucket header checkbox / "Show all"). */
   setStatesVisible(stateNames: readonly string[], visible: boolean) {
-    const next = { ...this.visibleStates };
-    for (const name of stateNames) next[name] = visible;
-    this.visibleStates = next;
+    this.visibleStates = {
+      ...this.visibleStates,
+      ...Object.fromEntries(stateNames.map((name) => [name, visible])),
+    };
   }
 
   /** Turn every state on (the "Show all" affordance in the popover). */

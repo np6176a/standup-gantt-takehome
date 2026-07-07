@@ -52,11 +52,9 @@ export class RootStore {
 
   /** Count of still-pending review requests per reviewer person id (drives the lane 👁 badge). */
   get reviewsWaitingByPersonId(): Map<string, number> {
-    const counts = new Map<string, number>();
-    for (const [personId, pending] of this.data.pendingReviewsByPersonId) {
-      counts.set(personId, pending.length);
-    }
-    return counts;
+    return new Map(
+      [...this.data.pendingReviewsByPersonId].map(([personId, pending]) => [personId, pending.length]),
+    );
   }
 
   /**
