@@ -2,8 +2,6 @@
 
 import React, { useContext, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
-import { Tooltip } from 'react-tooltip';
-import 'react-tooltip/dist/react-tooltip.css';
 
 import { StoreContext } from '@/stores/StoreProvider';
 import { Button } from '@/components/atoms/Button/Button';
@@ -74,12 +72,6 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
           </div>
         </>
       )}
-      <Tooltip
-        id="gantt-tip"
-        delayShow={150}
-        className="!rounded-md !border !border-border !bg-[#0f172a] !px-2.5 !py-1.5 !text-[0.8125rem] !leading-relaxed !text-slate-100 !shadow-lg !opacity-100"
-        style={{ zIndex: 100, maxWidth: 360 }}
-      />
     </main>
   );
 });
