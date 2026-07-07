@@ -89,18 +89,32 @@ export const LaneHeader = ({
       )}
 
       {dots.length > 0 && (
-        <span
-          className="flex items-center gap-1 sm:hidden"
-          aria-label={dots.map((dot) => dot.label).join(', ')}
-        >
-          {dots.map((dot) => (
-            <span
-              key={dot.key}
-              aria-hidden
-              title={dot.label}
-              className={`h-1.5 w-1.5 rounded-full ${BADGE_DOT_CLASS[dot.tone]}`}
-            />
-          ))}
+        <span className="flex items-center gap-1 sm:hidden">
+          {dots.map((dot) =>
+            dot.interactive && onReviewsClick ? (
+              // The reviews dot stays interactive on mobile (the full badge cluster is
+              // hidden here), so tapping it still opens the panel filtered to this person —
+              // `p-1 -m-1` widens the tap target without shifting the dot.
+              <button
+                key={dot.key}
+                type="button"
+                onClick={onReviewsClick}
+                title={`${dot.label} — open review panel`}
+                aria-label={`${dot.label}, open review panel`}
+                className="-m-1 flex items-center rounded-full p-1 transition-opacity hover:opacity-70"
+              >
+                <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${BADGE_DOT_CLASS[dot.tone]}`} />
+              </button>
+            ) : (
+              <span
+                key={dot.key}
+                role="img"
+                title={dot.label}
+                aria-label={dot.label}
+                className={`h-1.5 w-1.5 rounded-full ${BADGE_DOT_CLASS[dot.tone]}`}
+              />
+            ),
+          )}
         </span>
       )}
 
