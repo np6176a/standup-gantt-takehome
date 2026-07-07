@@ -23,6 +23,15 @@ export function dayIndex(date: Date): number {
 }
 
 /**
+ * Today's day index using LOCAL date components so the marker matches the user's
+ * wall-clock calendar, not UTC (which can be a day ahead in western timezones).
+ */
+export function localTodayIndex(): number {
+  const now = new Date();
+  return Math.round(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY_MS);
+}
+
+/**
  * Day index of an ISO date string. Works for both date-only "YYYY-MM-DD" (parsed as
  * UTC midnight per the ISO spec) and full timestamps (collapsed to their UTC day),
  * so a dueDate and a startedAt on the same calendar day yield the same index.

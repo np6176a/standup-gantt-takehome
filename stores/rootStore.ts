@@ -3,7 +3,7 @@ import { makeAutoObservable } from 'mobx';
 import { ACCENTS, AccentName, ThemeMode, UiStore } from '@/stores/uiStore';
 import { DataStore } from '@/stores/dataStore';
 import { buildLanes, type Lane } from '@/lib/gantt/rows';
-import { dayIndex } from '@/lib/gantt/scale';
+import { localTodayIndex } from '@/lib/gantt/scale';
 
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
@@ -106,5 +106,5 @@ export function persistPreferences(theme: ThemeMode, accent: AccentName): void {
 /** Create the root store, seeding UI preferences from localStorage / OS and capturing
  * today's day index once (so no computed ever calls `new Date()`). */
 export function createRootStore(): RootStore {
-  return new RootStore({ ...readInitialPreferences(), todayIdx: dayIndex(new Date()) });
+  return new RootStore({ ...readInitialPreferences(), todayIdx: localTodayIndex() });
 }

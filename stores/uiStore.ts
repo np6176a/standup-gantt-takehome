@@ -2,7 +2,7 @@ import { makeAutoObservable } from 'mobx';
 
 import type { Zoom } from '@/lib/gantt/scale';
 import {
-  dayIndex,
+  localTodayIndex,
   defaultWindowStart,
   shiftWindow,
   windowDaysForZoom,
@@ -58,7 +58,7 @@ export class UiStore {
   todayIdx: number;
 
   constructor(init: UiStoreInit = {}) {
-    this.todayIdx = init.todayIdx ?? dayIndex(new Date());
+    this.todayIdx = init.todayIdx ?? localTodayIndex();
     if (init.theme) this.theme = init.theme;
     if (init.accent) this.accent = init.accent;
     this.windowStartIdx = defaultWindowStart(this.todayIdx, this.zoom);
