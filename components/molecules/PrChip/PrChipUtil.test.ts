@@ -108,7 +108,7 @@ describe('prChipTooltip', () => {
   it('includes number, title, author, and review state', () => {
     const tip = prChipTooltip(makePr({ number: 503, hasChangesRequested: true }));
     expect(tip).toContain('#503');
-    expect(tip).toContain('changes requested');
+    expect(tip).toContain('Changes requested');
   });
 });
 
@@ -160,7 +160,7 @@ describe('reviewDetailLabel', () => {
       }),
       now,
     );
-    expect(label).toMatch(/^changes requested \d+d$/);
+    expect(label).toMatch(/^Changes requested, \d+d$/);
   });
 
   it('shows reviewer display name when exactly one review is pending', () => {
@@ -185,7 +185,7 @@ describe('reviewDetailLabel', () => {
       }),
       now,
     );
-    expect(label).toMatch(/^review pending \d+d$/);
+    expect(label).toMatch(/^Review pending, \d+d$/);
     expect(label).not.toContain(ROSTER[0].displayName);
   });
 

@@ -116,7 +116,9 @@ export const GanttGroupRow = ({
   const hasUnscheduled = lane.unscheduled.length > 0;
   const hasOrphans = lane.orphanPrs.length > 0;
   const isUnassigned = lane.key === UNASSIGNED_KEY;
-  const orphanShelfHeight = hasOrphans ? Math.max(SHELF_HEIGHT_PX, lane.orphanPrs.length * PR_LINE_PX + 12) : 0;
+  const ORPHAN_LABEL_PX = 20;
+  const ORPHAN_PAD_PX = 16;
+  const orphanShelfHeight = hasOrphans ? ORPHAN_LABEL_PX + lane.orphanPrs.length * PR_LINE_PX + ORPHAN_PAD_PX : 0;
   const MIN_LANE_PX = 64;
   const laneHeight = Math.max(MIN_LANE_PX, rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0) + orphanShelfHeight);
 
