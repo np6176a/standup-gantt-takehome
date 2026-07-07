@@ -3,8 +3,26 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { IssueBar } from '@/components/molecules/IssueBar/IssueBar';
 import type { Bucket } from '@/lib/domain/states';
 import type { Issue } from '@/lib/domain/types';
+import type { DerivedAttention } from '@/lib/normalize/attention';
+import { dayIndex } from '@/lib/gantt/scale';
 
-function makeIssue(bucket: Bucket, stateName: string, id: string, title: string): Issue {
+const TODAY_IDX = dayIndex(new Date('2026-07-06T00:00:00.000Z'));
+
+const blocked = (reason: string): DerivedAttention => ({
+  overdue: false,
+  blockedDerived: true,
+  blockedReason: reason,
+});
+
+const overdue: DerivedAttention = { overdue: true, blockedDerived: false, blockedReason: null };
+
+function makeIssue(
+  bucket: Bucket,
+  stateName: string,
+  id: string,
+  title: string,
+  dueDate: string | null = null,
+): Issue {
   return {
     id,
     identifier: id,
@@ -14,7 +32,7 @@ function makeIssue(bucket: Bucket, stateName: string, id: string, title: string)
     bucket,
     automationOwned: false,
     startedAt: null,
-    dueDate: null,
+    dueDate,
     assignee: null,
     project: null,
     projectMilestone: null,
@@ -44,6 +62,8 @@ const meta = {
     clippedLeft: false,
     clippedRight: false,
     zoom: 'month',
+    attention: { overdue: false, blockedDerived: false, blockedReason: null },
+    todayIdx: TODAY_IDX,
   },
 } satisfies Meta<typeof IssueBar>;
 
@@ -92,5 +112,29 @@ export const ClippedBothEdges: Story = {
     barWidthPx: 640,
     clippedLeft: true,
     clippedRight: true,
+  },
+};
+
+/** Blocked: red ring + thick red left edge + ⛔ (the loud standup signal). */
+export const Blocked: Story = {
+  args: {
+    issue: makeIssue('review', 'In Review', 'ORB-503', 'Payments webhook'),
+    attention: blocked('changes requested on #503'),
+  },
+};
+
+/** Overdue: red diagonal hatch + a clock badge counting days past the due date. */
+export const Overdue: Story = {
+  args: {
+    issue: makeIssue('active', 'In Progress', 'ORB-112', 'Backfill nightly job', '2026-07-01'),
+    attention: overdue,
+  },
+};
+
+/** Both at once — blocked ring wins the color; the overdue hatch + badge still layer on. */
+export const BlockedAndOverdue: Story = {
+  args: {
+    issue: makeIssue('active', 'In Progress', 'ORB-118', 'Region failover', '2026-06-28'),
+    attention: { overdue: true, blockedDerived: true, blockedReason: 'changes requested on #530' },
   },
 };

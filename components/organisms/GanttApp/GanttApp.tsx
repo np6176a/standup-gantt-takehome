@@ -5,8 +5,10 @@ import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
 import { Button } from '@/components/atoms/Button/Button';
+import { Legend } from '@/components/molecules/Legend/Legend';
 import { Toolbar } from '@/components/organisms/Toolbar/Toolbar';
 import { GanttBoard } from '@/components/organisms/GanttBoard/GanttBoard';
+import { ReviewAttentionPanel } from '@/components/organisms/ReviewAttentionPanel/ReviewAttentionPanel';
 
 export interface GanttAppProps {
   /** Optional className for styling overrides. */
@@ -34,7 +36,7 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
 
   if (!store) return null;
 
-  const { data } = store;
+  const { data, ui } = store;
 
   return (
     <main className={`flex h-screen flex-col bg-canvas text-content ${className}`}>
@@ -58,7 +60,17 @@ export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppP
       )}
 
       {data.status === 'ready' && data.issues.length > 0 && (
-        <GanttBoard className="m-4 min-h-0 grow" />
+        <>
+          <Legend
+            open={ui.legendOpen}
+            onToggle={() => ui.toggleLegend()}
+            className="border-b border-border bg-surface px-4 py-1.5"
+          />
+          <div className="flex min-h-0 grow">
+            <GanttBoard className="m-4 min-h-0 min-w-0 grow" />
+            {ui.reviewPanel.open && <ReviewAttentionPanel />}
+          </div>
+        </>
       )}
     </main>
   );

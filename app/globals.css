@@ -178,9 +178,13 @@
     --color-status-done-muted: #dcfce7; /* green-100 */
     --color-status-dropped-muted: #f1f5f9; /* slate-100 */
 
-    /* Attention overlays — both red, distinguished by shade + bar treatment. */
-    --color-attention-blocked: #dc2626; /* red-600 */
+    /* Attention overlays — blocked is amber, overdue is red. */
+    --color-attention-blocked: #d97706; /* amber-600 */
     --color-attention-overdue: #ef4444; /* red-500 */
+
+    /* Triage bucket — amber/yellow to signal "needs sorting". */
+    --color-status-triage: #d97706; /* amber-600 */
+    --color-status-triage-muted: #fef3c7; /* amber-100 */
   }
 
   /* Dark theme — brightened accents/statuses for contrast on slate-950. */
@@ -223,10 +227,14 @@
     --color-status-done-muted: #16321f;
     --color-status-dropped-muted: #1e293b; /* slate-800 */
 
-    --color-attention-blocked: #f87171; /* red-400 */
+    --color-attention-blocked: #fbbf24; /* amber-400 */
     --color-attention-overdue: #fb7185; /* rose-400 */
+
+    --color-status-triage: #fbbf24; /* amber-400 */
+    --color-status-triage-muted: #451a03; /* amber-950 */
   }
 }
+
 
 @layer base {
   * {

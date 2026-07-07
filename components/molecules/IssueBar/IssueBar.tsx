@@ -1,13 +1,28 @@
 import React from 'react';
 
 import type { Issue } from '@/lib/domain/types';
+import type { DerivedAttention } from '@/lib/normalize/attention';
 import type { Zoom } from '@/lib/gantt/scale';
+import { BlockedIcon, OverdueIcon } from '@/components/icons';
 import {
   BUCKET_TREATMENT,
+  attentionAriaSuffix,
+  attentionRingClass,
   barAriaLabel,
   barLabelText,
+  daysOverdue,
   labelVisible,
+  markerAttentionFill,
+  overdueBadgeText,
+  statusTagClass,
+  statusTagLabel,
 } from '@/components/molecules/IssueBar/IssueBarUtil';
+
+const NO_ATTENTION: DerivedAttention = {
+  overdue: false,
+  blockedDerived: false,
+  blockedReason: null,
+};
 
 export interface IssueBarProps {
   /** The issue this bar represents (raw state stays visible on the bar). */
@@ -26,18 +41,18 @@ export interface IssueBarProps {
   clippedRight: boolean;
   /** Active zoom (drives label degradation). */
   zoom: Zoom;
+  /** Derived attention (blocked/overdue); its overlays never degrade with zoom. */
+  attention: DerivedAttention;
+  /** Today's day index, for the overdue-days badge. */
+  todayIdx: number;
   /** Opens the issue detail (wired in a later milestone). */
   onSelect?: (issueId: string) => void;
+  /** PR chip elements rendered as a second row inside the bar. */
+  children?: React.ReactNode;
   /** Optional className for styling overrides. */
   className?: string;
 }
 
-/**
- * One issue's bar on the timeline canvas, absolutely positioned by percentage within
- * its row. Carries the raw state label (never collapsed to the bucket), colored by the
- * status bucket. A due-only issue collapses to a diamond marker at its due date. Clipped
- * edges are squared off so a bar running past the window edge reads as continuing.
- */
 export const IssueBar = ({
   issue,
   leftPct,
@@ -47,29 +62,27 @@ export const IssueBar = ({
   clippedLeft,
   clippedRight,
   zoom,
+  attention = NO_ATTENTION,
+  todayIdx,
   onSelect,
+  children,
   className = '',
 }: IssueBarProps) => {
   const treatment = BUCKET_TREATMENT[issue.bucket];
-  const ariaLabel = barAriaLabel(issue);
-
-  const interactive = Boolean(onSelect);
+  const overdueDays = daysOverdue(issue.dueDate, todayIdx);
+  const ariaLabel = `${barAriaLabel(issue)}${attentionAriaSuffix(attention, overdueDays)}`;
+  const ringClass = attentionRingClass(attention);
+  const hasChildren = React.Children.count(children) > 0;
 
   if (isMarker) {
-    const markerClass = `absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${treatment.markerClass} ${className}`;
-    const markerStyle = { left: `${leftPct}%` };
-
-    return interactive ? (
-      <button
-        type="button"
+    return (
+      <div
         title={ariaLabel}
         aria-label={ariaLabel}
-        onClick={() => onSelect!(issue.id)}
-        className={markerClass}
-        style={markerStyle}
+        onClick={() => onSelect?.(issue.id)}
+        className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ${markerAttentionFill(attention, treatment.markerClass)} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
+        style={{ left: `${leftPct}%` }}
       />
-    ) : (
-      <div title={ariaLabel} aria-label={ariaLabel} className={markerClass} style={markerStyle} />
     );
   }
 
@@ -77,31 +90,45 @@ export const IssueBar = ({
   const cornerClass = `${clippedLeft ? 'rounded-l-none' : 'rounded-l-md'} ${
     clippedRight ? 'rounded-r-none' : 'rounded-r-md'
   }`;
-  const barClass = `absolute inset-y-1 flex items-center gap-1.5 overflow-hidden px-1.5 text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${className}`;
-  const barStyle = { left: `${leftPct}%`, width: `${widthPct}%` };
-  const barLabel = showLabel && (
-    <>
-      <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
-      <span className="ml-auto shrink-0 whitespace-nowrap rounded bg-neutral-light px-1 py-px text-[0.625rem] text-content-secondary">
-        {issue.stateName}
-      </span>
-    </>
-  );
 
-  return interactive ? (
-    <button
-      type="button"
+  return (
+    <div
       title={ariaLabel}
       aria-label={ariaLabel}
-      onClick={() => onSelect!(issue.id)}
-      className={barClass}
-      style={barStyle}
+      onClick={() => onSelect?.(issue.id)}
+      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${onSelect ? 'cursor-pointer' : ''} ${className}`}
+      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
     >
-      {barLabel}
-    </button>
-  ) : (
-    <div title={ariaLabel} aria-label={ariaLabel} className={barClass} style={barStyle}>
-      {barLabel}
+      <div className={`flex items-center gap-1.5 px-1.5 ${hasChildren ? 'border-b border-white/20 py-0.5' : 'py-0'}`} style={{ minHeight: hasChildren ? undefined : '100%' }}>
+        {attention.blockedDerived && (
+          <span aria-hidden className="shrink-0 leading-none">
+            <BlockedIcon size={14} />
+          </span>
+        )}
+
+        {showLabel && (
+          <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
+        )}
+
+        <span className="ml-auto flex shrink-0 items-center gap-1">
+          {attention.overdue && overdueDays > 0 && (
+            <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded bg-attention-overdue px-1 py-px text-[0.625rem] font-[var(--font-weight-semibold)] text-white">
+              <OverdueIcon size={10} /> {overdueBadgeText(overdueDays)}
+            </span>
+          )}
+          {showLabel && (
+            <span className={`whitespace-nowrap rounded px-1 py-px text-[0.625rem] ${statusTagClass(attention)}`}>
+              {statusTagLabel(issue, attention)}
+            </span>
+          )}
+        </span>
+      </div>
+
+      {hasChildren && (
+        <div className="flex flex-col gap-px px-1.5 py-0.5 text-[0.625rem]">
+          {children}
+        </div>
+      )}
     </div>
   );
 };

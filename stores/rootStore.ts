@@ -3,7 +3,7 @@ import { makeAutoObservable } from 'mobx';
 import { ACCENTS, AccentName, ThemeMode, UiStore } from '@/stores/uiStore';
 import { DataStore } from '@/stores/dataStore';
 import { buildLanes, type Lane } from '@/lib/gantt/rows';
-import { localTodayIndex } from '@/lib/gantt/scale';
+import { dateFromDayIndex, localTodayIndex } from '@/lib/gantt/scale';
 
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
@@ -35,10 +35,21 @@ export class RootStore {
     makeAutoObservable(this, { ui: false, data: false }, { autoBind: true });
   }
 
+  /** Count of still-pending review requests per reviewer person id (drives the lane 👁 badge). */
+  get reviewsWaitingByPersonId(): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const [personId, pending] of this.data.pendingReviewsByPersonId) {
+      counts.set(personId, pending.length);
+    }
+    return counts;
+  }
+
   /**
-   * The board's swimlanes: normalized issues grouped by the active grouping, sorted,
-   * and packed into non-overlapping rows. A one-line delegation to the pure
-   * {@link buildLanes}, so all row logic stays class-free and unit-tested.
+   * The board's swimlanes: normalized issues grouped by the active grouping, enriched
+   * with attention + PRs, sorted attention-first, and packed into non-overlapping rows.
+   * A one-line delegation to the pure {@link buildLanes}, so all row logic stays
+   * class-free and unit-tested. `now` is reconstructed from the once-captured `todayIdx`
+   * so this computed never calls `new Date()`.
    */
   get ganttRows(): Lane[] {
     return buildLanes({
@@ -46,6 +57,10 @@ export class RootStore {
       grouping: this.ui.grouping,
       people: this.data.people,
       todayIdx: this.ui.todayIdx,
+      prsByIssueId: this.data.prsByIssueId,
+      now: dateFromDayIndex(this.ui.todayIdx),
+      reviewsWaitingByPersonId: this.reviewsWaitingByPersonId,
+      orphanPrs: this.data.orphanPullRequests,
     });
   }
 }

@@ -163,6 +163,45 @@ filter, the detail popover, and mutations are deliberately still to come (steps 
   header). Stories for the store-connected organisms are the sanctioned cut line and are
   deferred. Full DOM render tests remain out of scope (no jsdom), per the step-0 decision.
 
+### Attention treatments, PR chips & review panel (build step 4)
+
+The standup signals become loud and visible: blocked/overdue treatments on the bars, an
+at-a-glance badge cluster per lane, PR chips under each bar, a "Needs review" side panel,
+and a legend. This is where the board earns the "run standup fast" goal.
+
+- **Attention is derived once, in the pure layer, and flows through the rows.** `buildLanes`
+  now enriches each issue with its derived attention (overdue / blocked) and its resolved
+  PRs, so the store's `ganttRows` carries everything the bars and lane headers need. The
+  manual "mark blocked" flag isn't wired yet (it lives in `planningStore`, step 6) — only
+  the derived signals show for now.
+- **Blocked and overdue never degrade.** Labels and PR chips thin out as you zoom out, but
+  the red treatments stay at every zoom (they're the whole point). Blocked gets a red ring +
+  thick red left edge + ⛔; overdue gets a red diagonal hatch + a clock badge counting days
+  past due. If an issue is both, the blocked ring wins the outline and the overdue hatch +
+  badge still layer on. Rows sort attention-first: blocked → overdue → then status bucket.
+- **Lane headers read like a standup line.** The badge cluster (`⛔ 1 · ⚠ 1 · ● 2 · ◐ 1 ·
+  👁 3`) is tallied from the lane's own members; the 👁 reviews-waiting badge is a button
+  that opens the review panel filtered to that person. The badges alone let you run standup
+  without reading a single bar.
+- **PR chips sit on the same scale as the bar.** Each PR is a thin chip under its issue,
+  spanning first-commit → merged/closed/now, with a review-state dot (○ pending, ✗ changes
+  requested, ✓ approved). Stacked PRs indent with a dashed edge. Chips collapse to just the
+  dot at quarter zoom and drop out entirely at year (detail lives in the popover) — the bar
+  itself never does.
+- **"Needs review" panel, grouped by reviewer, staleness first.** The panel reuses the same
+  pending-review data as the lane badges (so the two can't disagree), groups by reviewer,
+  and sorts so the requests that have waited longest lead; stale (> 2 days) ages are red.
+  Opened either from the toolbar (full list) or a lane's 👁 badge (filtered to that person,
+  with a "Show all" escape). Bot/outside/mooted requests are already filtered upstream.
+- **Legend.** A compact strip maps each bucket color to the raw states it covers (so the
+  granular states stay discoverable) plus the blocked/overdue key.
+- **Verification.** Typecheck, lint, and `next build` are clean; 224 unit tests pass (the
+  new ones cover attention-first sorting + lane summaries, the badge cluster, PR-chip
+  geometry + review dots, and review-group staleness ordering). Storybook covers the new
+  visual states (blocked/overdue/both bars, every PR-chip review state + dot mode, the badge
+  cluster, the legend). The `ReviewAttentionPanel` reads the store, so — consistent with the
+  step-3 decision — it has no standalone story; its logic lives in a tested pure util.
+
 ## Tradeoffs / what you'd do next
 
 - Known rough edges or incomplete areas.

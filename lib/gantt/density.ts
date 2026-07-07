@@ -11,6 +11,12 @@ import type { Zoom } from '@/lib/gantt/scale';
 /** Fixed width of the sticky left label rail (desktop), in pixels. */
 export const RAIL_WIDTH_PX = 220;
 
+/** Height of the issue bar portion of a packed row, in pixels. */
+export const BAR_HEIGHT_PX = 30;
+
+/** Height of a single PR chip line inside a row, in pixels. */
+export const PR_LINE_PX = 16;
+
 /** Height of a single packed bar row, in pixels. */
 export const ROW_HEIGHT_PX = 30;
 
@@ -19,6 +25,30 @@ export const LANE_PADDING_PX = 6;
 
 /** Height of a lane's "unscheduled" shelf strip, when it has no-date issues, in pixels. */
 export const SHELF_HEIGHT_PX = 34;
+
+/** Height of the thin PR-chip strip beneath a packed row that has PRs, in pixels. */
+export const PR_STRIP_PX = 14;
+
+/** How PR chips render at a zoom: full thin bars, collapsed dots, or hidden entirely. */
+export type PrChipMode = 'full' | 'dot' | 'hidden';
+
+/**
+ * PR-chip density per zoom, following the zoom table: Week/Month show full chips,
+ * Quarter collapses them to dots, Year drops inline chips (detail lives in the popover).
+ * Attention treatments on the issue bar itself never degrade — only these chips do.
+ */
+export const PR_CHIP_MODE: Record<Zoom, PrChipMode> = {
+  week: 'full',
+  fortnight: 'full',
+  month: 'full',
+  quarter: 'dot',
+  year: 'hidden',
+};
+
+/** The PR-chip render mode for a zoom. */
+export function prChipMode(zoom: Zoom): PrChipMode {
+  return PR_CHIP_MODE[zoom];
+}
 
 /**
  * Pixels allotted to one day at each zoom. Wide at Week (day labels + PR chips fit),
@@ -59,6 +89,12 @@ export function shouldShowBarLabel(zoom: Zoom, barWidthPx: number): boolean {
 /** Convert a within-window width percentage to pixels for the current track. */
 export function pctToPx(percent: number, trackPx: number): number {
   return (percent / 100) * trackPx;
+}
+
+/** Total pixel height of a packed row: the bar plus one line per visible PR chip. */
+export function rowHeightPx(prCount: number, chipMode: PrChipMode): number {
+  const prLines = chipMode === 'hidden' ? 0 : prCount;
+  return BAR_HEIGHT_PX + prLines * PR_LINE_PX;
 }
 
 /** Total pixel height of a lane holding `rowCount` packed rows (min one row tall). */

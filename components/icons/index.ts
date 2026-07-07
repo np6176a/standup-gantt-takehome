@@ -13,4 +13,15 @@ export {
   ChevronRight as ChevronRightIcon,
   ChevronDown as ChevronDownIcon,
   Calendar as CalendarIcon,
+  ErrorOctagon as BlockedIcon,
+  InfoTriangle as OverdueIcon,
+  Fire as ActiveIcon,
+  Eye as EyeIcon,
+  Close as CloseIcon,
+  Xmark as XmarkIcon,
+  ClockThree as ClockIcon,
+  Check as CheckIcon,
+  Minus as MinusIcon,
 } from '@tailgrids/icons';
+
+export { PrIcon } from '@/components/icons/PrIcon';

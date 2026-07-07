@@ -9,6 +9,7 @@ export const BUCKET_DOT_CLASS: Record<Bucket, string> = {
   review: 'bg-status-review',
   shipping: 'bg-status-shipping',
   planned: 'bg-status-planned',
+  triage: 'bg-status-triage',
   done: 'bg-status-done',
   dropped: 'bg-status-dropped',
 };
