@@ -4,8 +4,9 @@
 // `barMetrics`; this module only turns a normalized PullRequest into scale/display inputs.
 
 import type { PullRequest } from '@/lib/normalize/pullRequests';
+import type { ReviewOutcome } from '@/lib/normalize/reviews';
 import type { Interval } from '@/lib/gantt/layout';
-import { dayIndexFromDateString } from '@/lib/gantt/scale';
+import { DAY_MS, dayIndexFromDateString } from '@/lib/gantt/scale';
 
 /** A PR's review-state signal, in escalation order for the dot. */
 export type ReviewDotState = 'changes' | 'pending' | 'approved' | 'none';
@@ -18,10 +19,10 @@ export interface ReviewDot {
 
 /** Review-state dot presentation keyed by state. */
 export const REVIEW_DOT: Record<ReviewDotState, ReviewDot> = {
-  changes: { className: 'text-attention-blocked', label: 'changes requested' },
-  pending: { className: 'text-content-muted', label: 'review pending' },
-  approved: { className: 'text-status-done', label: 'approved' },
-  none: { className: 'text-content-muted', label: 'no review' },
+  changes: { className: 'text-attention-blocked', label: 'Changes requested' },
+  pending: { className: 'text-content-muted', label: 'Review pending' },
+  approved: { className: 'text-status-done', label: 'Approved' },
+  none: { className: 'text-content-muted', label: 'No review' },
 };
 
 /**
@@ -35,6 +36,57 @@ export function reviewDotState(pr: PullRequest): ReviewDotState {
     (outcome) => outcome.status === 'completed' && outcome.reviewState === 'APPROVED',
   );
   return approved ? 'approved' : 'none';
+}
+
+/** Whole days since an ISO timestamp. */
+function daysSince(iso: string, now: Date): number {
+  return Math.floor((now.getTime() - new Date(iso).getTime()) / DAY_MS);
+}
+
+/** The longest-waiting pending review outcome, or null if none. */
+function longestPending(outcomes: readonly ReviewOutcome[]): ReviewOutcome | null {
+  const pending = outcomes.filter((o) => o.status === 'pending' && o.requestedAt != null);
+  if (pending.length === 0) return null;
+  return pending.reduce((oldest, o) =>
+    new Date(o.requestedAt!).getTime() < new Date(oldest.requestedAt!).getTime() ? o : oldest,
+  );
+}
+
+/**
+ * The review detail label for the PrChip. Rules:
+ * - approved → "approved"
+ * - changes requested → "changes requested" + days if > 0
+ * - pending → "review pending" + days if > 0, and if exactly one pending reviewer
+ *   (and no changes requested) show their display name
+ * - none → ""
+ */
+export function reviewDetailLabel(pr: PullRequest, now: Date): string {
+  if (pr.state === 'MERGED') return 'Merged';
+  const state = reviewDotState(pr);
+  if (state === 'approved' || state === 'none') return state === 'approved' ? 'Approved' : '';
+
+  if (state === 'changes') {
+    const changesOutcome = pr.reviewOutcomes.find(
+      (o) => o.status === 'completed' && o.reviewState === 'CHANGES_REQUESTED' && o.respondedAt,
+    );
+    if (changesOutcome?.respondedAt) {
+      const days = daysSince(changesOutcome.respondedAt, now);
+      return days > 0 ? `Changes requested, ${days}d` : 'Changes requested';
+    }
+    return 'Changes requested';
+  }
+
+  const oldest = longestPending(pr.reviewOutcomes);
+  if (!oldest?.requestedAt) return 'review pending';
+
+  const days = daysSince(oldest.requestedAt, now);
+  const pendingCount = pr.reviewOutcomes.filter((o) => o.status === 'pending').length;
+  const daysLabel = days > 0 ? `, ${days}d` : '';
+
+  if (pendingCount === 1 && !pr.hasChangesRequested) {
+    return `Review pending ${oldest.reviewer.displayName}${daysLabel}`;
+  }
+  return `Review pending${daysLabel}`;
 }
 
 /**

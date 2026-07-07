@@ -5,7 +5,7 @@ import { DataStore } from '@/stores/dataStore';
 import { PlanningStore } from '@/stores/planningStore';
 import type { Issue } from '@/lib/domain/types';
 import { buildLanes, type Lane } from '@/lib/gantt/rows';
-import { localTodayIndex } from '@/lib/gantt/scale';
+import { dateFromDayIndex, localTodayIndex } from '@/lib/gantt/scale';
 
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
@@ -71,7 +71,7 @@ export class RootStore {
       plannedStarts: this.planning.plannedStarts,
       blockedFlags: this.planning.blockedFlags,
       prsByIssueId: this.data.prsByIssueId,
-      now: new Date(),
+      now: dateFromDayIndex(this.ui.todayIdx),
       reviewsWaitingByPersonId: this.reviewsWaitingByPersonId,
       orphanPrs: this.data.orphanPullRequests,
     });

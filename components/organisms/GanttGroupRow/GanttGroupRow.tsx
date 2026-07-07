@@ -80,6 +80,7 @@ export const GanttGroupRow = ({
   const chipMode = prChipMode(zoom);
   const showShading = HEADER_LAYERS[zoom].showWeekendShading;
   const showChips = chipMode !== 'hidden';
+  const compactChips = chipMode === 'dot';
 
   let cursor = LANE_PADDING_PX;
   const rowLayouts: RowLayout[] = lane.rows.map((row, rowIndex) => {
@@ -115,8 +116,11 @@ export const GanttGroupRow = ({
   const hasUnscheduled = lane.unscheduled.length > 0;
   const hasOrphans = lane.orphanPrs.length > 0;
   const isUnassigned = lane.key === UNASSIGNED_KEY;
-  const orphanShelfHeight = hasOrphans ? Math.max(SHELF_HEIGHT_PX, lane.orphanPrs.length * PR_LINE_PX + 12) : 0;
-  const laneHeight = rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0) + orphanShelfHeight;
+  const ORPHAN_LABEL_PX = 20;
+  const ORPHAN_PAD_PX = 16;
+  const orphanShelfHeight = hasOrphans ? ORPHAN_LABEL_PX + lane.orphanPrs.length * PR_LINE_PX + ORPHAN_PAD_PX : 0;
+  const MIN_LANE_PX = 64;
+  const laneHeight = Math.max(MIN_LANE_PX, rowsBlockHeight + (hasUnscheduled ? SHELF_HEIGHT_PX : 0) + orphanShelfHeight);
 
   return (
     <div className={`flex border-b border-border ${className}`} style={{ minHeight: laneHeight }}>
@@ -174,6 +178,7 @@ export const GanttGroupRow = ({
                       pr={chip.pr}
                       stacked={chip.stacked}
                       showAuthor={false}
+                      compact={compactChips}
                       onSelect={onSelectPr}
                     />
                   ))}
@@ -186,6 +191,7 @@ export const GanttGroupRow = ({
                       pr={chip.pr}
                       stacked={chip.stacked}
                       showAuthor={isExternalAuthor(chip.pr, grouped.assigneeLogin)}
+                      compact={compactChips}
                       onSelect={onSelectPr}
                     />
                   ))}
@@ -227,6 +233,7 @@ export const GanttGroupRow = ({
                   pr={pr}
                   stacked={false}
                   showAuthor={isUnassigned}
+                  compact={false}
                   onSelect={onSelectPr}
                 />
               ))}

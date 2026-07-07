@@ -6,7 +6,6 @@ import { observer } from 'mobx-react-lite';
 import type { PullRequest } from '@/lib/normalize/pullRequests';
 import type { ReviewDotState } from '@/components/molecules/PrChip/PrChipUtil';
 import { StoreContext } from '@/stores/StoreProvider';
-import { dateFromDayIndex } from '@/lib/gantt/scale';
 import { Avatar } from '@/components/atoms/Avatar/Avatar';
 import { CloseIcon, XmarkIcon, ClockIcon, CheckIcon, MinusIcon } from '@/components/icons';
 import {
@@ -46,7 +45,7 @@ export const ReviewAttentionPanel = observer(
     if (!store) return null;
 
     const { ui, data } = store;
-    const now = dateFromDayIndex(ui.todayIdx);
+    const now = new Date();
     const filterPersonId = ui.reviewPanel.personId;
     const groups = buildReviewGroups(data.pendingReviewsByPersonId, filterPersonId, now);
     const filterName = filterPersonId

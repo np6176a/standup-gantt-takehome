@@ -72,7 +72,7 @@ export const IssueBar = ({
   const overdueDays = daysOverdue(issue.dueDate, todayIdx);
   const ariaLabel = `${barAriaLabel(issue)}${attentionAriaSuffix(attention, overdueDays)}`;
   const ringClass = attentionRingClass(attention);
-  const hasChildren = Boolean(children);
+  const hasChildren = React.Children.count(children) > 0;
 
   if (isMarker) {
     return (

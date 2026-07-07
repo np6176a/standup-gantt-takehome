@@ -7,6 +7,7 @@ import {
   REVIEW_DOT,
   prChipLabel,
   prChipTooltip,
+  reviewDetailLabel,
   reviewDotState,
 } from '@/components/molecules/PrChip/PrChipUtil';
 
@@ -17,13 +18,6 @@ const REVIEW_ICON: Record<ReviewDotState, React.ReactNode> = {
   none: <MinusIcon size={10} />,
 };
 
-const REVIEW_LABEL: Record<ReviewDotState, string> = {
-  changes: 'changes requested',
-  pending: 'review pending',
-  approved: 'approved',
-  none: '',
-};
-
 export interface PrChipProps {
   /** The PR this chip represents. */
   pr: PullRequest;
@@ -31,6 +25,8 @@ export interface PrChipProps {
   stacked: boolean;
   /** Whether to show the author name (true when the author differs from the issue assignee). */
   showAuthor: boolean;
+  /** Compact mode (quarter zoom): show only PR icon + number + review icon, no labels. */
+  compact: boolean;
   /** Opens the PR (deep-links out to GitHub). */
   onSelect?: (pr: PullRequest) => void;
   /** Optional className for styling overrides. */
@@ -41,13 +37,14 @@ export const PrChip = ({
   pr,
   stacked,
   showAuthor,
+  compact,
   onSelect,
   className = '',
 }: PrChipProps) => {
   const state = reviewDotState(pr);
   const dot = REVIEW_DOT[state];
   const tooltip = prChipTooltip(pr);
-  const reviewLabel = REVIEW_LABEL[state];
+  const detail = reviewDetailLabel(pr, new Date());
 
   return (
     <button
@@ -62,17 +59,17 @@ export const PrChip = ({
     >
       <PrIcon size={10} className="shrink-0 opacity-60" />
       <span className="truncate">{prChipLabel(pr)}</span>
-      {showAuthor && pr.authorLogin && (
+      {!compact && showAuthor && pr.authorLogin && (
         <span className="truncate text-[0.5625rem] text-content-muted">
-          {pr.authorLogin}
+          by {pr.authorLogin}
         </span>
       )}
       <span aria-hidden className={`flex shrink-0 items-center ${dot.className}`}>
         {REVIEW_ICON[state]}
       </span>
-      {reviewLabel.length > 0 && (
+      {!compact && detail.length > 0 && (
         <span className={`truncate text-[0.5625rem] font-[var(--font-weight-semibold)] ${dot.className}`}>
-          {reviewLabel}
+          {detail}
         </span>
       )}
     </button>
