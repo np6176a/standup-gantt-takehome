@@ -1,7 +1,10 @@
 import React from 'react';
 
 import { BlockedIcon, OverdueIcon } from '@/components/icons';
-import { attentionChipModel } from '@/components/molecules/AttentionChip/AttentionChipUtil';
+import {
+  attentionChipModel,
+  attentionChipTitle,
+} from '@/components/molecules/AttentionChip/AttentionChipUtil';
 
 export interface AttentionChipProps
   extends Omit<React.HTMLAttributes<HTMLButtonElement>, 'onClick'> {
@@ -37,7 +40,7 @@ export const AttentionChip = ({
     <button
       type="button"
       onClick={onToggle}
-      title="Filter by"
+      title={attentionChipTitle(model.hasAttention, active)}
       aria-pressed={active}
       aria-label={`${model.label}${active ? ' (filtering board)' : ''}`}
       className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[0.8125rem] font-[var(--font-weight-semibold)] transition-colors ${
