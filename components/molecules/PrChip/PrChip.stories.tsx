@@ -50,6 +50,7 @@ const meta = {
     pr: makePr(512),
     stacked: false,
     showAuthor: false,
+    compact: false,
     onSelect: fn(),
   },
 } satisfies Meta<typeof PrChip>;

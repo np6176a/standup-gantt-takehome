@@ -80,6 +80,7 @@ export const GanttGroupRow = ({
   const chipMode = prChipMode(zoom);
   const showShading = HEADER_LAYERS[zoom].showWeekendShading;
   const showChips = chipMode !== 'hidden';
+  const compactChips = chipMode === 'dot';
 
   let cursor = LANE_PADDING_PX;
   const rowLayouts: RowLayout[] = lane.rows.map((row, rowIndex) => {
@@ -174,6 +175,7 @@ export const GanttGroupRow = ({
                       pr={chip.pr}
                       stacked={chip.stacked}
                       showAuthor={false}
+                      compact={compactChips}
                       onSelect={onSelectPr}
                     />
                   ))}
@@ -186,6 +188,7 @@ export const GanttGroupRow = ({
                       pr={chip.pr}
                       stacked={chip.stacked}
                       showAuthor={isExternalAuthor(chip.pr, grouped.assigneeLogin)}
+                      compact={compactChips}
                       onSelect={onSelectPr}
                     />
                   ))}
@@ -227,6 +230,7 @@ export const GanttGroupRow = ({
                   pr={pr}
                   stacked={false}
                   showAuthor={isUnassigned}
+                  compact={false}
                   onSelect={onSelectPr}
                 />
               ))}

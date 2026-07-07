@@ -31,6 +31,8 @@ export interface PrChipProps {
   stacked: boolean;
   /** Whether to show the author name (true when the author differs from the issue assignee). */
   showAuthor: boolean;
+  /** Compact mode (quarter zoom): show only PR icon + number + review icon, no labels. */
+  compact: boolean;
   /** Opens the PR (wired in a later milestone). */
   onSelect?: (pr: PullRequest) => void;
   /** Optional className for styling overrides. */
@@ -41,6 +43,7 @@ export const PrChip = ({
   pr,
   stacked,
   showAuthor,
+  compact,
   onSelect,
   className = '',
 }: PrChipProps) => {
@@ -62,7 +65,7 @@ export const PrChip = ({
     >
       <PrIcon size={10} className="shrink-0 opacity-60" />
       <span className="truncate">{prChipLabel(pr)}</span>
-      {showAuthor && pr.authorLogin && (
+      {!compact && showAuthor && pr.authorLogin && (
         <span className="truncate text-[0.5625rem] text-content-muted">
           {pr.authorLogin}
         </span>
@@ -70,7 +73,7 @@ export const PrChip = ({
       <span aria-hidden className={`flex shrink-0 items-center ${dot.className}`}>
         {REVIEW_ICON[state]}
       </span>
-      {reviewLabel.length > 0 && (
+      {!compact && reviewLabel.length > 0 && (
         <span className={`truncate text-[0.5625rem] font-[var(--font-weight-semibold)] ${dot.className}`}>
           {reviewLabel}
         </span>
