@@ -64,6 +64,7 @@ const meta = {
     zoom: 'month',
     attention: { overdue: false, blockedDerived: false, blockedReason: null },
     todayIdx: TODAY_IDX,
+    showAssignee: false,
   },
 } satisfies Meta<typeof IssueBar>;
 
@@ -71,6 +72,23 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Active: Story = {};
+
+/** Project view: the assignee's avatar leads the bar so "who owns this" stays visible. */
+export const WithAssignee: Story = {
+  args: {
+    issue: {
+      ...makeIssue('active', 'In Progress', 'ORB-130', 'Cartographer map pack publish'),
+      assignee: {
+        id: 'usr_priya',
+        name: 'Priya Nadkarni',
+        displayName: 'priya',
+        email: 'priya@orbital.dev',
+        githubLogin: 'priya-nk',
+      },
+    },
+    showAssignee: true,
+  },
+};
 
 export const InReview: Story = {
   args: { issue: makeIssue('review', 'In Review', 'ORB-105', 'Auth token rotation') },

@@ -35,6 +35,8 @@ export interface GanttGroupRowProps {
   trackWidthPx: number;
   /** Today's day index — feeds overdue badges and open-PR chip end edges. */
   todayIdx: number;
+  /** Show each bar's assignee avatar (on in project grouping, where lanes aren't people). */
+  showAssignee: boolean;
   /** Opens an issue's detail popover. */
   onSelectIssue?: (issueId: string) => void;
   /** Opens a PR (deep-links out to GitHub). */
@@ -70,6 +72,7 @@ export const GanttGroupRow = ({
   windowDays,
   trackWidthPx,
   todayIdx,
+  showAssignee = false,
   onSelectIssue,
   onSelectPr,
   onReviewsClick,
@@ -170,6 +173,7 @@ export const GanttGroupRow = ({
                   zoom={zoom}
                   attention={placed.member.attention}
                   todayIdx={todayIdx}
+                  showAssignee={showAssignee}
                   onSelect={onSelectIssue}
                 >
                   {grouped.ownerChips.map((chip) => (

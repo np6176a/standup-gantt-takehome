@@ -3,6 +3,7 @@ import React from 'react';
 import type { Issue } from '@/lib/domain/types';
 import type { DerivedAttention } from '@/lib/normalize/attention';
 import type { Zoom } from '@/lib/gantt/scale';
+import { Avatar } from '@/components/atoms/Avatar/Avatar';
 import { BlockedIcon, OverdueIcon, PageIcon } from '@/components/icons';
 import {
   BUCKET_TREATMENT,
@@ -45,6 +46,12 @@ export interface IssueBarProps {
   attention: DerivedAttention;
   /** Today's day index, for the overdue-days badge. */
   todayIdx: number;
+  /**
+   * Show the assignee's avatar leading the bar. On in project grouping (where the lane is a
+   * project, not a person) this is how "who owns this" stays visible; off in person mode,
+   * where the lane header already identifies the person.
+   */
+  showAssignee: boolean;
   /** Opens the issue detail popover. */
   onSelect?: (issueId: string) => void;
   /** PR chip elements rendered as a second row inside the bar. */
@@ -64,6 +71,7 @@ export const IssueBar = ({
   zoom,
   attention = NO_ATTENTION,
   todayIdx,
+  showAssignee = false,
   onSelect,
   children,
   className = '',
@@ -107,6 +115,10 @@ export const IssueBar = ({
         className={`flex items-center gap-1.5 px-1.5 ${onSelect ? 'cursor-pointer' : ''} ${hasChildren ? 'border-b border-white/20 py-0.5' : 'py-0'}`}
         style={{ minHeight: hasChildren ? undefined : '100%' }}
       >
+        {showAssignee && issue.assignee && (
+          <Avatar name={issue.assignee.name} size="xs" className="ring-1 ring-white/40" />
+        )}
+
         {showLabel && (
           <span className="truncate font-[var(--font-weight-semibold)]">{barLabelText(issue)}</span>
         )}
