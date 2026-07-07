@@ -42,8 +42,6 @@ export type Grouping = 'person' | 'project';
 export interface UiStoreInit {
   theme?: ThemeMode;
   accent?: AccentName;
-  /** Persisted state-filter map (raw state name → visible), restored from localStorage. */
-  visibleStates?: Record<string, boolean>;
   /**
    * Today's day index, captured once by the composition root so computeds never
    * call `new Date()`. Falls back to the current UTC day when omitted (stories/tests).
@@ -115,11 +113,6 @@ export class UiStore {
     this.todayIdx = init.todayIdx ?? localTodayIndex();
     if (init.theme) this.theme = init.theme;
     if (init.accent) this.accent = init.accent;
-    // Layer any persisted selections over the defaults, so a state the stored map doesn't
-    // mention (e.g. one added since it was saved) keeps its default visibility.
-    if (init.visibleStates) {
-      this.visibleStates = { ...defaultVisibleStates(), ...init.visibleStates };
-    }
     this.windowStartIdx = defaultWindowStart(this.todayIdx, this.zoom);
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -192,6 +185,16 @@ export class UiStore {
   /** Restore the default state filter (Backlog/Triage/Canceled hidden). */
   resetStateFilter() {
     this.visibleStates = defaultVisibleStates();
+  }
+
+  /**
+   * Apply a persisted state-filter map over the defaults. Called once after mount from
+   * localStorage — NOT seeded at store construction, so the server render and the client's
+   * first (hydration) render both start from the defaults and can't disagree; the persisted
+   * selection is layered on only after hydration.
+   */
+  restoreVisibleStates(states: Record<string, boolean>) {
+    this.visibleStates = { ...defaultVisibleStates(), ...states };
   }
 
   /** Toggle the attention-only board filter (the toolbar attention chip). */

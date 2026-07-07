@@ -19,8 +19,6 @@ export const STATE_FILTER_STORAGE_KEY = 'standup-gantt.stateFilter';
 export interface RootStoreInit {
   theme?: ThemeMode;
   accent?: AccentName;
-  /** Persisted toolbar state-filter selections restored from localStorage. */
-  visibleStates?: Record<string, boolean>;
   /** Today's day index, captured once by {@link createRootStore}. */
   todayIdx?: number;
   /** Persisted planning state restored from localStorage (planned starts + blocked flags). */
@@ -235,8 +233,9 @@ function asVisibleStates(value: unknown): Record<string, boolean> | undefined {
 
 /**
  * Read the persisted toolbar state-filter selections, or undefined when absent/unavailable/
- * malformed (so the store falls back to its defaults). Safe during SSR and when storage is
- * denied. `UiStore` layers this over the defaults, so a partial/older map still boots cleanly.
+ * malformed (so the store keeps its defaults). Safe during SSR and when storage is denied.
+ * Applied after mount via {@link UiStore.restoreVisibleStates} — never seeded at store
+ * construction — to keep the server and hydration renders identical (no hydration mismatch).
  */
 export function readInitialStateFilter(): Record<string, boolean> | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -266,7 +265,6 @@ export function persistStateFilter(visibleStates: Record<string, boolean>): void
 export function createRootStore(): RootStore {
   return new RootStore({
     ...readInitialPreferences(),
-    visibleStates: readInitialStateFilter(),
     planning: readInitialPlanning(),
     todayIdx: localTodayIndex(),
   });

@@ -10,6 +10,7 @@ import {
   persistPreferences,
   persistPlanning,
   persistStateFilter,
+  readInitialStateFilter,
 } from '@/stores/rootStore';
 
 // On the server, `observer` components must not create subscriptions — otherwise
@@ -41,6 +42,12 @@ export const StoreProvider = ({ children }: StoreProviderProps) => {
   const [store] = useState(() => createRootStore());
 
   useEffect(() => {
+    // Restore the persisted state filter AFTER mount (never seeded at construction): the
+    // server render and the client's first hydration render both start from the defaults,
+    // so the "N hidden" badge can't disagree; the saved selection is layered on only now.
+    const savedFilter = readInitialStateFilter();
+    if (savedFilter) store.ui.restoreVisibleStates(savedFilter);
+
     const applyTheme = reaction(
       () => ({ theme: store.ui.theme, accent: store.ui.accent }),
       ({ theme, accent }) => {
@@ -63,8 +70,8 @@ export const StoreProvider = ({ children }: StoreProviderProps) => {
 
     // The toolbar state filter is a UI preference, so it persists like theme/accent. Its
     // actions replace the map wholesale, so the reaction re-fires on any toggle. No
-    // `fireImmediately`: the initial value was just restored, so re-persisting on mount
-    // would be a redundant write.
+    // `fireImmediately`, and it's created after the restore above, so the just-restored
+    // value is its baseline — persisting on mount would be a redundant write.
     const persistFilter = reaction(
       () => store.ui.visibleStates,
       (visibleStates) => persistStateFilter(visibleStates),
