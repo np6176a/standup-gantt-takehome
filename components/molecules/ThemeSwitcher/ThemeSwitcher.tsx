@@ -72,9 +72,8 @@ export const ThemeSwitcher = observer(
               size="icon"
               onClick={() => ui.toggleTheme()}
               aria-label={themeToggleAriaLabel(ui.theme)}
-              className="h-4 w-4"
             >
-              <ThemeIcon size={11} aria-hidden />
+              <ThemeIcon size={14} aria-hidden />
             </Button>
 
             <div ref={accentRef} className="relative">
@@ -85,9 +84,9 @@ export const ThemeSwitcher = observer(
                 aria-label={`Primary color: ${activeAccent.label}`}
                 aria-haspopup="menu"
                 aria-expanded={accentOpen}
-                className="h-5 gap-0.5 px-1 py-0"
+                className="h-8 gap-0.5 px-1 py-0"
               >
-                <PaletteIcon size={11} aria-hidden className="text-content-secondary" />
+                <PaletteIcon size={14} aria-hidden className="text-content-secondary" />
                 <span
                   aria-hidden
                   className="h-2.5 w-2.5 rounded-full ring-1 ring-border"
