@@ -25,7 +25,7 @@ export interface ThemeSwitcherProps extends React.HTMLAttributes<HTMLDivElement>
  * StoreProvider.
  */
 export const ThemeSwitcher = observer(
-  ({ className = '', ...props }: ThemeSwitcherProps) => {
+  function ThemeSwitcher({ className = '', ...props }: ThemeSwitcherProps) {
     const store = useContext(StoreContext);
 
     // Theme/accent come from localStorage, so they differ between the server

@@ -22,7 +22,7 @@ export interface GanttBoardProps {
  * today line overlaid across the lanes. Reads the window/zoom/grouping and packed rows
  * straight off the store; the `observer` re-renders it when any of those change.
  */
-export const GanttBoard = observer(({ className = '' }: GanttBoardProps) => {
+export const GanttBoard = observer(function GanttBoard({ className = '' }: GanttBoardProps) {
   const store = useContext(StoreContext);
   if (!store) return null;
 

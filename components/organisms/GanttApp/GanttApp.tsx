@@ -25,7 +25,7 @@ const StatusPanel = ({ children }: { children: React.ReactNode }) => (
  * loading, error (with retry), or an empty roster — before rendering the toolbar and the
  * Gantt board. Everything below reads the same store via context.
  */
-export const GanttApp = observer(({ className = '' }: GanttAppProps) => {
+export const GanttApp = observer(function GanttApp({ className = '' }: GanttAppProps) {
   const store = useContext(StoreContext);
 
   useEffect(() => {

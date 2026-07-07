@@ -18,7 +18,7 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
  * (zoom + ◀ Today ▶), plus the theme switcher. Wires the controlled molecules to the UI
  * store; state filters, the attention chip, search, and "+ New issue" arrive later.
  */
-export const Toolbar = observer(({ className = '', ...props }: ToolbarProps) => {
+export const Toolbar = observer(function Toolbar({ className = '', ...props }: ToolbarProps) {
   const store = useContext(StoreContext);
   if (!store) return null;
 
