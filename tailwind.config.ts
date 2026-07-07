@@ -43,11 +43,17 @@ const config: Config = {
         },
         status: {
           active: 'var(--color-status-active)',
+          'active-muted': 'var(--color-status-active-muted)',
           review: 'var(--color-status-review)',
+          'review-muted': 'var(--color-status-review-muted)',
           shipping: 'var(--color-status-shipping)',
+          'shipping-muted': 'var(--color-status-shipping-muted)',
           planned: 'var(--color-status-planned)',
+          'planned-muted': 'var(--color-status-planned-muted)',
           done: 'var(--color-status-done)',
+          'done-muted': 'var(--color-status-done-muted)',
           dropped: 'var(--color-status-dropped)',
+          'dropped-muted': 'var(--color-status-dropped-muted)',
         },
         attention: {
           blocked: 'var(--color-attention-blocked)',

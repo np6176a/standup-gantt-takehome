@@ -125,6 +125,44 @@ How the app fetches data, and the store that holds it and hands out ready-to-use
   worth revisiting if the data grows. PRs need a smarter cache, because a PR's issue link
   depends on the other PRs and the current set of issue ids, not just that one PR.
 
+### Gantt skeleton (build step 3)
+
+The first real UI: the timeline canvas with grouped swimlanes, bars, a date header, a
+today line, and the grouping + zoom controls. Attention treatments, PR chips, the state
+filter, the detail popover, and mutations are deliberately still to come (steps 4–6).
+
+- **Rows are pure, the store just delegates.** `lib/gantt/rows.ts` (`buildLanes`) turns
+  normalized issues into swimlanes: group by person or project, sort each lane by status
+  bucket, then pack into non-overlapping rows with the existing `packLanes`. No-date issues
+  can't sit on the timeline, so they render in a compact per-lane "Unscheduled" shelf below
+  the bars (visible and selectable — scheduling happens in the detail popover) rather than
+  vanishing while still counted in the lane header. The store exposes this as one computed
+  (`ganttRows`) that just calls the function — all the logic stays unit-tested.
+- **Person mode shows the whole team; project mode only shows active projects.** For
+  standup, every teammate gets a lane even with zero issues (so nobody is invisible), with
+  an "Unassigned" lane appended only when needed. Projects are derived from the issues, so
+  empty ones don't clutter; "No project" sorts last.
+- **One scale, drawn at five densities.** The zoom (Week/2 Weeks/Month/Quarter/Year) picks
+  the window span and a pixels-per-day (`lib/gantt/density.ts`), which sets the timeline track
+  width so tight windows scroll horizontally instead of crushing. Bars are positioned as
+  percentages of that track, so the same components render at every zoom. Labels degrade
+  before bars do — a rule encoded as a pure `shouldShowBarLabel` threshold; the header
+  swaps day cells → week ticks → month bands as it coarsens.
+- **Raw state stays on the bar.** Buckets drive the color, but each bar still shows its
+  granular Linear state (e.g. "On Staging") as a tag — the hybrid the plan calls for. A
+  due-only issue collapses to a diamond marker; bars that run past the window edge square
+  off that corner so they read as continuing.
+- **Controlled molecules, store-connected organisms.** The toggle, zoom controls, bars,
+  and header take plain props (so Storybook can drive them and they stay testable); only
+  the organisms (`Toolbar`, `GanttBoard`, `GanttApp`) read the store via context and wire
+  callbacks to actions. Today's day index is captured once at store creation, so no
+  computed ever calls `new Date()`.
+- **Verification.** Typecheck, lint, and `next build` are clean; 195 unit tests pass
+  (grouping/packing, density thresholds, header geometry, bar placement + clipping).
+  Storybook covers the visual matrix (every bucket, marker, clipped bar, each zoom's
+  header). Stories for the store-connected organisms are the sanctioned cut line and are
+  deferred. Full DOM render tests remain out of scope (no jsdom), per the step-0 decision.
+
 ## Tradeoffs / what you'd do next
 
 - Known rough edges or incomplete areas.

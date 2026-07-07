@@ -160,13 +160,23 @@
     --color-neutral-medium: #cbd5e1; /* slate-300 */
     --color-neutral-dark: #64748b; /* slate-500 */
 
-    /* Status buckets */
+    /* Status buckets — SATURATED tokens, used only for small accents now: the bar's
+       thin left edge, due-only diamond markers, and the unscheduled-chip dots. */
     --color-status-active: #2563eb; /* blue-600 */
     --color-status-review: #7c3aed; /* violet-600 */
     --color-status-shipping: #0d9488; /* teal-600 */
     --color-status-planned: #94a3b8; /* slate-400 */
     --color-status-done: #16a34a; /* green-600 */
     --color-status-dropped: #94a3b8; /* slate-400 */
+
+    /* Muted bar fills — low-saturation hue tints (Tailwind 100s) so a board full of
+       bars reads calm (Linear-style), status still legible by hue + the raw-state tag. */
+    --color-status-active-muted: #dbeafe; /* blue-100 */
+    --color-status-review-muted: #ede9fe; /* violet-100 */
+    --color-status-shipping-muted: #ccfbf1; /* teal-100 */
+    --color-status-planned-muted: #f1f5f9; /* slate-100 */
+    --color-status-done-muted: #dcfce7; /* green-100 */
+    --color-status-dropped-muted: #f1f5f9; /* slate-100 */
 
     /* Attention overlays — both red, distinguished by shade + bar treatment. */
     --color-attention-blocked: #dc2626; /* red-600 */
@@ -203,6 +213,15 @@
     --color-status-planned: #64748b; /* slate-500 */
     --color-status-done: #4ade80; /* green-400 */
     --color-status-dropped: #64748b; /* slate-500 */
+
+    /* Muted bar fills — dark, low-saturation hue tints over the slate-950 canvas so
+       bars read as calm tinted surfaces; slate-50 text stays high-contrast on them. */
+    --color-status-active-muted: #1d2b4d;
+    --color-status-review-muted: #2b2450;
+    --color-status-shipping-muted: #123a35;
+    --color-status-planned-muted: #1e293b; /* slate-800 */
+    --color-status-done-muted: #16321f;
+    --color-status-dropped-muted: #1e293b; /* slate-800 */
 
     --color-attention-blocked: #f87171; /* red-400 */
     --color-attention-overdue: #fb7185; /* rose-400 */

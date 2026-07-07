@@ -9,8 +9,8 @@
 /** Milliseconds in one day. */
 export const DAY_MS = 86_400_000;
 
-/** The four zoom levels. Each derives its own window span and tick density. */
-export type Zoom = 'week' | 'month' | 'quarter' | 'year';
+/** The zoom levels, in coarsening order. Each derives its own window span and tick density. */
+export type Zoom = 'week' | 'fortnight' | 'month' | 'quarter' | 'year';
 
 /** UTC midnight (in ms) of the calendar day containing `date`. */
 export function utcDayStartMs(date: Date): number {
@@ -20,6 +20,15 @@ export function utcDayStartMs(date: Date): number {
 /** Absolute day index: whole UTC days since 1970-01-01. */
 export function dayIndex(date: Date): number {
   return Math.round(utcDayStartMs(date) / DAY_MS);
+}
+
+/**
+ * Today's day index using LOCAL date components so the marker matches the user's
+ * wall-clock calendar, not UTC (which can be a day ahead in western timezones).
+ */
+export function localTodayIndex(): number {
+  const now = new Date();
+  return Math.round(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY_MS);
 }
 
 /**
@@ -45,6 +54,7 @@ export function isWeekendIndex(idx: number): boolean {
 /** Days spanned by the visible window at each zoom (drives percentage positioning). */
 export const WINDOW_DAYS: Record<Zoom, number> = {
   week: 7,
+  fortnight: 14,
   month: 35,
   quarter: 91,
   year: 364,
@@ -55,9 +65,14 @@ export function windowDaysForZoom(zoom: Zoom): number {
   return WINDOW_DAYS[zoom];
 }
 
-/** How far before today the window starts, so today sits near the left third. */
+/**
+ * How far before today the window starts. Week begins ON today so it runs current-day
+ * to the next instance of that weekday (e.g. Monday→Monday); the coarser zooms lead by a
+ * few days so today sits near the left third with a little past context.
+ */
 export const WINDOW_LEAD_DAYS: Record<Zoom, number> = {
-  week: 3,
+  week: 0,
+  fortnight: 4,
   month: 7,
   quarter: 14,
   year: 45,
@@ -71,6 +86,7 @@ export function defaultWindowStart(todayIdx: number, zoom: Zoom): number {
 /** How many days ◀/▶ shifts the window — one "zoom unit". */
 export const WINDOW_SHIFT_DAYS: Record<Zoom, number> = {
   week: 7,
+  fortnight: 14,
   month: 28,
   quarter: 91,
   year: 364,
