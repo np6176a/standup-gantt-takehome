@@ -91,6 +91,29 @@ export interface BuildLanesInput {
   reviewsWaitingByPersonId?: ReadonlyMap<string, number>;
   /** Orphan PRs (no resolved issue) — shown at the bottom of the author's lane. */
   orphanPrs?: readonly PullRequest[];
+  /**
+   * Toolbar state filter: raw state name → visible. A state absent from the map (or `true`)
+   * is shown; only an explicit `false` hides an issue. Empty map (the default) shows all.
+   */
+  visibleStates?: Record<string, boolean>;
+  /** Attention chip: when true, keep only overdue / blocked issues (the standup focus). */
+  attentionOnly?: boolean;
+}
+
+/**
+ * The toolbar filters applied before grouping: hide issues whose raw state is toggled off,
+ * and (when the attention chip is active) keep only overdue / blocked issues. Attention is
+ * read off the already-merged {@link PositionedIssue}, so a manually-flagged blocked issue
+ * survives the chip filter just like a derived-blocked one.
+ */
+function passesFilters(
+  member: PositionedIssue,
+  visibleStates: Record<string, boolean>,
+  attentionOnly: boolean,
+): boolean {
+  if (visibleStates[member.issue.stateName] === false) return false;
+  if (attentionOnly && !member.attention.overdue && !member.attention.blockedDerived) return false;
+  return true;
 }
 
 /** The grouping identity of an issue: which lane it belongs to and how that lane reads. */
@@ -190,7 +213,9 @@ function assembleLane(
 
 /**
  * Group issues into swimlanes, sort each lane attention-first then by status bucket, and
- * pack it into non-overlapping rows.
+ * pack it into non-overlapping rows. Issues are first put through the toolbar filters
+ * ({@link BuildLanesInput.visibleStates} and {@link BuildLanesInput.attentionOnly}) so the
+ * lane summaries and packed rows reflect exactly what the board is showing.
  *
  * Lane order is deliberate: in person mode every roster teammate gets a lane (in roster
  * order) so the whole team is always visible for standup — even someone with no issues —
@@ -209,10 +234,14 @@ export function buildLanes({
   now = dateFromDayIndex(todayIdx),
   reviewsWaitingByPersonId = new Map(),
   orphanPrs = [],
+  visibleStates = {},
+  attentionOnly = false,
 }: BuildLanesInput): Lane[] {
-  const positioned = issues.map((issue) =>
-    positionIssue(issue, todayIdx, plannedStarts, blockedFlags, prsByIssueId, now),
-  );
+  const positioned = issues
+    .map((issue) =>
+      positionIssue(issue, todayIdx, plannedStarts, blockedFlags, prsByIssueId, now),
+    )
+    .filter((member) => passesFilters(member, visibleStates, attentionOnly));
 
   const identityByKey = new Map<string, LaneIdentity>();
   const membersByKey = new Map<string, PositionedIssue[]>();

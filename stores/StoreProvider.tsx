@@ -4,7 +4,7 @@ import React, { createContext, useEffect, useState } from 'react';
 import { reaction } from 'mobx';
 import { enableStaticRendering } from 'mobx-react-lite';
 
-import { RootStore, createRootStore, persistPreferences } from '@/stores/rootStore';
+import { RootStore, createRootStore, persistPreferences, persistPlanning } from '@/stores/rootStore';
 
 // On the server, `observer` components must not create subscriptions — otherwise
 // per-request reactions/stores can be retained. This runs at module load (before
@@ -28,7 +28,8 @@ export interface StoreProviderProps {
  * Instantiates the root store once (client-only) and provides it to the tree.
  * Also mirrors the observable theme/accent onto <html> (the `.dark` class and
  * `data-accent` attribute) and persists them to localStorage, so the CSS design
- * tokens follow the store.
+ * tokens follow the store, and persists the app-owned planning state (planned starts
+ * + manual blocked flags) so it survives a reload.
  */
 export const StoreProvider = ({ children }: StoreProviderProps) => {
   const [store] = useState(() => createRootStore());
@@ -45,7 +46,19 @@ export const StoreProvider = ({ children }: StoreProviderProps) => {
       { fireImmediately: true },
     );
 
-    return applyTheme;
+    // Planning state is app-owned (Linear/GitHub don't hold it), so localStorage is its
+    // only home. `snapshot` is a plain deep copy, so the reaction re-fires on any change to
+    // the planned-start or blocked-flag maps. No `fireImmediately`: the initial value was
+    // just restored from storage, so persisting it again on mount would be a no-op write.
+    const persistPlan = reaction(
+      () => store.planning.snapshot,
+      (snapshot) => persistPlanning(snapshot),
+    );
+
+    return () => {
+      applyTheme();
+      persistPlan();
+    };
   }, [store]);
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;

@@ -7,6 +7,17 @@ import {
   shiftWindow,
   windowDaysForZoom,
 } from '@/lib/gantt/scale';
+import { ALL_STATES, DEFAULT_HIDDEN_STATES } from '@/lib/domain/states';
+
+/**
+ * The board's default state-filter map: every raw state visible except the standup-noise
+ * states (Backlog, Triage, Canceled), which start hidden. Rebuilt on each call so the store
+ * never shares a mutable object across instances.
+ */
+export function defaultVisibleStates(): Record<string, boolean> {
+  const hidden = new Set(DEFAULT_HIDDEN_STATES);
+  return Object.fromEntries(ALL_STATES.map((state) => [state, !hidden.has(state)]));
+}
 
 /** Light/dark theme selector. Applied as the `.dark` class on <html>. */
 export type ThemeMode = 'light' | 'dark';
@@ -40,10 +51,10 @@ export interface UiStoreInit {
 
 /**
  * Observable UI-only state: theme/accent (drive the CSS design tokens) plus the
- * board's grouping, zoom, visible time window, and selection (which issue's detail
- * popover is open, whether the create modal is open). Holds only small scalars; every
- * heavier derivation (the grouped/packed rows) lives in a computed that delegates to
- * a pure `lib/gantt` function. A later milestone adds the state filters.
+ * board's grouping, zoom, visible time window, state/attention filters, and selection
+ * (which issue's detail popover is open, whether the create modal is open). Holds only
+ * small scalars; every heavier derivation (the grouped/packed rows) lives in a computed
+ * that delegates to a pure `lib/gantt` function.
  */
 export class UiStore {
   theme: ThemeMode = 'light';
@@ -54,6 +65,19 @@ export class UiStore {
 
   /** Whether the legend strip under the toolbar is visible. */
   legendOpen: boolean = true;
+
+  /**
+   * Toolbar state filter: raw state name → whether its issues are shown. Defaults hide the
+   * standup-noise states (Backlog, Triage, Canceled). Feeds the row computed's state filter
+   * and the "States" popover checkboxes.
+   */
+  visibleStates: Record<string, boolean> = defaultVisibleStates();
+
+  /**
+   * Attention chip: when true, the board is filtered to only overdue / blocked issues. The
+   * standup "show me just the fires" toggle.
+   */
+  attentionOnly: boolean = false;
 
   /**
    * The "Needs review" side panel: whether it's open and, when set, the reviewer person
@@ -111,6 +135,56 @@ export class UiStore {
   /** Switch the swimlane grouping (re-keys lanes; the row computed re-derives). */
   setGrouping(grouping: Grouping) {
     this.grouping = grouping;
+  }
+
+  /** Whether a raw state's issues are currently shown (unknown states default to visible). */
+  isStateVisible(stateName: string): boolean {
+    return this.visibleStates[stateName] !== false;
+  }
+
+  /** Number of states currently toggled off — the "States" button's badge count. */
+  get hiddenStateCount(): number {
+    return Object.values(this.visibleStates).filter((visible) => visible === false).length;
+  }
+
+  /** Show or hide one raw state's issues (a "States" popover checkbox). */
+  setStateVisible(stateName: string, visible: boolean) {
+    this.visibleStates = { ...this.visibleStates, [stateName]: visible };
+  }
+
+  /** Flip one raw state's visibility. */
+  toggleStateVisible(stateName: string) {
+    this.setStateVisible(stateName, !this.isStateVisible(stateName));
+  }
+
+  /** Show or hide a set of raw states at once (a bucket header checkbox / "Show all"). */
+  setStatesVisible(stateNames: readonly string[], visible: boolean) {
+    this.visibleStates = {
+      ...this.visibleStates,
+      ...Object.fromEntries(stateNames.map((name) => [name, visible])),
+    };
+  }
+
+  /** Turn every state on (the "Show all" affordance in the popover). */
+  showAllStates() {
+    this.visibleStates = Object.fromEntries(
+      Object.keys(this.visibleStates).map((state) => [state, true]),
+    );
+  }
+
+  /** Restore the default state filter (Backlog/Triage/Canceled hidden). */
+  resetStateFilter() {
+    this.visibleStates = defaultVisibleStates();
+  }
+
+  /** Toggle the attention-only board filter (the toolbar attention chip). */
+  toggleAttentionOnly() {
+    this.attentionOnly = !this.attentionOnly;
+  }
+
+  /** Set the attention-only board filter explicitly. */
+  setAttentionOnly(value: boolean) {
+    this.attentionOnly = value;
   }
 
   /**

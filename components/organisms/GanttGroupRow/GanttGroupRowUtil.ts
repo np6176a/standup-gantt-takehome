@@ -30,23 +30,23 @@ export function placeRow(
   windowDays: number,
   trackWidthPx: number,
 ): PlacedBar[] {
-  const placed: PlacedBar[] = [];
-  for (const member of members) {
+  return members.flatMap((member): PlacedBar[] => {
     const interval = renderInterval(member.span);
-    if (!interval) continue;
+    if (!interval) return [];
     const metrics = barMetrics(interval.start, interval.end, windowStartIdx, windowDays);
-    if (!metrics.visible) continue;
-    placed.push({
-      member,
-      leftPct: metrics.leftPct,
-      widthPct: metrics.widthPct,
-      barWidthPx: pctToPx(metrics.widthPct, trackWidthPx),
-      isMarker: interval.start === interval.end,
-      clippedLeft: metrics.clippedLeft,
-      clippedRight: metrics.clippedRight,
-    });
-  }
-  return placed;
+    if (!metrics.visible) return [];
+    return [
+      {
+        member,
+        leftPct: metrics.leftPct,
+        widthPct: metrics.widthPct,
+        barWidthPx: pctToPx(metrics.widthPct, trackWidthPx),
+        isMarker: interval.start === interval.end,
+        clippedLeft: metrics.clippedLeft,
+        clippedRight: metrics.clippedRight,
+      },
+    ];
+  });
 }
 
 /** A PR chip's resolved placement within the window, ready to hand to PrChip. */
@@ -71,20 +71,20 @@ export function placeChips(
   windowDays: number,
   todayIdx: number,
 ): PlacedChip[] {
-  const placed: PlacedChip[] = [];
-  for (const pr of member.prs) {
+  return member.prs.flatMap((pr): PlacedChip[] => {
     const interval = prChipInterval(pr, todayIdx);
-    if (!interval) continue;
+    if (!interval) return [];
     const metrics = barMetrics(interval.start, interval.end, windowStartIdx, windowDays);
-    if (!metrics.visible) continue;
-    placed.push({
-      pr,
-      leftPct: metrics.leftPct,
-      widthPct: metrics.widthPct,
-      clippedLeft: metrics.clippedLeft,
-      clippedRight: metrics.clippedRight,
-      stacked: pr.stackParentKey !== null,
-    });
-  }
-  return placed;
+    if (!metrics.visible) return [];
+    return [
+      {
+        pr,
+        leftPct: metrics.leftPct,
+        widthPct: metrics.widthPct,
+        clippedLeft: metrics.clippedLeft,
+        clippedRight: metrics.clippedRight,
+        stacked: pr.stackParentKey !== null,
+      },
+    ];
+  });
 }

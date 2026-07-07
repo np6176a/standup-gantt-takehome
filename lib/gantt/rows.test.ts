@@ -282,3 +282,79 @@ describe('PR start date fallback', () => {
     expect(scheduled[0].span.actualStartIdx).toBe(dayIndex(new Date(iso('2026-07-03'))));
   });
 });
+
+describe('buildLanes — state filter', () => {
+  const allRows = (lanes: Lane[]) =>
+    lanes.flatMap((lane) => [...lane.rows.flat(), ...lane.unscheduled]);
+
+  it('shows every issue when no state filter is given', () => {
+    const lanes = buildLanes({
+      issues: [
+        makeIssue({ id: '1', stateName: 'In Progress', bucket: 'active' }),
+        makeIssue({ id: '2', stateName: 'Backlog', bucket: 'planned' }),
+      ],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+    });
+    expect(allRows(lanes).map((member) => member.issue.id).sort()).toEqual(['1', '2']);
+  });
+
+  it('hides issues whose raw state is toggled off, keeps the rest', () => {
+    const lanes = buildLanes({
+      issues: [
+        makeIssue({ id: '1', stateName: 'In Progress', bucket: 'active' }),
+        makeIssue({ id: '2', stateName: 'Backlog', bucket: 'planned' }),
+      ],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      visibleStates: { Backlog: false },
+    });
+    expect(allRows(lanes).map((member) => member.issue.id)).toEqual(['1']);
+  });
+
+  it('treats an unknown / true state entry as visible', () => {
+    const lanes = buildLanes({
+      issues: [makeIssue({ id: '1', stateName: 'Custom State', bucket: 'planned' })],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      visibleStates: { Backlog: false },
+    });
+    expect(allRows(lanes).map((member) => member.issue.id)).toEqual(['1']);
+  });
+});
+
+describe('buildLanes — attention-only filter', () => {
+  const allRows = (lanes: Lane[]) =>
+    lanes.flatMap((lane) => [...lane.rows.flat(), ...lane.unscheduled]);
+
+  it('keeps only overdue / blocked issues when attentionOnly is set', () => {
+    const lanes = buildLanes({
+      issues: [
+        // Overdue: due in the past, still active.
+        makeIssue({ id: '1', dueDate: '2026-07-01', bucket: 'active' }),
+        // Calm: due in the future.
+        makeIssue({ id: '2', dueDate: '2026-07-20', bucket: 'active' }),
+      ],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      attentionOnly: true,
+    });
+    expect(allRows(lanes).map((member) => member.issue.id)).toEqual(['1']);
+  });
+
+  it('keeps a manually-flagged blocked issue even when it is otherwise calm', () => {
+    const lanes = buildLanes({
+      issues: [makeIssue({ id: '1', dueDate: '2026-07-20', bucket: 'active' })],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      attentionOnly: true,
+      blockedFlags: { '1': { blocked: true } },
+    });
+    expect(allRows(lanes).map((member) => member.issue.id)).toEqual(['1']);
+  });
+});

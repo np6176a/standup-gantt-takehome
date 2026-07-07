@@ -20,8 +20,8 @@ export interface PlanningSnapshot {
  * signal at the row level.
  *
  * Holds only raw scalar maps as observables; the merge with derived attention and the
- * span derivation stay in pure `lib/` functions. A later milestone adds the localStorage
- * `reaction` that persists {@link snapshot} — the store already exposes it.
+ * span derivation stay in pure `lib/` functions. {@link snapshot} is the JSON-serializable
+ * payload the {@link StoreProvider} reaction persists to (and restores from) localStorage.
  */
 export class PlanningStore {
   /** App-owned planned start per issue id, "YYYY-MM-DD". */

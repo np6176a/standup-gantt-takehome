@@ -23,6 +23,7 @@ export {
   Check as CheckIcon,
   Minus as MinusIcon,
   Plus as PlusIcon,
+  Filter as FilterIcon,
 } from '@tailgrids/icons';
 
 export { PrIcon } from '@/components/icons/PrIcon';

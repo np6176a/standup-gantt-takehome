@@ -40,6 +40,27 @@ export function dayIndexFromDateString(value: string): number {
   return dayIndex(new Date(value));
 }
 
+/**
+ * True only for a strict date-only "YYYY-MM-DD" that names a *real* calendar day — the
+ * shape the app persists for a planned start. The format guard rejects full ISO timestamps
+ * and junk; the round-trip guard (compare the parsed UTC parts back to the input) rejects
+ * both `NaN` dates like "2026-13-40" and impossible-but-normalizable ones like "2026-02-31"
+ * (which JS silently rolls to Mar 3). Used when restoring persisted planning state so a
+ * corrupt value can never reach {@link dayIndexFromDateString} and yield NaN geometry or a
+ * silently shifted start.
+ */
+export function isDateOnlyString(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  return (
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() + 1 === month &&
+    parsed.getUTCDate() === day
+  );
+}
+
 /** The UTC-midnight Date for a day index (inverse of {@link dayIndex}). */
 export function dateFromDayIndex(idx: number): Date {
   return new Date(idx * DAY_MS);
