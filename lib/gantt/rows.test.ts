@@ -420,4 +420,21 @@ describe('buildLanes — search filter', () => {
     });
     expect(collect(lanes).map((member) => member.issue.id)).toEqual(['104']);
   });
+
+  it('surfaces a lane by an orphan PR number, keeping only the matching orphan', () => {
+    const lanes = buildLanes({
+      issues: [makeIssue({ id: '104', assignee: priya })],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      orphanPrs: [
+        makePr({ number: 777, author: priya, authorLogin: priya.githubLogin }),
+        makePr({ number: 778, author: priya, authorLogin: priya.githubLogin }),
+      ],
+      searchQuery: '#777',
+    });
+    expect(lanes.map((lane) => lane.key)).toEqual([priya.id]);
+    expect(collect(lanes)).toHaveLength(0); // no issue matched "#777"
+    expect(lanes[0].orphanPrs.map((pr) => pr.number)).toEqual([777]);
+  });
 });

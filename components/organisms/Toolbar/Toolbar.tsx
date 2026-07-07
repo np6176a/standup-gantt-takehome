@@ -25,12 +25,12 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
  * review panel, badged with the total waiting count), a "+ New issue" button (opens the
  * create modal), and the theme switcher. Wires the controlled molecules to the stores.
  *
- * Responsive: on `sm+` everything sits on one wrapping row. Below `sm` the controls stack
- * into full-width rows — the brand corner + grouping (with a collapse toggle), the zoom/Today
+ * The theme/color switcher sits small on its own row at the top (it's the least-important
+ * control). Below it, on `sm+` everything sits on one wrapping row; below `sm` the controls
+ * stack into full-width rows — the title + grouping (with a collapse toggle), the zoom/Today
  * window, the search field, then the secondary controls (States + attention, Needs-review +
- * New-issue). The secondary controls collapse behind the toggle on mobile; the theme/color
- * switcher sits small in the top-left corner above the title. Each row wrapper is
- * `sm:contents`, so on desktop it dissolves and its children flow back into one wrapping row.
+ * New-issue). The secondary controls collapse behind the toggle on mobile. Each row wrapper
+ * is `sm:contents`, so on desktop it dissolves and its children flow back into one wrapping row.
  */
 export const Toolbar = observer(function Toolbar({ className = '', ...props }: ToolbarProps) {
   const store = useContext(StoreContext);
@@ -44,16 +44,18 @@ export const Toolbar = observer(function Toolbar({ className = '', ...props }: T
 
   return (
     <div
-      className={`flex flex-col gap-2 border-b border-border bg-surface px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 ${className}`}
+      className={`flex flex-col gap-2 border-b border-border bg-surface px-4 py-2.5 ${className}`}
       {...props}
     >
+      <div className="flex">
+        <ThemeSwitcher />
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
       <div className="flex w-full items-center gap-3 sm:contents">
-        <div className="flex shrink-0 flex-col items-start gap-1 sm:mr-1">
-          <ThemeSwitcher />
-          <h1 className="text-[1.125rem] font-[var(--font-weight-bold)] leading-none text-content">
-            Standup
-          </h1>
-        </div>
+        <h1 className="shrink-0 text-[1.125rem] font-[var(--font-weight-bold)] leading-none text-content sm:mr-1">
+          Standup
+        </h1>
 
         <GroupingToggle
           grouping={ui.grouping}
@@ -149,6 +151,7 @@ export const Toolbar = observer(function Toolbar({ className = '', ...props }: T
             New issue
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

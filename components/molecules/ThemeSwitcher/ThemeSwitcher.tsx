@@ -62,7 +62,7 @@ export const ThemeSwitcher = observer(
 
     return (
       <div
-        className={`inline-flex min-h-[1.75rem] items-center gap-1 text-content ${className}`}
+        className={`inline-flex min-h-[1rem] items-center gap-0.5 text-content ${className}`}
         {...props}
       >
         {mounted ? (
@@ -72,9 +72,9 @@ export const ThemeSwitcher = observer(
               size="icon"
               onClick={() => ui.toggleTheme()}
               aria-label={themeToggleAriaLabel(ui.theme)}
-              className="h-7 w-7"
+              className="h-5 w-5"
             >
-              <ThemeIcon size={15} aria-hidden />
+              <ThemeIcon size={11} aria-hidden />
             </Button>
 
             <div ref={accentRef} className="relative">
@@ -85,16 +85,16 @@ export const ThemeSwitcher = observer(
                 aria-label={`Primary color: ${activeAccent.label}`}
                 aria-haspopup="menu"
                 aria-expanded={accentOpen}
-                className="h-7 gap-1 px-1.5 py-0"
+                className="h-5 gap-0.5 px-1 py-0"
               >
-                <PaletteIcon size={14} aria-hidden className="text-content-secondary" />
+                <PaletteIcon size={11} aria-hidden className="text-content-secondary" />
                 <span
                   aria-hidden
-                  className="h-3.5 w-3.5 rounded-full ring-1 ring-border"
+                  className="h-2.5 w-2.5 rounded-full ring-1 ring-border"
                   style={{ backgroundColor: activeAccent.swatch }}
                 />
                 <ChevronDownIcon
-                  size={12}
+                  size={10}
                   aria-hidden
                   className={`text-content-secondary transition-transform ${
                     accentOpen ? 'rotate-180' : ''

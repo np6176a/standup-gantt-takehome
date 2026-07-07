@@ -84,9 +84,9 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 
 ## Step 9 — Search, collapsible mobile header & compact theme control
 
-- **Search the board by issue id or PR number.** A toolbar `SearchBar` filters the board to issues whose id/title matches, or that own a PR whose number matches (`#528` or `528`) — a pure `matchesSearch` in `lib/gantt/rows.ts`, wired through `uiStore.searchQuery` → `buildLanes`. While a query is active, lanes the filter emptied are dropped (so person mode doesn't leave a wall of empty roster lanes around the few hits). Known limit: orphan-PR shelves aren't searched, so a matched lane still shows its orphans.
+- **Search the board by issue id or PR number.** A toolbar `SearchBar` filters the board to issues whose id/title matches, or that own a PR whose number matches (`#528` or `528`) — a pure `matchesSearch` in `lib/gantt/rows.ts`, wired through `uiStore.searchQuery` → `buildLanes`. While a query is active, lanes the filter emptied are dropped (so person mode doesn't leave a wall of empty roster lanes around the few hits). Orphan PRs (which resolve to no issue, so they sit outside the issue pipeline) are searched too, via the shared `prNumberMatches`: a PR-number query can surface a lane holding only that matching orphan, and matched lanes hide their non-matching orphans.
 - **Collapsible mobile header.** A chevron toggle (mobile only) collapses the toolbar's secondary controls — the state filter, attention chip, "Needs review", and "New issue" — behind `ui.headerExpanded`; the brand/grouping, zoom/Today, and search stay. Uses the same `sm:contents` trick, so desktop always shows everything regardless of the toggle.
-- **Compact theme control, top-left.** The theme/accent switcher is now a small icon-only control (no "Dark"/"Light" text) tucked into the top-left corner above the "Standup" title, on both desktop and mobile.
+- **Compact theme control on its own row.** The theme/accent switcher is a small icon-only control (no "Dark"/"Light" text) on its own thin row at the top of the toolbar — it's the least-important control, so it's kept small and out of the main control flow.
 
 ### Attention treatments, PR chips & review panel (build step 4)
 
