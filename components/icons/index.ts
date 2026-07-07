@@ -14,6 +14,7 @@ export {
   ChevronDown as ChevronDownIcon,
   Calendar as CalendarIcon,
   Page as PageIcon,
+  Search1 as SearchIcon,
   ErrorOctagon as BlockedIcon,
   InfoTriangle as OverdueIcon,
   Fire as ActiveIcon,

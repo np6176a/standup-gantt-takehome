@@ -82,6 +82,12 @@ A Gantt-style standup board over fake Linear issues + GitHub PRs, built in order
 - **State filter persists.** The toolbar's "States" selections are a UI preference now, saved to localStorage (`standup-gantt.stateFilter`) and layered over the defaults on boot, so a state a stored map doesn't mention keeps its default. Persisted by the same reaction pattern as theme/planning.
 - **Mobile lane labels stay distinguishable (PR review).** On the collapsed avatar rail, non-person lanes (projects, "No project", "Unassigned") used to share one `#` glyph. They now show the title's initials (`laneGlyph`, mirroring person avatars) and every lane carries an always-present sr-only title, so project swimlanes are distinct visually and to screen readers on mobile.
 
+## Step 9 — Search, collapsible mobile header & compact theme control
+
+- **Search the board by issue id or PR number.** A toolbar `SearchBar` filters the board to issues whose id/title matches, or that own a PR whose number matches (`#528` or `528`) — a pure `matchesSearch` in `lib/gantt/rows.ts`, wired through `uiStore.searchQuery` → `buildLanes`. While a query is active, lanes the filter emptied are dropped (so person mode doesn't leave a wall of empty roster lanes around the few hits). Known limit: orphan-PR shelves aren't searched, so a matched lane still shows its orphans.
+- **Collapsible mobile header.** A chevron toggle (mobile only) collapses the toolbar's secondary controls — the state filter, attention chip, "Needs review", and "New issue" — behind `ui.headerExpanded`; the brand/grouping, zoom/Today, and search stay. Uses the same `sm:contents` trick, so desktop always shows everything regardless of the toggle.
+- **Compact theme control, top-left.** The theme/accent switcher is now a small icon-only control (no "Dark"/"Light" text) tucked into the top-left corner above the "Standup" title, on both desktop and mobile.
+
 ### Attention treatments, PR chips & review panel (build step 4)
 
 The standup signals become loud and visible: blocked/overdue treatments on the bars, an

@@ -82,6 +82,7 @@ export class RootStore {
       orphanPrs: this.data.orphanPullRequests,
       visibleStates: this.ui.visibleStates,
       attentionOnly: this.ui.attentionOnly,
+      searchQuery: this.ui.searchQuery,
     });
   }
 

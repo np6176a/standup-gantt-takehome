@@ -4,12 +4,13 @@ import React, { useContext } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { StoreContext } from '@/stores/StoreProvider';
-import { EyeIcon, PlusIcon } from '@/components/icons';
+import { EyeIcon, PlusIcon, ChevronDownIcon } from '@/components/icons';
 import { Button } from '@/components/atoms/Button/Button';
 import { GroupingToggle } from '@/components/molecules/GroupingToggle/GroupingToggle';
 import { TimeWindowControls } from '@/components/molecules/TimeWindowControls/TimeWindowControls';
 import { StateFilterPopover } from '@/components/molecules/StateFilterPopover/StateFilterPopover';
 import { AttentionChip } from '@/components/molecules/AttentionChip/AttentionChip';
+import { SearchBar } from '@/components/molecules/SearchBar/SearchBar';
 import { ThemeSwitcher } from '@/components/molecules/ThemeSwitcher/ThemeSwitcher';
 
 export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -24,11 +25,12 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
  * review panel, badged with the total waiting count), a "+ New issue" button (opens the
  * create modal), and the theme switcher. Wires the controlled molecules to the stores.
  *
- * Responsive: on `sm+` everything sits on one wrapping row (the theme switcher included).
- * Below `sm` the controls stack into four full-width rows — Standup + grouping, then the
- * zoom/Today window, then States + attention, then Needs-review + New-issue — while the
- * theme/color switcher is hidden. Each row wrapper is `sm:contents`, so on desktop it
- * dissolves and its children flow back into the single wrapping row unchanged.
+ * Responsive: on `sm+` everything sits on one wrapping row. Below `sm` the controls stack
+ * into full-width rows — the brand corner + grouping (with a collapse toggle), the zoom/Today
+ * window, the search field, then the secondary controls (States + attention, Needs-review +
+ * New-issue). The secondary controls collapse behind the toggle on mobile; the theme/color
+ * switcher sits small in the top-left corner above the title. Each row wrapper is
+ * `sm:contents`, so on desktop it dissolves and its children flow back into one wrapping row.
  */
 export const Toolbar = observer(function Toolbar({ className = '', ...props }: ToolbarProps) {
   const store = useContext(StoreContext);
@@ -46,15 +48,32 @@ export const Toolbar = observer(function Toolbar({ className = '', ...props }: T
       {...props}
     >
       <div className="flex w-full items-center gap-3 sm:contents">
-        <h1 className="mr-1 shrink-0 text-[1.125rem] font-[var(--font-weight-bold)] text-content">
-          Standup
-        </h1>
+        <div className="flex shrink-0 flex-col items-start gap-1 sm:mr-1">
+          <ThemeSwitcher />
+          <h1 className="text-[1.125rem] font-[var(--font-weight-bold)] leading-none text-content">
+            Standup
+          </h1>
+        </div>
 
         <GroupingToggle
           grouping={ui.grouping}
           onChange={(grouping) => ui.setGrouping(grouping)}
           className="grow sm:grow-0"
         />
+
+        <button
+          type="button"
+          onClick={() => ui.toggleHeaderExpanded()}
+          aria-expanded={ui.headerExpanded}
+          aria-label={ui.headerExpanded ? 'Collapse toolbar controls' : 'Expand toolbar controls'}
+          className="flex shrink-0 items-center rounded-md border border-border bg-surface-raised p-1.5 text-content-secondary transition-colors hover:bg-neutral-light sm:hidden"
+        >
+          <ChevronDownIcon
+            size={18}
+            aria-hidden
+            className={`transition-transform ${ui.headerExpanded ? 'rotate-180' : ''}`}
+          />
+        </button>
       </div>
 
       <div className="flex w-full sm:contents">
@@ -68,60 +87,68 @@ export const Toolbar = observer(function Toolbar({ className = '', ...props }: T
         />
       </div>
 
-      <div className="flex w-full items-center gap-2 sm:contents">
-        <StateFilterPopover
-          counts={data.issueCountByState}
-          visibleStates={ui.visibleStates}
-          hiddenCount={ui.hiddenStateCount}
-          onSetStatesVisible={(names, visible) => ui.setStatesVisible(names, visible)}
-          onReset={() => ui.resetStateFilter()}
-          className="grow sm:grow-0"
-        />
-
-        <AttentionChip
-          blocked={store.attentionTotals.blocked}
-          overdue={store.attentionTotals.overdue}
-          active={ui.attentionOnly}
-          onToggle={() => ui.toggleAttentionOnly()}
-          className="grow justify-center sm:grow-0 sm:justify-start"
+      <div className="flex w-full sm:contents">
+        <SearchBar
+          value={ui.searchQuery}
+          onChange={(query) => ui.setSearchQuery(query)}
+          className="w-full sm:w-56"
         />
       </div>
 
-      <div className="flex w-full items-center gap-2 sm:contents">
-        <button
-          type="button"
-          onClick={() => ui.toggleReviewPanel()}
-          aria-pressed={ui.reviewPanel.open}
-          className={`grow justify-center inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[0.8125rem] font-[var(--font-weight-semibold)] transition-colors sm:ml-auto sm:grow-0 sm:justify-start ${
-            ui.reviewPanel.open
-              ? 'border-primary bg-primary-muted text-content'
-              : 'border-border bg-surface-raised text-content-secondary hover:bg-neutral-light'
-          }`}
-        >
-          <span aria-hidden className="flex items-center"><EyeIcon size={16} /></span>
-          Needs review
-          {reviewsWaiting > 0 && (
-            <span className="rounded bg-neutral-light px-1.5 py-px text-[0.6875rem] text-content-secondary">
-              {reviewsWaiting}
+      <div
+        className={`${ui.headerExpanded ? 'flex' : 'hidden'} w-full flex-col gap-2 sm:contents`}
+      >
+        <div className="flex w-full items-center gap-2 sm:contents">
+          <StateFilterPopover
+            counts={data.issueCountByState}
+            visibleStates={ui.visibleStates}
+            hiddenCount={ui.hiddenStateCount}
+            onSetStatesVisible={(names, visible) => ui.setStatesVisible(names, visible)}
+            onReset={() => ui.resetStateFilter()}
+            className="grow sm:grow-0"
+          />
+
+          <AttentionChip
+            blocked={store.attentionTotals.blocked}
+            overdue={store.attentionTotals.overdue}
+            active={ui.attentionOnly}
+            onToggle={() => ui.toggleAttentionOnly()}
+            className="grow justify-center sm:grow-0 sm:justify-start"
+          />
+        </div>
+
+        <div className="flex w-full items-center gap-2 sm:contents">
+          <button
+            type="button"
+            onClick={() => ui.toggleReviewPanel()}
+            aria-pressed={ui.reviewPanel.open}
+            className={`grow justify-center inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[0.8125rem] font-[var(--font-weight-semibold)] transition-colors sm:ml-auto sm:grow-0 sm:justify-start ${
+              ui.reviewPanel.open
+                ? 'border-primary bg-primary-muted text-content'
+                : 'border-border bg-surface-raised text-content-secondary hover:bg-neutral-light'
+            }`}
+          >
+            <span aria-hidden className="flex items-center"><EyeIcon size={16} /></span>
+            Needs review
+            {reviewsWaiting > 0 && (
+              <span className="rounded bg-neutral-light px-1.5 py-px text-[0.6875rem] text-content-secondary">
+                {reviewsWaiting}
+              </span>
+            )}
+          </button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => ui.openCreateModal()}
+            className="grow sm:grow-0"
+          >
+            <span aria-hidden className="mr-1 flex items-center">
+              <PlusIcon size={16} />
             </span>
-          )}
-        </button>
-
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => ui.openCreateModal()}
-          className="grow sm:grow-0"
-        >
-          <span aria-hidden className="mr-1 flex items-center">
-            <PlusIcon size={16} />
-          </span>
-          New issue
-        </Button>
-      </div>
-
-      <div className="hidden sm:contents">
-        <ThemeSwitcher />
+            New issue
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,9 @@ import {
   UNASSIGNED_KEY,
   buildLanes,
   earliestPrDate,
+  matchesSearch,
   type Lane,
+  type PositionedIssue,
 } from '@/lib/gantt/rows';
 import type { Bucket } from '@/lib/domain/states';
 import type { Issue, Person, RepoRef } from '@/lib/domain/types';
@@ -356,5 +358,66 @@ describe('buildLanes — attention-only filter', () => {
       blockedFlags: { '1': { blocked: true } },
     });
     expect(allRows(lanes).map((member) => member.issue.id)).toEqual(['1']);
+  });
+});
+
+describe('matchesSearch', () => {
+  const member = (issue: Issue, prs: PullRequest[] = []): PositionedIssue => ({
+    issue,
+    span: { plannedStartIdx: null, actualStartIdx: null, startIdx: null, endIdx: null, unscheduled: true },
+    attention: { overdue: false, blockedDerived: false, blockedReason: null },
+    prs,
+  });
+
+  const issue = makeIssue({ id: '104', assignee: priya });
+
+  it('matches everything for an empty / whitespace query', () => {
+    expect(matchesSearch(member(issue), '')).toBe(true);
+    expect(matchesSearch(member(issue), '   ')).toBe(true);
+  });
+
+  it('matches the issue identifier and title, case-insensitively', () => {
+    expect(matchesSearch(member(issue), 'orb-104')).toBe(true);
+    expect(matchesSearch(member(issue), 'ISSUE 104')).toBe(true);
+    expect(matchesSearch(member(issue), 'ORB-999')).toBe(false);
+  });
+
+  it('matches a resolved PR number, with or without a leading #', () => {
+    const withPr = member(issue, [makePr({ number: 528 })]);
+    expect(matchesSearch(withPr, '528')).toBe(true);
+    expect(matchesSearch(withPr, '#528')).toBe(true);
+    expect(matchesSearch(withPr, '#999')).toBe(false);
+    expect(matchesSearch(member(issue), '528')).toBe(false);
+  });
+});
+
+describe('buildLanes — search filter', () => {
+  const collect = (lanes: Lane[]) => lanes.flatMap((lane) => lane.rows.flat().concat(lane.unscheduled));
+
+  it('keeps only issues matching the query and drops the emptied lanes', () => {
+    const lanes = buildLanes({
+      issues: [
+        makeIssue({ id: '104', assignee: priya }),
+        makeIssue({ id: '205', assignee: marcus }),
+      ],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      searchQuery: 'ORB-104',
+    });
+    expect(lanes.map((lane) => lane.key)).toEqual([priya.id]);
+    expect(collect(lanes).map((member) => member.issue.id)).toEqual(['104']);
+  });
+
+  it('finds an issue by one of its PR numbers', () => {
+    const lanes = buildLanes({
+      issues: [makeIssue({ id: '104', assignee: priya })],
+      grouping: 'person',
+      people: ROSTER,
+      todayIdx: TODAY,
+      prsByIssueId: new Map([['104', [makePr({ number: 528, issueKey: 'ORB-104' })]]]),
+      searchQuery: '#528',
+    });
+    expect(collect(lanes).map((member) => member.issue.id)).toEqual(['104']);
   });
 });
