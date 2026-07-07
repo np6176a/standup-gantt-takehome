@@ -72,10 +72,16 @@ export function isWeekendIndex(idx: number): boolean {
   return weekday === 0 || weekday === 6;
 }
 
-/** Days spanned by the visible window at each zoom (drives percentage positioning). */
+/**
+ * Days spanned by the visible window at each zoom (drives percentage positioning).
+ * Week and fortnight are boundary-INCLUSIVE and lead by 3 days: they start 3 days before
+ * today for a little past context, and run through the same weekday one/two weeks out so
+ * both endpoints show (Tue→Tue, not Tue→Mon). The span is therefore lead (3) + the
+ * inclusive today→same-weekday run (8 for week, 15 for fortnight) = 11 and 18.
+ */
 export const WINDOW_DAYS: Record<Zoom, number> = {
-  week: 7,
-  fortnight: 14,
+  week: 11,
+  fortnight: 18,
   month: 35,
   quarter: 91,
   year: 364,
@@ -87,13 +93,13 @@ export function windowDaysForZoom(zoom: Zoom): number {
 }
 
 /**
- * How far before today the window starts. Week begins ON today so it runs current-day
- * to the next instance of that weekday (e.g. Monday→Monday); the coarser zooms lead by a
- * few days so today sits near the left third with a little past context.
+ * How far before today the window starts. Week and fortnight lead by 3 days so today sits
+ * near the left third with a little past context, while their inclusive spans still reach
+ * the next/second instance of today's weekday (e.g. Tue→Tue). The coarser zooms lead more.
  */
 export const WINDOW_LEAD_DAYS: Record<Zoom, number> = {
-  week: 0,
-  fortnight: 4,
+  week: 3,
+  fortnight: 3,
   month: 7,
   quarter: 14,
   year: 45,

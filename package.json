@@ -5,7 +5,7 @@
   "description": "Standup Gantt takehome: build a per-person Gantt of Linear issues and GitHub pull requests over a local, credential-free Fake source.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "storybook build -o public/storybook && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",

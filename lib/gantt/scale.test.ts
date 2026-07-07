@@ -116,17 +116,19 @@ describe('positioning', () => {
 
 describe('zoom windows', () => {
   it('has the expected span per zoom', () => {
-    expect(windowDaysForZoom('week')).toBe(7);
-    expect(windowDaysForZoom('fortnight')).toBe(14);
+    expect(windowDaysForZoom('week')).toBe(11);
+    expect(windowDaysForZoom('fortnight')).toBe(18);
     expect(windowDaysForZoom('month')).toBe(35);
     expect(windowDaysForZoom('quarter')).toBe(91);
     expect(windowDaysForZoom('year')).toBe(364);
   });
 
-  it('starts the week on today (current day → next same weekday), and leads the coarser zooms', () => {
+  it('leads the week and fortnight by 3 days (inclusive spans still reach the same weekday), and leads the coarser zooms', () => {
     const today = dayIndexFromDateString('2026-07-06');
-    expect(defaultWindowStart(today, 'week')).toBe(today);
-    expect(windowDaysForZoom('week')).toBe(7);
+    expect(defaultWindowStart(today, 'week')).toBe(today - 3);
+    expect(windowDaysForZoom('week')).toBe(11);
+    expect(defaultWindowStart(today, 'fortnight')).toBe(today - 3);
+    expect(windowDaysForZoom('fortnight')).toBe(18);
     expect(defaultWindowStart(today, 'month')).toBe(today - 7);
   });
 
