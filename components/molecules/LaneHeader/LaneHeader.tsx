@@ -74,7 +74,7 @@ export const LaneHeader = ({
           {title}
         </span>
         {badges.length > 0 ? (
-          <span className="mt-0.5 flex flex-wrap items-center gap-1">
+          <span className="mt-0.5 flex items-center gap-1">
             {badges.map((badge) => {
               const content = (
                 <>
