@@ -2,7 +2,7 @@ import { makeAutoObservable } from 'mobx';
 
 import { ACCENTS, AccentName, ThemeMode, UiStore } from '@/stores/uiStore';
 import { DataStore } from '@/stores/dataStore';
-import { PlanningStore } from '@/stores/planningStore';
+import { PlanningStore, type PlanningSnapshot } from '@/stores/planningStore';
 import type { Issue } from '@/lib/domain/types';
 import { buildLanes, type Lane } from '@/lib/gantt/rows';
 import { dateFromDayIndex, localTodayIndex } from '@/lib/gantt/scale';
@@ -10,6 +10,8 @@ import { dateFromDayIndex, localTodayIndex } from '@/lib/gantt/scale';
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
 export const ACCENT_STORAGE_KEY = 'standup-gantt.accent';
+/** localStorage key for the app-owned planning state (planned starts + manual blocked flags). */
+export const PLANNING_STORAGE_KEY = 'standup-gantt.planning';
 
 /** Construction options for {@link RootStore}. */
 export interface RootStoreInit {
@@ -17,6 +19,8 @@ export interface RootStoreInit {
   accent?: AccentName;
   /** Today's day index, captured once by {@link createRootStore}. */
   todayIdx?: number;
+  /** Persisted planning state restored from localStorage (planned starts + blocked flags). */
+  planning?: Partial<PlanningSnapshot>;
 }
 
 /**
@@ -33,7 +37,7 @@ export class RootStore {
   constructor(init: RootStoreInit = {}) {
     this.ui = new UiStore(init);
     this.data = new DataStore();
-    this.planning = new PlanningStore();
+    this.planning = new PlanningStore(init.planning);
     // `ui`/`data`/`planning` are already observable stores — expose them as plain refs so
     // only the cross-store computeds here (`ganttRows`, `selectedIssue`) become computed.
     makeAutoObservable(this, { ui: false, data: false, planning: false }, { autoBind: true });
@@ -74,7 +78,24 @@ export class RootStore {
       now: dateFromDayIndex(this.ui.todayIdx),
       reviewsWaitingByPersonId: this.reviewsWaitingByPersonId,
       orphanPrs: this.data.orphanPullRequests,
+      visibleStates: this.ui.visibleStates,
+      attentionOnly: this.ui.attentionOnly,
     });
+  }
+
+  /**
+   * Board-wide blocked + overdue totals across the currently-shown lanes — the counts the
+   * toolbar attention chip advertises. Summed from the same lane summaries the board
+   * renders, so the chip always agrees with what's on screen.
+   */
+  get attentionTotals(): { blocked: number; overdue: number } {
+    return this.ganttRows.reduce(
+      (totals, lane) => ({
+        blocked: totals.blocked + lane.summary.blocked,
+        overdue: totals.overdue + lane.summary.overdue,
+      }),
+      { blocked: 0, overdue: 0 },
+    );
   }
 }
 
@@ -131,8 +152,64 @@ export function persistPreferences(theme: ThemeMode, accent: AccentName): void {
   }
 }
 
+/** A plain string→string record (planned starts), tolerating a malformed persisted value. */
+function asStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      ([, date]) => typeof date === 'string',
+    ),
+  ) as Record<string, string>;
+}
+
+/** The blocked-flag map from a persisted snapshot, keeping only well-formed `{ blocked: true }` entries. */
+function asBlockedFlags(value: unknown): PlanningSnapshot['blockedFlags'] {
+  if (!value || typeof value !== 'object') return {};
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([, flag]) =>
+      flag != null && typeof flag === 'object' && (flag as { blocked?: unknown }).blocked === true,
+  );
+  return Object.fromEntries(entries) as PlanningSnapshot['blockedFlags'];
+}
+
+/**
+ * Read the persisted planning state from localStorage, returning empty maps when it's
+ * absent, unavailable, or malformed (a corrupt payload must never crash boot). Safe during
+ * SSR (returns empty when `window` is undefined).
+ */
+export function readInitialPlanning(): Partial<PlanningSnapshot> {
+  if (typeof window === 'undefined') return {};
+  const raw = safeReadStorage(PLANNING_STORAGE_KEY);
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as Partial<PlanningSnapshot>;
+    return {
+      plannedStarts: asStringRecord(parsed.plannedStarts),
+      blockedFlags: asBlockedFlags(parsed.blockedFlags),
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Persist the app-owned planning snapshot to localStorage. Best-effort: silently ignores
+ * failures when storage is unavailable, matching {@link persistPreferences}.
+ */
+export function persistPlanning(snapshot: PlanningSnapshot): void {
+  try {
+    window.localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // Storage denied — planning state won't survive reload, but the app keeps working.
+  }
+}
+
 /** Create the root store, seeding UI preferences from localStorage / OS and capturing
  * today's day index once (so no computed ever calls `new Date()`). */
 export function createRootStore(): RootStore {
-  return new RootStore({ ...readInitialPreferences(), todayIdx: localTodayIndex() });
+  return new RootStore({
+    ...readInitialPreferences(),
+    planning: readInitialPlanning(),
+    todayIdx: localTodayIndex(),
+  });
 }

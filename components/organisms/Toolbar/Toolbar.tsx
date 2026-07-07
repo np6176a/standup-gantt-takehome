@@ -8,6 +8,8 @@ import { EyeIcon, PlusIcon } from '@/components/icons';
 import { Button } from '@/components/atoms/Button/Button';
 import { GroupingToggle } from '@/components/molecules/GroupingToggle/GroupingToggle';
 import { TimeWindowControls } from '@/components/molecules/TimeWindowControls/TimeWindowControls';
+import { StateFilterPopover } from '@/components/molecules/StateFilterPopover/StateFilterPopover';
+import { AttentionChip } from '@/components/molecules/AttentionChip/AttentionChip';
 import { ThemeSwitcher } from '@/components/molecules/ThemeSwitcher/ThemeSwitcher';
 
 export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -17,10 +19,10 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /**
  * The board's top toolbar: grouping toggle (People/Projects), time-window controls
- * (zoom + ◀ Today ▶), a "Needs review" toggle (opens the review panel, badged with the
- * total waiting count), a "+ New issue" button (opens the create modal), and the theme
- * switcher. Wires the controlled molecules to the UI store; state filters, the attention
- * chip, and search arrive later.
+ * (zoom + ◀ Today ▶), the "States" filter popover (with live counts), the attention chip
+ * (blocked/overdue rollup that filters the board), a "Needs review" toggle (opens the
+ * review panel, badged with the total waiting count), a "+ New issue" button (opens the
+ * create modal), and the theme switcher. Wires the controlled molecules to the stores.
  */
 export const Toolbar = observer(function Toolbar({ className = '', ...props }: ToolbarProps) {
   const store = useContext(StoreContext);
@@ -49,6 +51,21 @@ export const Toolbar = observer(function Toolbar({ className = '', ...props }: T
         onPrev={() => ui.shiftWindowBy(-1)}
         onToday={() => ui.goToToday()}
         onNext={() => ui.shiftWindowBy(1)}
+      />
+
+      <StateFilterPopover
+        counts={data.issueCountByState}
+        visibleStates={ui.visibleStates}
+        hiddenCount={ui.hiddenStateCount}
+        onSetStatesVisible={(names, visible) => ui.setStatesVisible(names, visible)}
+        onReset={() => ui.resetStateFilter()}
+      />
+
+      <AttentionChip
+        blocked={store.attentionTotals.blocked}
+        overdue={store.attentionTotals.overdue}
+        active={ui.attentionOnly}
+        onToggle={() => ui.toggleAttentionOnly()}
       />
 
       <button
