@@ -226,7 +226,7 @@ export function buildLanes({
 
   const orderedKeys =
     grouping === 'person'
-      ? personLaneOrder(people, membersByKey)
+      ? personLaneOrder(people, membersByKey, orphansByPersonId)
       : projectLaneOrder(identityByKey);
 
   return orderedKeys.map((key) => {
@@ -242,13 +242,16 @@ export function buildLanes({
 function personLaneOrder(
   people: readonly Person[],
   membersByKey: ReadonlyMap<string, PositionedIssue[]>,
+  orphansByKey: ReadonlyMap<string, PullRequest[]> = new Map(),
 ): string[] {
   const rosterKeys = people.map((person) => person.id);
   const rosterSet = new Set(rosterKeys);
-  const offRoster = [...membersByKey.keys()]
+  const allKeys = new Set([...membersByKey.keys(), ...orphansByKey.keys()]);
+  const offRoster = [...allKeys]
     .filter((key) => key !== UNASSIGNED_KEY && !rosterSet.has(key))
     .sort();
-  const unassigned = membersByKey.has(UNASSIGNED_KEY) ? [UNASSIGNED_KEY] : [];
+  const needsUnassigned = membersByKey.has(UNASSIGNED_KEY) || orphansByKey.has(UNASSIGNED_KEY);
+  const unassigned = needsUnassigned ? [UNASSIGNED_KEY] : [];
   return [...rosterKeys, ...offRoster, ...unassigned];
 }
 
