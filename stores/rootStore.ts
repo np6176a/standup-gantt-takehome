@@ -162,14 +162,24 @@ function asStringRecord(value: unknown): Record<string, string> {
   ) as Record<string, string>;
 }
 
-/** The blocked-flag map from a persisted snapshot, keeping only well-formed `{ blocked: true }` entries. */
+/**
+ * The blocked-flag map from a persisted snapshot, keeping only well-formed `{ blocked: true }`
+ * entries and normalizing each to a clean {@link ManualBlockedFlag}. A non-string `reason`
+ * (old/future schema, hand-edited storage) is dropped rather than restored, so downstream
+ * consumers like `mergeManualBlocked` — which calls `reason.trim()` — never see a value they
+ * can't handle.
+ */
 function asBlockedFlags(value: unknown): PlanningSnapshot['blockedFlags'] {
   if (!value || typeof value !== 'object') return {};
-  const entries = Object.entries(value as Record<string, unknown>).filter(
-    ([, flag]) =>
-      flag != null && typeof flag === 'object' && (flag as { blocked?: unknown }).blocked === true,
-  );
-  return Object.fromEntries(entries) as PlanningSnapshot['blockedFlags'];
+  const flags: PlanningSnapshot['blockedFlags'] = {};
+  for (const [issueId, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!raw || typeof raw !== 'object') continue;
+    const flag = raw as { blocked?: unknown; reason?: unknown };
+    if (flag.blocked !== true) continue;
+    flags[issueId] =
+      typeof flag.reason === 'string' ? { blocked: true, reason: flag.reason } : { blocked: true };
+  }
+  return flags;
 }
 
 /**
