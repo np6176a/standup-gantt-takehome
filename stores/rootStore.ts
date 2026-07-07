@@ -150,12 +150,26 @@ export function persistPreferences(theme: ThemeMode, accent: AccentName): void {
   }
 }
 
-/** A plain string→string record (planned starts), tolerating a malformed persisted value. */
-function asStringRecord(value: unknown): Record<string, string> {
+/**
+ * A calendar date the app persists for a planned start: strictly "YYYY-MM-DD" and a real
+ * date. The format guard rejects full ISO timestamps and junk, and the NaN check rejects
+ * impossible days (e.g. "2026-13-40"), so `dayIndexFromDateString` never yields NaN geometry
+ * that would drop a row from the timeline.
+ */
+function isPlannedStartDate(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(new Date(value).getTime())
+  );
+}
+
+/** The planned-starts map from a persisted snapshot, dropping any non-string or invalid date. */
+function asPlannedStarts(value: unknown): Record<string, string> {
   if (!value || typeof value !== 'object') return {};
   return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).filter(
-      ([, date]) => typeof date === 'string',
+    Object.entries(value as Record<string, unknown>).filter(([, date]) =>
+      isPlannedStartDate(date),
     ),
   ) as Record<string, string>;
 }
@@ -192,7 +206,7 @@ export function readInitialPlanning(): Partial<PlanningSnapshot> {
   try {
     const parsed = JSON.parse(raw) as Partial<PlanningSnapshot>;
     return {
-      plannedStarts: asStringRecord(parsed.plannedStarts),
+      plannedStarts: asPlannedStarts(parsed.plannedStarts),
       blockedFlags: asBlockedFlags(parsed.blockedFlags),
     };
   } catch {
