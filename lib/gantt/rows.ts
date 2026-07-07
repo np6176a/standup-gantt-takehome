@@ -64,6 +64,8 @@ export interface Lane {
   rows: PositionedIssue[][];
   /** No-date issues for this lane's unscheduled shelf. */
   unscheduled: PositionedIssue[];
+  /** Orphan PRs (no resolved issue) authored by this lane's person. */
+  orphanPrs: readonly PullRequest[];
 }
 
 /** Inputs to {@link buildLanes}. `plannedStarts` (app-owned) arrives in a later milestone. */
@@ -80,6 +82,8 @@ export interface BuildLanesInput {
   now?: Date;
   /** Count of still-pending review requests per reviewer person id (person-mode badge). */
   reviewsWaitingByPersonId?: ReadonlyMap<string, number>;
+  /** Orphan PRs (no resolved issue) — shown at the bottom of the author's lane. */
+  orphanPrs?: readonly PullRequest[];
 }
 
 /** The grouping identity of an issue: which lane it belongs to and how that lane reads. */
@@ -159,6 +163,7 @@ function assembleLane(
   identity: LaneIdentity,
   members: readonly PositionedIssue[],
   reviewsWaiting: number,
+  orphanPrs: readonly PullRequest[] = [],
 ): Lane {
   const scheduled = members.filter((member) => !member.span.unscheduled);
   const unscheduled = members.filter((member) => member.span.unscheduled);
@@ -170,6 +175,7 @@ function assembleLane(
     summary: summarize(members, reviewsWaiting),
     rows,
     unscheduled: [...unscheduled].sort(byRank),
+    orphanPrs,
   };
 }
 
@@ -192,6 +198,7 @@ export function buildLanes({
   prsByIssueId = new Map(),
   now = dateFromDayIndex(todayIdx),
   reviewsWaitingByPersonId = new Map(),
+  orphanPrs = [],
 }: BuildLanesInput): Lane[] {
   const positioned = issues.map((issue) =>
     positionIssue(issue, todayIdx, plannedStarts, prsByIssueId, now),
@@ -207,6 +214,16 @@ export function buildLanes({
     membersByKey.set(identity.key, list);
   }
 
+  const orphansByPersonId = new Map<string, PullRequest[]>();
+  if (grouping === 'person') {
+    for (const pr of orphanPrs) {
+      const personId = pr.author?.id ?? UNASSIGNED_KEY;
+      const list = orphansByPersonId.get(personId) ?? [];
+      list.push(pr);
+      orphansByPersonId.set(personId, list);
+    }
+  }
+
   const orderedKeys =
     grouping === 'person'
       ? personLaneOrder(people, membersByKey)
@@ -214,11 +231,10 @@ export function buildLanes({
 
   return orderedKeys.map((key) => {
     const identity = identityByKey.get(key) ?? syntheticIdentity(key, people);
-    // Reviews-waiting is a per-PERSON signal, so it only applies when the lane key IS a
-    // person id (person mode). In project mode the lane isn't a person → no review badge.
     const reviewsWaiting =
       grouping === 'person' ? (reviewsWaitingByPersonId.get(key) ?? 0) : 0;
-    return assembleLane(identity, membersByKey.get(key) ?? [], reviewsWaiting);
+    const laneOrphans = orphansByPersonId.get(key) ?? [];
+    return assembleLane(identity, membersByKey.get(key) ?? [], reviewsWaiting, laneOrphans);
   });
 }
 

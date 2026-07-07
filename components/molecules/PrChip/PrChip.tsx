@@ -5,8 +5,8 @@ import type { ReviewDotState } from '@/components/molecules/PrChip/PrChipUtil';
 import { PrIcon, XmarkIcon, ClockIcon, CheckIcon, MinusIcon } from '@/components/icons';
 import {
   REVIEW_DOT,
-  prChipAriaLabel,
   prChipLabel,
+  prChipTooltip,
   reviewDotState,
 } from '@/components/molecules/PrChip/PrChipUtil';
 
@@ -29,6 +29,8 @@ export interface PrChipProps {
   pr: PullRequest;
   /** Whether the chip is a stacked child (rendered with an indent connector affordance). */
   stacked: boolean;
+  /** Whether to show the author name (true when the author differs from the issue assignee). */
+  showAuthor: boolean;
   /** Opens the PR (wired in a later milestone). */
   onSelect?: (pr: PullRequest) => void;
   /** Optional className for styling overrides. */
@@ -38,19 +40,20 @@ export interface PrChipProps {
 export const PrChip = ({
   pr,
   stacked,
+  showAuthor,
   onSelect,
   className = '',
 }: PrChipProps) => {
   const state = reviewDotState(pr);
   const dot = REVIEW_DOT[state];
-  const ariaLabel = prChipAriaLabel(pr);
+  const tooltip = prChipTooltip(pr);
   const reviewLabel = REVIEW_LABEL[state];
 
   return (
     <button
       type="button"
-      title={ariaLabel}
-      aria-label={ariaLabel}
+      title={tooltip}
+      aria-label={tooltip}
       onClick={(e) => {
         e.stopPropagation();
         onSelect?.(pr);
@@ -59,6 +62,11 @@ export const PrChip = ({
     >
       <PrIcon size={10} className="shrink-0 opacity-60" />
       <span className="truncate">{prChipLabel(pr)}</span>
+      {showAuthor && pr.authorLogin && (
+        <span className="truncate text-[0.5625rem] text-content-muted">
+          {pr.authorLogin}
+        </span>
+      )}
       <span aria-hidden className={`flex shrink-0 items-center ${dot.className}`}>
         {REVIEW_ICON[state]}
       </span>

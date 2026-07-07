@@ -1,6 +1,9 @@
 import {
+  groupPrsByOwnership,
+  isExternalAuthor,
   prChipInterval,
   prChipLabel,
+  prChipTooltip,
   reviewDotState,
 } from '@/components/molecules/PrChip/PrChipUtil';
 import type { PullRequest } from '@/lib/normalize/pullRequests';
@@ -97,5 +100,37 @@ describe('prChipInterval', () => {
 describe('prChipLabel', () => {
   it('is the PR number', () => {
     expect(prChipLabel(makePr({ number: 512 }))).toBe('#512');
+  });
+});
+
+describe('prChipTooltip', () => {
+  it('includes number, title, author, and review state', () => {
+    const tip = prChipTooltip(makePr({ number: 503, hasChangesRequested: true }));
+    expect(tip).toContain('#503');
+    expect(tip).toContain('changes requested');
+  });
+});
+
+describe('isExternalAuthor', () => {
+  it('returns true when PR author differs from the assignee', () => {
+    expect(isExternalAuthor(makePr({ number: 1, authorLogin: 'alice' }), 'bob')).toBe(true);
+    expect(isExternalAuthor(makePr({ number: 2, authorLogin: 'alice' }), 'alice')).toBe(false);
+  });
+
+  it('returns false when assignee is null', () => {
+    expect(isExternalAuthor(makePr({ number: 3, authorLogin: 'alice' }), null)).toBe(false);
+  });
+});
+
+describe('groupPrsByOwnership', () => {
+  it('separates owner PRs from external PRs', () => {
+    const prs = [
+      makePr({ number: 1, authorLogin: 'alice' }),
+      makePr({ number: 2, authorLogin: 'bob' }),
+      makePr({ number: 3, authorLogin: 'alice' }),
+    ];
+    const [owner, external] = groupPrsByOwnership(prs, 'alice');
+    expect(owner.map((pr) => pr.number)).toEqual([1, 3]);
+    expect(external.map((pr) => pr.number)).toEqual([2]);
   });
 });

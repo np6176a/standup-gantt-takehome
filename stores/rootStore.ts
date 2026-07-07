@@ -60,6 +60,7 @@ export class RootStore {
       prsByIssueId: this.data.prsByIssueId,
       now: new Date(),
       reviewsWaitingByPersonId: this.reviewsWaitingByPersonId,
+      orphanPrs: this.data.orphanPullRequests,
     });
   }
 }
