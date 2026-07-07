@@ -71,9 +71,10 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  // The most recent in-flight field save (a blur-triggered write). Delete awaits it so a
-  // late `applyIssueNode` from the save response can't re-append the node we just deleted.
-  const savePromiseRef = useRef<Promise<void> | null>(null);
+  // Every in-flight field save (blur-triggered writes can overlap — e.g. edit the due date,
+  // then the title). Delete awaits them all so no late `applyIssueNode` from a save response
+  // can re-append the node we just deleted.
+  const pendingSavesRef = useRef<Set<Promise<void>>>(new Set());
 
   if (!store || !store.selectedIssue) return null;
 
@@ -87,21 +88,21 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
   const derived = deriveAttention(issue, prs, now);
   const manuallyBlocked = planning.isBlocked(issue.id);
 
-  /** Run a write, surfacing a saving indicator and any rejection inline. Its promise is
-   * tracked so a concurrent delete can await it first. */
+  /** Run a write, surfacing a saving indicator and any rejection inline. Each write is added
+   * to the pending-saves set so a concurrent delete can await all of them first; `saving`
+   * stays true until the last one settles. */
   const save = async (input: Parameters<typeof data.saveIssue>[1]) => {
     setSaving(true);
     setError(null);
-    const run = (async () => {
-      try {
-        await data.saveIssue(issue.id, input);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setSaving(false);
-      }
-    })();
-    savePromiseRef.current = run;
+    const pending = pendingSavesRef.current;
+    const run = data.saveIssue(issue.id, input).catch((err) => {
+      setError(err instanceof Error ? err.message : String(err));
+    });
+    pending.add(run);
+    void run.finally(() => {
+      pending.delete(run);
+      if (pending.size === 0) setSaving(false);
+    });
     await run;
   };
 
@@ -122,13 +123,15 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
   };
 
   /** Delete the issue through fake-Linear, then forget its app-owned state and close. Awaits
-   * any in-flight field save first (a blur fired by clicking Delete lands before the delete),
-   * so the save's apply-the-response can't re-add the node after it's removed. */
+   * every in-flight field save first (a blur fired by clicking Delete lands before the click),
+   * so no save's apply-the-response can re-add the node after it's removed. */
   const handleDelete = async () => {
     setDeleting(true);
     setError(null);
     try {
-      if (savePromiseRef.current) await savePromiseRef.current;
+      if (pendingSavesRef.current.size > 0) {
+        await Promise.all([...pendingSavesRef.current]);
+      }
       await data.deleteIssue(issue.id);
       planning.forgetIssue(issue.id);
       ui.clearSelectedIssue();
