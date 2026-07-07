@@ -101,6 +101,12 @@ function laneIdentity(issue: Issue, grouping: Grouping): LaneIdentity {
     : { key: UNASSIGNED_KEY, title: 'Unassigned', person: null };
 }
 
+/** The earliest PR createdAt across a set of PRs, or null if none have one. */
+export function earliestPrDate(prs: readonly PullRequest[]): string | null {
+  const dates = prs.map((pr) => pr.createdAt).filter(Boolean) as string[];
+  return dates.length > 0 ? dates.reduce((a, b) => (a < b ? a : b)) : null;
+}
+
 /** Pair an issue with its span, derived attention, and resolved PRs. */
 function positionIssue(
   issue: Issue,
@@ -110,9 +116,10 @@ function positionIssue(
   now: Date,
 ): PositionedIssue {
   const prs = prsByIssueId.get(issue.id) ?? [];
+  const startedAt = issue.startedAt ?? earliestPrDate(prs);
   const span = computeSpan({
     plannedStart: plannedStarts[issue.id] ?? null,
-    startedAt: issue.startedAt,
+    startedAt,
     dueDate: issue.dueDate,
     todayIdx,
   });
