@@ -15,10 +15,12 @@ export const STATES_BY_BUCKET: Record<Bucket, readonly string[]> = {
   // still in-flight, so it reads as "In Progress" rather than Shipping (staging/prod).
   active: ['In Progress', 'Design Exploration', 'On Develop'],
   review: ['In Review'],
-  shipping: ['On Staging', 'On Prod'],
+  shipping: ['On Staging'],
   planned: ['Todo', 'Selected For Development', 'Backlog'],
   triage: ['Triage'],
-  done: ['Done'],
+  // "On Prod" counts as done: once work is deployed to production it's shipped and
+  // complete, so it drops the overdue/blocked attention signals (like any Done issue).
+  done: ['Done', 'On Prod'],
   dropped: ['Canceled'],
 };
 

@@ -86,11 +86,24 @@ export function labelVisible(zoom: Zoom, barWidthPx: number): boolean {
 // bucket fills. Blocked outranks overdue for the ring color; the overdue hatch + clock
 // badge still layer on when an issue is both.
 
-/** The focus ring class for a bar in its attention state (blocked red outranks overdue red). */
+/**
+ * The focus ring class for the due-only page-card marker in its attention state. Only
+ * blocked carries a ring — overdue is a quiet signal shown by its day-count badge alone.
+ */
 export function attentionRingClass(attention: DerivedAttention): string {
   if (attention.blockedDerived) return 'ring-2 ring-attention-blocked';
-  if (attention.overdue) return 'ring-1 ring-attention-overdue';
   return '';
+}
+
+/**
+ * The blocked outline for a full bar: a red edge on the top, right, and bottom only —
+ * open on the left so the bar's leading (bucket-hue) edge stays clean. Implemented as
+ * inset box-shadows (no layout shift, follows the bar's rounded corners). Overdue and
+ * clear bars get no outline (overdue reads via its day-count badge).
+ */
+export function barBlockedOutlineClass(attention: DerivedAttention): string {
+  if (!attention.blockedDerived) return '';
+  return 'shadow-[inset_0_2px_0_0_var(--color-attention-blocked),inset_0_-2px_0_0_var(--color-attention-blocked),inset_-2px_0_0_0_var(--color-attention-blocked)]';
 }
 
 /** True when either attention overlay applies (bar carries a red treatment). */
@@ -99,8 +112,10 @@ export function hasAttention(attention: DerivedAttention): boolean {
 }
 
 /**
- * Border + text color for the due-only page-card marker: red under attention
- * (blocked outranks overdue), otherwise the bucket's saturated hue.
+ * Border + text color for the due-only page-card marker: red under attention (blocked
+ * outranks overdue), otherwise the bucket's saturated hue. Unlike full bars, a marker has
+ * no room for the overdue day-count badge, so overdue keeps a marker-specific red treatment
+ * here — otherwise a past-due marker would look identical to an on-track one.
  */
 export function markerCardColorClass(attention: DerivedAttention, bucketCardClass: string): string {
   if (attention.blockedDerived) return 'border-attention-blocked text-attention-blocked';

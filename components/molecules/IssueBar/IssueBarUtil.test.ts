@@ -2,6 +2,7 @@ import {
   BUCKET_TREATMENT,
   attentionAriaSuffix,
   attentionRingClass,
+  barBlockedOutlineClass,
   barAriaLabel,
   barLabelText,
   daysOverdue,
@@ -69,11 +70,24 @@ describe('labelVisible', () => {
 });
 
 describe('attention overlays', () => {
-  it('rings blocked red (outranking overdue), overdue thinner red, nothing otherwise', () => {
+  it('rings blocked red, and leaves overdue-only (and clear) bars ringless', () => {
     expect(attentionRingClass(BLOCKED)).toContain('ring-attention-blocked');
     expect(attentionRingClass(BOTH)).toContain('ring-attention-blocked');
-    expect(attentionRingClass(OVERDUE)).toContain('ring-attention-overdue');
+    expect(attentionRingClass(OVERDUE)).toBe('');
     expect(attentionRingClass(NONE)).toBe('');
+  });
+
+  it('outlines a blocked bar on the top/right/bottom only (open on the left), nothing otherwise', () => {
+    const blocked = barBlockedOutlineClass(BLOCKED);
+    expect(blocked).toContain('var(--color-attention-blocked)');
+    // Top, bottom, and right inset edges — but no left inset (open leading edge).
+    expect(blocked).toContain('inset_0_2px_0_0');
+    expect(blocked).toContain('inset_0_-2px_0_0');
+    expect(blocked).toContain('inset_-2px_0_0_0');
+    expect(blocked).not.toContain('inset_2px_0_0_0');
+    expect(barBlockedOutlineClass(BOTH)).toBe(barBlockedOutlineClass(BLOCKED));
+    expect(barBlockedOutlineClass(OVERDUE)).toBe('');
+    expect(barBlockedOutlineClass(NONE)).toBe('');
   });
 
   it('hasAttention is true for either signal', () => {
@@ -82,9 +96,10 @@ describe('attention overlays', () => {
     expect(hasAttention(BLOCKED)).toBe(true);
   });
 
-  it('recolors the page-card marker red under attention, else keeps the bucket hue', () => {
+  it('recolors the page-card marker red under attention (blocked outranks overdue), else keeps the bucket hue', () => {
     const bucketCard = 'border-status-active text-status-active';
     expect(markerCardColorClass(BLOCKED, bucketCard)).toBe('border-attention-blocked text-attention-blocked');
+    expect(markerCardColorClass(BOTH, bucketCard)).toBe('border-attention-blocked text-attention-blocked');
     expect(markerCardColorClass(OVERDUE, bucketCard)).toBe('border-attention-overdue text-attention-overdue');
     expect(markerCardColorClass(NONE, bucketCard)).toBe(bucketCard);
   });

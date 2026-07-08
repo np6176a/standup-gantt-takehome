@@ -9,6 +9,7 @@ import {
   BUCKET_TREATMENT,
   attentionAriaSuffix,
   attentionRingClass,
+  barBlockedOutlineClass,
   barAriaLabel,
   barLabelText,
   daysOverdue,
@@ -104,7 +105,7 @@ export const IssueBar = ({
   return (
     <div
       title={ariaLabel}
-      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${ringClass} ${className}`}
+      className={`absolute inset-y-1 flex flex-col overflow-hidden text-left text-[0.75rem] ${zoom !== 'year' ? 'min-w-[0.5rem]' : ''} ${cornerClass} ${treatment.barClass} ${barBlockedOutlineClass(attention)} ${className}`}
       style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
     >
       {/* Only the title row opens the detail popover — the PR-chip band below stays its

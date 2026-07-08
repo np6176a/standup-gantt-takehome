@@ -46,6 +46,13 @@ export function derivedBlocked(
   prsForIssue: readonly PullRequest[],
   now: Date,
 ): { blocked: boolean; reason: string | null } {
+  // Finished work is never blocked — a Done/Canceled issue carries no blocked signal.
+  // (A merged PR is likewise excluded everywhere below: every signal keys off an OPEN PR,
+  // so once its PR merges the issue stops reading as blocked.)
+  if (issue.bucket === 'done' || issue.bucket === 'dropped') {
+    return { blocked: false, reason: null };
+  }
+
   const changesRequested = prsForIssue.find(
     (pr) => pr.state === 'OPEN' && pr.hasChangesRequested,
   );
@@ -57,22 +64,19 @@ export function derivedBlocked(
   // with a stale request rather than the Linear "In Review" state: that state is
   // automation-owned and can lag the real PR status (e.g. the seed's ORB-129 sits in
   // "In Progress" while PR #531 has a review request pending for over a week), so a
-  // state gate would hide exactly the stale review standup needs to see. Done/Canceled
-  // issues are excluded — finished work isn't blocked.
-  if (issue.bucket !== 'done' && issue.bucket !== 'dropped') {
-    const stale = prsForIssue.some(
-      (pr) =>
-        pr.state === 'OPEN' &&
-        pr.reviewOutcomes.some(
-          (outcome) =>
-            outcome.status === 'pending' &&
-            outcome.requestedAt != null &&
-            ageInDays(outcome.requestedAt, now) > STALE_REVIEW_DAYS,
-        ),
-    );
-    if (stale) {
-      return { blocked: true, reason: `review request pending > ${STALE_REVIEW_DAYS} days` };
-    }
+  // state gate would hide exactly the stale review standup needs to see.
+  const stale = prsForIssue.some(
+    (pr) =>
+      pr.state === 'OPEN' &&
+      pr.reviewOutcomes.some(
+        (outcome) =>
+          outcome.status === 'pending' &&
+          outcome.requestedAt != null &&
+          ageInDays(outcome.requestedAt, now) > STALE_REVIEW_DAYS,
+      ),
+  );
+  if (stale) {
+    return { blocked: true, reason: `review request pending > ${STALE_REVIEW_DAYS} days` };
   }
 
   return { blocked: false, reason: null };
@@ -107,11 +111,16 @@ export const MANUAL_BLOCKED_REASON = 'marked blocked';
  * is derived (changes requested / stale review) or someone flagged it in standup. A
  * derived reason is kept when present (it names the concrete signal); otherwise the
  * manual reason — or a default when none was given — is used. `overdue` is untouched.
+ *
+ * Finished work is never blocked: a Done/Canceled issue drops the manual flag entirely,
+ * matching {@link derivedBlocked} so completed issues stay off the blocked treatment.
  */
 export function mergeManualBlocked(
   derived: DerivedAttention,
   manual: ManualBlockedFlag | undefined,
+  bucket: Bucket,
 ): DerivedAttention {
+  if (bucket === 'done' || bucket === 'dropped') return derived;
   if (!manual?.blocked) return derived;
   const manualReason = manual.reason?.trim();
   return {

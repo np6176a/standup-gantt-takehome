@@ -191,7 +191,11 @@ function positionIssue(
     dueDate: issue.dueDate,
     todayIdx,
   });
-  const attention = mergeManualBlocked(deriveAttention(issue, prs, now), blockedFlags[issue.id]);
+  const attention = mergeManualBlocked(
+    deriveAttention(issue, prs, now),
+    blockedFlags[issue.id],
+    issue.bucket,
+  );
   return { issue, span, attention, prs };
 }
 
