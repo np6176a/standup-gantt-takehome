@@ -73,14 +73,15 @@ export interface Lane {
   orphanPrs: readonly PullRequest[];
 }
 
-/** Inputs to {@link buildLanes}. `plannedStarts` and `blockedFlags` are app-owned. */
+/** Inputs to {@link buildLanes}. `manualStarts` and `blockedFlags` are app-owned. */
 export interface BuildLanesInput {
   issues: readonly Issue[];
   grouping: Grouping;
   people: readonly Person[];
   todayIdx: number;
-  /** App-owned planned starts by issue id ("YYYY-MM-DD"); empty when none are set. */
-  plannedStarts?: Record<string, string | null>;
+  /** App-owned manual (temporary) starts by issue id ("YYYY-MM-DD"); empty when none are
+   *  set. Only used for issues with no Linear/PR start — Linear overwrites them. */
+  manualStarts?: Record<string, string | null>;
   /** App-owned manual "mark blocked" flags by issue id, merged into derived attention. */
   blockedFlags?: Record<string, ManualBlockedFlag>;
   /** Normalized PRs grouped by resolved issue id (drives chips + blocked derivation). */
@@ -178,15 +179,16 @@ export function earliestPrDate(prs: readonly PullRequest[]): string | null {
 function positionIssue(
   issue: Issue,
   todayIdx: number,
-  plannedStarts: Record<string, string | null>,
+  manualStarts: Record<string, string | null>,
   blockedFlags: Record<string, ManualBlockedFlag>,
   prsByIssueId: ReadonlyMap<string, readonly PullRequest[]>,
   now: Date,
 ): PositionedIssue {
   const prs = prsByIssueId.get(issue.id) ?? [];
+  // Source of truth for the start: Linear's stamp first, else the earliest linked PR.
   const startedAt = issue.startedAt ?? earliestPrDate(prs);
   const span = computeSpan({
-    plannedStart: plannedStarts[issue.id] ?? null,
+    manualStart: manualStarts[issue.id] ?? null,
     startedAt,
     dueDate: issue.dueDate,
     todayIdx,
@@ -265,7 +267,7 @@ export function buildLanes({
   grouping,
   people,
   todayIdx,
-  plannedStarts = {},
+  manualStarts = {},
   blockedFlags = {},
   prsByIssueId = new Map(),
   now = dateFromDayIndex(todayIdx),
@@ -278,7 +280,7 @@ export function buildLanes({
   const searchActive = searchQuery.trim().length > 0;
   const positioned = issues
     .map((issue) =>
-      positionIssue(issue, todayIdx, plannedStarts, blockedFlags, prsByIssueId, now),
+      positionIssue(issue, todayIdx, manualStarts, blockedFlags, prsByIssueId, now),
     )
     .filter((member) => passesFilters(member, visibleStates, attentionOnly, searchQuery));
 

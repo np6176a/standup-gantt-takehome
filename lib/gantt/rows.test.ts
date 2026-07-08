@@ -364,7 +364,7 @@ describe('buildLanes — attention-only filter', () => {
 describe('matchesSearch', () => {
   const member = (issue: Issue, prs: PullRequest[] = []): PositionedIssue => ({
     issue,
-    span: { plannedStartIdx: null, actualStartIdx: null, startIdx: null, endIdx: null, unscheduled: true },
+    span: { actualStartIdx: null, isManualStart: false, startIdx: null, endIdx: null, unscheduled: true },
     attention: { overdue: false, blockedDerived: false, blockedReason: null },
     prs,
   });

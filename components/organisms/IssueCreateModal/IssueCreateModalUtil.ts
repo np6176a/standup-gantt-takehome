@@ -15,8 +15,8 @@ export interface CreateForm {
   assigneeId: string;
   stateId: string;
   dueDate: string | null;
-  /** App-owned planned start (localStorage), applied after the issue is created. */
-  plannedStart: string | null;
+  /** App-owned manual (temporary) start (localStorage), applied after the issue is created. */
+  manualStart: string | null;
 }
 
 /** A blank form, optionally pre-filled with an assignee (a lane's "+" prefill). */
@@ -26,7 +26,7 @@ export function emptyCreateForm(assigneeId: string | null): CreateForm {
     assigneeId: assigneeId ?? UNASSIGNED_OPTION_VALUE,
     stateId: DEFAULT_CREATE_STATE,
     dueDate: null,
-    plannedStart: null,
+    manualStart: null,
   };
 }
 
@@ -51,7 +51,7 @@ export function isCreateSubmittable(form: CreateForm): boolean {
 /**
  * Map the form to a fake-Linear `IssueCreateInput`: trim the title, omit an unset
  * assignee (so `assigneeId` is absent rather than an empty string), and drop a null due
- * date. The planned start is NOT part of this input — it's app-owned and applied to the
+ * date. The manual start is NOT part of this input — it's app-owned and applied to the
  * planning store after the issue exists.
  */
 export function buildCreateInput(form: CreateForm): IssueCreateInput {
