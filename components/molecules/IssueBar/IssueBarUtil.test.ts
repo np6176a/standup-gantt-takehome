@@ -96,10 +96,11 @@ describe('attention overlays', () => {
     expect(hasAttention(BLOCKED)).toBe(true);
   });
 
-  it('recolors the page-card marker red when blocked, else keeps the bucket hue (overdue included)', () => {
+  it('recolors the page-card marker red under attention (blocked outranks overdue), else keeps the bucket hue', () => {
     const bucketCard = 'border-status-active text-status-active';
     expect(markerCardColorClass(BLOCKED, bucketCard)).toBe('border-attention-blocked text-attention-blocked');
-    expect(markerCardColorClass(OVERDUE, bucketCard)).toBe(bucketCard);
+    expect(markerCardColorClass(BOTH, bucketCard)).toBe('border-attention-blocked text-attention-blocked');
+    expect(markerCardColorClass(OVERDUE, bucketCard)).toBe('border-attention-overdue text-attention-overdue');
     expect(markerCardColorClass(NONE, bucketCard)).toBe(bucketCard);
   });
 

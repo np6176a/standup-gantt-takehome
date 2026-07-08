@@ -112,12 +112,14 @@ export function hasAttention(attention: DerivedAttention): boolean {
 }
 
 /**
- * Border + text color for the due-only page-card marker: red when blocked, otherwise the
- * bucket's saturated hue. Overdue gets no special border — its quiet day-count badge carries
- * the signal instead.
+ * Border + text color for the due-only page-card marker: red under attention (blocked
+ * outranks overdue), otherwise the bucket's saturated hue. Unlike full bars, a marker has
+ * no room for the overdue day-count badge, so overdue keeps a marker-specific red treatment
+ * here — otherwise a past-due marker would look identical to an on-track one.
  */
 export function markerCardColorClass(attention: DerivedAttention, bucketCardClass: string): string {
   if (attention.blockedDerived) return 'border-attention-blocked text-attention-blocked';
+  if (attention.overdue) return 'border-attention-overdue text-attention-overdue';
   return bucketCardClass;
 }
 
