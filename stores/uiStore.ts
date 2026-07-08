@@ -63,9 +63,6 @@ export class UiStore {
   /** Which swimlane grouping the board renders. */
   grouping: Grouping = 'person';
 
-  /** Whether the legend strip under the toolbar is visible. */
-  legendOpen: boolean = true;
-
   /**
    * Whether the toolbar's secondary controls (state filter, attention chip, needs-review,
    * new-issue) are expanded. Only affects the mobile stacked toolbar — on `sm+` everything
@@ -224,11 +221,6 @@ export class UiStore {
   /** Recenter the window on today (the "Today" button). */
   goToToday() {
     this.windowStartIdx = shiftWindow(this.windowStartIdx, this.zoom, 0, this.todayIdx);
-  }
-
-  /** Toggle the legend strip visibility. */
-  toggleLegend() {
-    this.legendOpen = !this.legendOpen;
   }
 
   /** Expand or collapse the mobile toolbar's secondary controls. */
