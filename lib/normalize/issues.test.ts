@@ -85,7 +85,7 @@ describe('computeSpan', () => {
   const spanFor = (id: string) => {
     const node = byId(id);
     return computeSpan({
-      plannedStart: null,
+      manualStart: null,
       startedAt: node.startedAt,
       dueDate: node.dueDate,
       todayIdx: TODAY_IDX,
@@ -135,7 +135,7 @@ describe('computeSpan', () => {
 
   it('two due-only issues on the same day pack into separate rows', () => {
     const marker = () =>
-      computeSpan({ plannedStart: null, startedAt: null, dueDate: '2026-07-20', todayIdx: TODAY_IDX });
+      computeSpan({ manualStart: null, startedAt: null, dueDate: '2026-07-20', todayIdx: TODAY_IDX });
     const rows = packLanes([marker(), marker()], (span) => spanInterval(span)!);
     expect(rows).toHaveLength(2); // not stacked on top of each other at the same x
   });
@@ -146,10 +146,10 @@ describe('computeSpan', () => {
     expect(spanInterval(span)).toBeNull();
   });
 
-  it('never produces a reversed span for a future planned start with no due date', () => {
+  it('never produces a reversed span for a future manual start with no due date', () => {
     const future = dayIndexFromDateString('2026-07-06') + 5;
     const span = computeSpan({
-      plannedStart: '2026-07-11', // 5 days after today, no actual start, no due date
+      manualStart: '2026-07-11', // 5 days after today, no actual start, no due date
       startedAt: null,
       dueDate: null,
       todayIdx: TODAY_IDX,
@@ -157,14 +157,14 @@ describe('computeSpan', () => {
     expect(span.startIdx).toBe(future);
     expect(span.endIdx).toBe(future); // clamped to start, not pulled back to today
     expect(span.endIdx!).toBeGreaterThanOrEqual(span.startIdx!);
-    // A real (started/planned) bar is one day wide, not a zero-width interval.
+    // A real (started/manual) bar is one day wide, not a zero-width interval.
     expect(spanInterval(span)).toEqual({ start: future, end: future + 1 });
   });
 
   it('never produces a reversed span when the due date precedes the start (started late)', () => {
     // Issue started after it was already overdue: startedAt is AFTER dueDate.
     const span = computeSpan({
-      plannedStart: null,
+      manualStart: null,
       startedAt: '2026-07-06T09:00:00.000Z', // started today
       dueDate: '2026-07-01', // was due five days ago
       todayIdx: TODAY_IDX,
@@ -175,17 +175,28 @@ describe('computeSpan', () => {
     expect(packed.end).toBeGreaterThanOrEqual(packed.start);
   });
 
-  it('planned start takes precedence over the actual start as the visual left edge', () => {
+  it('the actual (Linear/PR) start overrides the manual start as the visual left edge', () => {
     const span = computeSpan({
-      plannedStart: '2026-07-01',
+      manualStart: '2026-07-01',
       startedAt: '2026-07-03T09:00:00.000Z',
       dueDate: '2026-07-10',
       todayIdx: TODAY_IDX,
     });
-    expect(span.plannedStartIdx).toBe(dayIndexFromDateString('2026-07-01'));
     expect(span.actualStartIdx).toBe(dayIndexFromDateString('2026-07-03'));
-    expect(span.startIdx).toBe(span.plannedStartIdx);
-    // The gap between planned and actual is the plan-vs-reality drift.
-    expect(span.actualStartIdx).toBeGreaterThan(span.startIdx!);
+    // Linear/PR wins: the manual date is discarded, not shown as the edge.
+    expect(span.startIdx).toBe(span.actualStartIdx);
+    expect(span.isManualStart).toBe(false);
+  });
+
+  it('falls back to the manual start only when there is no actual start', () => {
+    const span = computeSpan({
+      manualStart: '2026-07-01',
+      startedAt: null,
+      dueDate: '2026-07-10',
+      todayIdx: TODAY_IDX,
+    });
+    expect(span.actualStartIdx).toBeNull();
+    expect(span.startIdx).toBe(dayIndexFromDateString('2026-07-01'));
+    expect(span.isManualStart).toBe(true);
   });
 });

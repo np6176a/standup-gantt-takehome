@@ -7,7 +7,7 @@ import type { ManualBlockedFlag } from '@/lib/normalize/attention';
  * restored from) localStorage. Kept plain so it round-trips through `JSON`.
  */
 export interface PlanningSnapshot {
-  plannedStarts: Record<string, string>;
+  manualStarts: Record<string, string>;
   blockedFlags: Record<string, ManualBlockedFlag>;
   /** Ids of issues created through this app — the ones the user is allowed to delete. */
   createdIssueIds: string[];
@@ -15,35 +15,36 @@ export interface PlanningSnapshot {
 
 /**
  * The app-owned planning store: the two pieces of state Linear/GitHub do NOT hold, so
- * they live client-side. `plannedStarts` are the app-owned planned start dates that
- * render as the ghost segment before an issue's actual start (Linear has no writable
- * start). `blockedFlags` are the manual "mark blocked" flags standup sets when someone
- * says "I'm blocked" (Linear has no Blocked state); they merge with the derived blocked
- * signal at the row level. `createdIssueIds` records which issues were created through
- * this app — the only ones the detail popover offers to delete.
+ * they live client-side. `manualStarts` are the app-owned temporary start dates the user
+ * can set on an issue that has no Linear/PR start yet (Linear has no writable start); they
+ * are a placeholder Linear overwrites the moment it stamps a real start. `blockedFlags`
+ * are the manual "mark blocked" flags standup sets when someone says "I'm blocked" (Linear
+ * has no Blocked state); they merge with the derived blocked signal at the row level.
+ * `createdIssueIds` records which issues were created through this app — the only ones the
+ * detail popover offers to delete.
  *
  * Holds only raw scalar maps/sets as observables; the merge with derived attention and the
  * span derivation stay in pure `lib/` functions. {@link snapshot} is the JSON-serializable
  * payload the {@link StoreProvider} reaction persists to (and restores from) localStorage.
  */
 export class PlanningStore {
-  /** App-owned planned start per issue id, "YYYY-MM-DD". */
-  plannedStarts: Record<string, string> = {};
+  /** App-owned manual (temporary) start per issue id, "YYYY-MM-DD". */
+  manualStarts: Record<string, string> = {};
   /** Manual "mark blocked" flag per issue id. Only blocked entries are kept. */
   blockedFlags: Record<string, ManualBlockedFlag> = {};
   /** Ids of issues created through this app (deletable while they carry no PR). */
   createdIssueIds: Set<string> = new Set();
 
   constructor(init: Partial<PlanningSnapshot> = {}) {
-    this.plannedStarts = { ...init.plannedStarts };
+    this.manualStarts = { ...init.manualStarts };
     this.blockedFlags = { ...init.blockedFlags };
     this.createdIssueIds = new Set(init.createdIssueIds ?? []);
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  /** The planned start for an issue, or null when none is set. */
-  plannedStart(issueId: string): string | null {
-    return this.plannedStarts[issueId] ?? null;
+  /** The manual (temporary) start for an issue, or null when none is set. */
+  manualStart(issueId: string): string | null {
+    return this.manualStarts[issueId] ?? null;
   }
 
   /** Whether an issue is manually flagged blocked. */
@@ -58,16 +59,16 @@ export class PlanningStore {
   }
 
   /**
-   * Set (or clear, when `date` is null) an issue's app-owned planned start. Replaces the
-   * map so the computed sees a fresh reference; clearing removes the key entirely.
+   * Set (or clear, when `date` is null) an issue's app-owned manual (temporary) start.
+   * Replaces the map so the computed sees a fresh reference; clearing removes the key entirely.
    */
-  setPlannedStart(issueId: string, date: string | null): void {
+  setManualStart(issueId: string, date: string | null): void {
     if (date) {
-      this.plannedStarts = { ...this.plannedStarts, [issueId]: date };
+      this.manualStarts = { ...this.manualStarts, [issueId]: date };
     } else {
-      const next = { ...this.plannedStarts };
+      const next = { ...this.manualStarts };
       delete next[issueId];
-      this.plannedStarts = next;
+      this.manualStarts = next;
     }
   }
 
@@ -107,10 +108,10 @@ export class PlanningStore {
     this.createdIssueIds.add(issueId);
   }
 
-  /** Drop all app-owned state for an issue — its planned start, blocked flag, and
+  /** Drop all app-owned state for an issue — its manual start, blocked flag, and
    * created-id — after it's deleted, so nothing dangles by a now-dead id. */
   forgetIssue(issueId: string): void {
-    this.setPlannedStart(issueId, null);
+    this.setManualStart(issueId, null);
     this.clearBlocked(issueId);
     this.createdIssueIds.delete(issueId);
   }
@@ -118,7 +119,7 @@ export class PlanningStore {
   /** A plain, JSON-serializable snapshot for persistence (the localStorage payload). */
   get snapshot(): PlanningSnapshot {
     return {
-      plannedStarts: { ...this.plannedStarts },
+      manualStarts: { ...this.manualStarts },
       blockedFlags: { ...this.blockedFlags },
       createdIssueIds: [...this.createdIssueIds],
     };

@@ -10,7 +10,7 @@ import { dateFromDayIndex, isDateOnlyString, localTodayIndex } from '@/lib/gantt
 /** localStorage keys for persisted UI preferences. */
 export const THEME_STORAGE_KEY = 'standup-gantt.theme';
 export const ACCENT_STORAGE_KEY = 'standup-gantt.accent';
-/** localStorage key for the app-owned planning state (planned starts + manual blocked flags). */
+/** localStorage key for the app-owned planning state (manual starts + manual blocked flags). */
 export const PLANNING_STORAGE_KEY = 'standup-gantt.planning';
 /** localStorage key for the toolbar state-filter selections (raw state name → visible). */
 export const STATE_FILTER_STORAGE_KEY = 'standup-gantt.stateFilter';
@@ -21,14 +21,14 @@ export interface RootStoreInit {
   accent?: AccentName;
   /** Today's day index, captured once by {@link createRootStore}. */
   todayIdx?: number;
-  /** Persisted planning state restored from localStorage (planned starts + blocked flags). */
+  /** Persisted planning state restored from localStorage (manual starts + blocked flags). */
   planning?: Partial<PlanningSnapshot>;
 }
 
 /**
  * Composition root for all stores. Holds the UI store (theming + grouping/zoom/window +
  * selection), the data store (raw fetched issues/PRs + their normalized computeds), and
- * the planning store (app-owned planned starts + manual blocked flags), and exposes the
+ * the planning store (app-owned manual starts + manual blocked flags), and exposes the
  * board's grouped/packed rows as a cross-store computed.
  */
 export class RootStore {
@@ -72,7 +72,7 @@ export class RootStore {
       grouping: this.ui.grouping,
       people: this.data.people,
       todayIdx: this.ui.todayIdx,
-      plannedStarts: this.planning.plannedStarts,
+      manualStarts: this.planning.manualStarts,
       blockedFlags: this.planning.blockedFlags,
       prsByIssueId: this.data.prsByIssueId,
       now: dateFromDayIndex(this.ui.todayIdx),
@@ -153,8 +153,8 @@ export function persistPreferences(theme: ThemeMode, accent: AccentName): void {
   }
 }
 
-/** The planned-starts map from a persisted snapshot, dropping any non-string or invalid date. */
-function asPlannedStarts(value: unknown): Record<string, string> {
+/** The manual-starts map from a persisted snapshot, dropping any non-string or invalid date. */
+function asManualStarts(value: unknown): Record<string, string> {
   if (!value || typeof value !== 'object') return {};
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).filter(([, date]) =>
@@ -199,9 +199,12 @@ export function readInitialPlanning(): Partial<PlanningSnapshot> {
   const raw = safeReadStorage(PLANNING_STORAGE_KEY);
   if (!raw) return {};
   try {
-    const parsed = JSON.parse(raw) as Partial<PlanningSnapshot>;
+    const parsed = JSON.parse(raw) as Partial<PlanningSnapshot> & {
+      /** Legacy key (pre-rename) — read so existing local starts aren't lost on upgrade. */
+      plannedStarts?: unknown;
+    };
     return {
-      plannedStarts: asPlannedStarts(parsed.plannedStarts),
+      manualStarts: asManualStarts(parsed.manualStarts ?? parsed.plannedStarts),
       blockedFlags: asBlockedFlags(parsed.blockedFlags),
       createdIssueIds: asCreatedIssueIds(parsed.createdIssueIds),
     };

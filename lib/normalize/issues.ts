@@ -2,10 +2,11 @@
 //
 // Normalization keeps the raw state name and adds its bucket + automation-owned flag
 // and the canonical assignee (resolved through the app roster by email). Span
-// derivation answers the plan-vs-reality question: the visual start is the planned
-// start (app-owned) if set, else the automation-stamped actual start; the solid fill
-// begins at the actual start, so the gap between them IS the drift. An issue with
-// neither a start nor a due date has no span and belongs on the unscheduled shelf.
+// derivation resolves a single start from one source-of-truth chain: Linear's
+// automation-stamped start if present, else the earliest linked PR's start, else the
+// app-owned manual (temporary) start the user set. Linear/PR always win — the manual
+// start is a placeholder that Linear overwrites the moment it stamps a real one. An
+// issue with neither a start nor a due date has no span and belongs on the unscheduled shelf.
 
 import type { Issue, Person } from '@/lib/domain/types';
 import type { WireIssueNode, WireUser } from '@/lib/domain/wire';
@@ -93,13 +94,15 @@ export function knownIdentifiers(issues: readonly Issue[]): Set<string> {
   return new Set(issues.map((issue) => issue.identifier));
 }
 
-/** A resolved timeline span, in day indices, plus the plan-vs-actual start edges. */
+/** A resolved timeline span, in day indices, plus the actual-vs-manual start provenance. */
 export interface IssueSpan {
-  /** Planned-start day index (app-owned), or null. */
-  plannedStartIdx: number | null;
-  /** Actual (automation-stamped) start day index, or null. */
+  /** Actual start day index — Linear's stamp, else the earliest linked PR. The source of
+   *  truth; null when neither exists (only a manual start, or nothing). */
   actualStartIdx: number | null;
-  /** Visual left edge: planned start if set, else actual start. Null when neither exists. */
+  /** True when {@link startIdx} came from the manual (temporary) start because no actual
+   *  start exists yet — the placeholder Linear will overwrite once it stamps a real one. */
+  isManualStart: boolean;
+  /** Visual left edge: the actual start if known, else the manual start. Null when neither exists. */
   startIdx: number | null;
   /**
    * Inclusive last day the item covers: due date if set, else today when the bar has
@@ -112,36 +115,40 @@ export interface IssueSpan {
   unscheduled: boolean;
 }
 
-/** Inputs to {@link computeSpan}: the issue's dates plus app-owned planned start and today. */
+/** Inputs to {@link computeSpan}: the issue's dates plus the app-owned manual start and today. */
 export interface SpanInput {
-  plannedStart: string | null;
+  /** App-owned manual (temporary) start ("YYYY-MM-DD"), used only until an actual start exists. */
+  manualStart: string | null;
+  /** Actual start: Linear's stamped start, else the earliest linked PR. The source of truth. */
   startedAt: string | null;
   dueDate: string | null;
   todayIdx: number;
 }
 
 /**
- * Derive an issue's timeline span in day indices. `start = plannedStart ?? startedAt`;
- * `end = dueDate ?? (start ? today : null)`. Both edges null → unscheduled.
+ * Derive an issue's timeline span in day indices. `start = startedAt ?? manualStart` —
+ * the actual (Linear/PR) start is the source of truth and always wins; the manual start
+ * is only a placeholder used while no actual start exists yet. `end = dueDate ?? (start ?
+ * today : null)`. Both edges null → unscheduled.
  */
-export function computeSpan({ plannedStart, startedAt, dueDate, todayIdx }: SpanInput): IssueSpan {
-  const plannedStartIdx = plannedStart ? dayIndexFromDateString(plannedStart) : null;
+export function computeSpan({ manualStart, startedAt, dueDate, todayIdx }: SpanInput): IssueSpan {
   const actualStartIdx = startedAt ? dayIndexFromDateString(startedAt) : null;
-  const startIdx = plannedStartIdx ?? actualStartIdx;
+  const manualStartIdx = manualStart ? dayIndexFromDateString(manualStart) : null;
+  const startIdx = actualStartIdx ?? manualStartIdx;
   const dueIdx = dueDate ? dayIndexFromDateString(dueDate) : null;
   const rawEndIdx = dueIdx ?? (startIdx !== null ? todayIdx : null);
   // Guarantee end >= start so the span is always a valid [start, end). A due date
   // earlier than the start — an issue started after it was already due (started late),
-  // or a planned start set past the due date — would otherwise reverse the interval
+  // or a manual start set past the due date — would otherwise reverse the interval
   // and corrupt packing and bar geometry. Overdue is driven by dueDate separately, so
   // clamping the geometry here never hides the red treatment. Also covers the future
-  // planned-start-with-no-due case (rawEndIdx = today, clamped up to the start).
+  // manual-start-with-no-due case (rawEndIdx = today, clamped up to the start).
   const endIdx =
     rawEndIdx !== null && startIdx !== null ? Math.max(rawEndIdx, startIdx) : rawEndIdx;
 
   return {
-    plannedStartIdx,
     actualStartIdx,
+    isManualStart: startIdx !== null && actualStartIdx === null,
     startIdx,
     endIdx,
     unscheduled: startIdx === null && endIdx === null,

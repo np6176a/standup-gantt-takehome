@@ -8,6 +8,7 @@ import type { PullRequest } from '@/lib/normalize/pullRequests';
 import type { ReviewDotState } from '@/components/molecules/PrChip/PrChipUtil';
 import { StoreContext } from '@/stores/StoreProvider';
 import { BUCKET_LABELS } from '@/lib/domain/states';
+import { earliestPrDate } from '@/lib/gantt/rows';
 import { dateFromDayIndex } from '@/lib/gantt/scale';
 import { deriveAttention } from '@/lib/normalize/attention';
 import {
@@ -53,8 +54,10 @@ export interface IssueDetailPopoverProps {
  * The issue detail popover: edit an issue without leaving the board. Status (writable
  * states only; automation-owned ones locked with a hint), due date, assignee, and title
  * write through to fake-Linear via the data store (apply-the-response — the returned node
- * re-derives the board). Planned start and the manual "mark blocked" flag are app-owned
- * and write to the planning store. Linked PRs deep-link out to GitHub. An issue that was
+ * re-derives the board). The temporary start and the manual "mark blocked" flag are
+ * app-owned and write to the planning store; the temporary start is a placeholder shown
+ * only until Linear/a PR supplies a real start, which then overrides it. Linked PRs
+ * deep-link out to GitHub. An issue that was
  * created through this app and carries no PR can be deleted from the footer (with a confirm
  * step). Reads the selected issue straight off the store; render it keyed by issue id so its
  * drafts (including the delete-confirm state) reset per issue.
@@ -87,6 +90,10 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
   const now = dateFromDayIndex(ui.todayIdx);
   const derived = deriveAttention(issue, prs, now);
   const manuallyBlocked = planning.isBlocked(issue.id);
+  // The actual start (Linear's stamp, else the earliest linked PR) is the source of truth.
+  // When it exists it overrides any temporary start, which we then disable + annotate.
+  const actualStart = issue.startedAt ?? earliestPrDate(prs);
+  const actualStartLabel = actualStart ? actualStart.slice(0, 10) : null;
 
   /** Run a write, surfacing a saving indicator and any rejection inline. Each write is added
    * to the pending-saves set so a concurrent delete can await all of them first; `saving`
@@ -222,12 +229,18 @@ export const IssueDetailPopover = observer(function IssueDetailPopover({
             />
           </Field>
 
-          <Field label="Planned start (local only)">
+          <Field label="Temporary start">
             <DateInput
-              value={planning.plannedStart(issue.id)}
-              onChange={(date) => planning.setPlannedStart(issue.id, date)}
-              aria-label="Planned start"
+              value={actualStart ? actualStartLabel : planning.manualStart(issue.id)}
+              onChange={(date) => planning.setManualStart(issue.id, date)}
+              disabled={actualStart !== null}
+              aria-label="Temporary start"
             />
+            <span className="text-[0.6875rem] text-content-muted">
+              {actualStart
+                ? `Set from ${issue.startedAt ? 'Linear' : 'first PR'} — overrides any temporary start`
+                : 'Local placeholder until Linear or a PR sets a start'}
+            </span>
           </Field>
         </div>
 

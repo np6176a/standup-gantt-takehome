@@ -20,7 +20,7 @@ export interface DateInputProps
 /**
  * A styled native date picker over `<input type="date">`. Emits the app's date shape — a
  * "YYYY-MM-DD" string or null — so callers never juggle empty strings. When `clearable`
- * and a value is set, an inline ✕ clears it (a due date is clearable; a planned start too).
+ * and a value is set, an inline ✕ clears it (a due date is clearable; a temporary start too).
  */
 export const DateInput = ({
   value,

@@ -54,7 +54,7 @@ function member(
     ...overrides,
   };
   const span = computeSpan({
-    plannedStart: null,
+    manualStart: null,
     startedAt: issue.startedAt,
     dueDate: issue.dueDate,
     todayIdx: START + 3,
