@@ -15,7 +15,7 @@ describe('bucketForState', () => {
     ['In Review', 'review'],
     ['On Develop', 'active'],
     ['On Staging', 'shipping'],
-    ['On Prod', 'shipping'],
+    ['On Prod', 'done'],
     ['Todo', 'planned'],
     ['Selected For Development', 'planned'],
     ['Backlog', 'planned'],

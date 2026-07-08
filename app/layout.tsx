@@ -25,9 +25,7 @@ const noFlashScript = `
   }
   var t = read('standup-gantt.theme');
   if (t !== 'light' && t !== 'dark') {
-    try {
-      t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    } catch (e) { t = 'light'; }
+    t = 'light';
   }
   var a = read('standup-gantt.accent') || 'indigo';
   try {

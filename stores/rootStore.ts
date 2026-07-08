@@ -122,20 +122,19 @@ function safeReadStorage(key: string): string | null {
 }
 
 /**
- * Read persisted theme/accent from localStorage, falling back to the OS
- * color-scheme preference for theme and indigo for accent. Safe to call during
- * SSR (returns empty defaults when `window` is undefined) and when storage is
- * denied (falls back to defaults instead of throwing).
+ * Read persisted theme/accent from localStorage, defaulting to the light theme
+ * and indigo accent when nothing is stored. Safe to call during SSR (returns
+ * empty defaults when `window` is undefined) and when storage is denied (falls
+ * back to defaults instead of throwing).
  */
 function readInitialPreferences(): { theme?: ThemeMode; accent?: AccentName } {
   if (typeof window === 'undefined') return {};
 
   const storedTheme = safeReadStorage(THEME_STORAGE_KEY);
   const storedAccent = safeReadStorage(ACCENT_STORAGE_KEY);
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 
   return {
-    theme: isThemeMode(storedTheme) ? storedTheme : prefersDark ? 'dark' : 'light',
+    theme: isThemeMode(storedTheme) ? storedTheme : 'light',
     accent: isAccentName(storedAccent) ? storedAccent : 'indigo',
   };
 }

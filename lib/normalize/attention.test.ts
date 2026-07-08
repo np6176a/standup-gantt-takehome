@@ -78,6 +78,11 @@ describe('derivedBlocked', () => {
     expect(result.reason).toContain(`${STALE_REVIEW_DAYS}`);
   });
 
+  it('does not flag a Done issue whose open PR still has changes requested', () => {
+    const done: Issue = { ...issue('ORB-104'), bucket: 'done' };
+    expect(derivedBlocked(done, prsFor('ORB-104'), NOW).blocked).toBe(false);
+  });
+
   it('does not flag a stale pending review on a Done issue', () => {
     const done: Issue = { ...issue('ORB-109'), bucket: 'done' };
     const stalePr: PullRequest = {
@@ -137,28 +142,33 @@ describe('mergeManualBlocked', () => {
   };
 
   it('returns the derived attention unchanged when no manual flag is set', () => {
-    expect(mergeManualBlocked(notBlocked, undefined)).toBe(notBlocked);
-    expect(mergeManualBlocked(notBlocked, { blocked: false })).toBe(notBlocked);
+    expect(mergeManualBlocked(notBlocked, undefined, 'active')).toBe(notBlocked);
+    expect(mergeManualBlocked(notBlocked, { blocked: false }, 'active')).toBe(notBlocked);
   });
 
   it('flags blocked with the manual reason when only the manual flag is set', () => {
-    const merged = mergeManualBlocked(notBlocked, { blocked: true, reason: 'waiting on design' });
+    const merged = mergeManualBlocked(notBlocked, { blocked: true, reason: 'waiting on design' }, 'active');
     expect(merged.blockedDerived).toBe(true);
     expect(merged.blockedReason).toBe('waiting on design');
   });
 
   it('falls back to a default reason when the manual flag has none', () => {
-    const merged = mergeManualBlocked(notBlocked, { blocked: true });
+    const merged = mergeManualBlocked(notBlocked, { blocked: true }, 'active');
     expect(merged.blockedReason).toBe(MANUAL_BLOCKED_REASON);
   });
 
   it('keeps the concrete derived reason when both sources are blocked', () => {
-    const merged = mergeManualBlocked(derivedBlockedAttn, { blocked: true, reason: 'manual note' });
+    const merged = mergeManualBlocked(derivedBlockedAttn, { blocked: true, reason: 'manual note' }, 'active');
     expect(merged.blockedReason).toBe('changes requested on #503');
   });
 
   it('leaves overdue untouched', () => {
     const overdueOnly: DerivedAttention = { ...notBlocked, overdue: true };
-    expect(mergeManualBlocked(overdueOnly, { blocked: true }).overdue).toBe(true);
+    expect(mergeManualBlocked(overdueOnly, { blocked: true }, 'active').overdue).toBe(true);
+  });
+
+  it('never blocks a Done or Canceled issue, even with a manual flag', () => {
+    expect(mergeManualBlocked(notBlocked, { blocked: true }, 'done')).toBe(notBlocked);
+    expect(mergeManualBlocked(notBlocked, { blocked: true, reason: 'x' }, 'dropped')).toBe(notBlocked);
   });
 });
